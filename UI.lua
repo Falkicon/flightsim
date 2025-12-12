@@ -1222,7 +1222,8 @@ function FlightsimUI:DebugDump()
 		version = GetAddOnMetadata("Flightsim", "Version") or "?"
 	end
 	PrintKV("Version", version)
-	PrintKV("BugGrabber loaded", IsAddonLoaded("BugGrabber") and "yes" or "no")
+	-- BugGrabber folder is named "!BugGrabber" (with ! prefix for load order)
+	PrintKV("BugGrabber loaded", (IsAddonLoaded("!BugGrabber") or IsAddonLoaded("BugGrabber")) and "yes" or "no")
 	PrintKV("BugSack loaded", IsAddonLoaded("BugSack") and "yes" or "no")
 	PrintKV("Has GetSpellCharges", type(GetSpellCharges) == "function" and "yes" or "no")
 	PrintKV("Has C_Spell.GetSpellCharges", (C_Spell and type(C_Spell.GetSpellCharges) == "function") and "yes" or "no")
