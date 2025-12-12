@@ -150,8 +150,8 @@ Automatic packaging is configured via `.pkgmeta` and GitHub webhook.
 
 1. Push to GitHub triggers the webhook
 2. CurseForge pulls the repo and runs the packager
-3. `@project-version@` in TOC is replaced with git tag or short hash
-4. `.pkgmeta` controls what files are included/excluded
+3. `.pkgmeta` controls what files are included/excluded
+4. Version in TOC is used as-is (manually maintained)
 
 ### Release types
 
@@ -164,6 +164,11 @@ Automatic packaging is configured via `.pkgmeta` and GitHub webhook.
 
 ### Release workflow
 
+1. Update version in `flightsim.toc` (e.g., `## Version: 1.0.0`)
+2. Update `CHANGELOG.md` with new version entry
+3. Commit and push changes
+4. Create and push git tag matching the version:
+
 ```bash
 # For release versions:
 git tag 1.0.0
@@ -173,6 +178,8 @@ git push origin 1.0.0
 git tag 1.0.0-beta
 git push origin 1.0.0-beta
 ```
+
+**Important**: The TOC version is displayed in `/fs debug` output. Keep it in sync with git tags and CHANGELOG.
 
 ## Future considerations
 
