@@ -1203,10 +1203,27 @@ function FlightsimUI:DebugDump()
 		print(string.format("Flightsim debug: %s = %s", tostring(k), tostring(v)))
 	end
 
+	-- Use C_AddOns.IsAddOnLoaded (modern) or fall back to IsAddOnLoaded (legacy)
+	local function IsAddonLoaded(name)
+		if C_AddOns and C_AddOns.IsAddOnLoaded then
+			return C_AddOns.IsAddOnLoaded(name)
+		elseif IsAddOnLoaded then
+			return IsAddOnLoaded(name)
+		end
+		return false
+	end
+
 	print("Flightsim debug: ----")
-	PrintKV("Version", (GetAddOnMetadata and GetAddOnMetadata("Flightsim", "Version")) or "?")
-	PrintKV("BugGrabber loaded", (IsAddOnLoaded and IsAddOnLoaded("BugGrabber")) and "yes" or "no")
-	PrintKV("BugSack loaded", (IsAddOnLoaded and IsAddOnLoaded("BugSack")) and "yes" or "no")
+	-- Use C_AddOns.GetAddOnMetadata (modern) or fall back to GetAddOnMetadata (legacy)
+	local version = "?"
+	if C_AddOns and C_AddOns.GetAddOnMetadata then
+		version = C_AddOns.GetAddOnMetadata("Flightsim", "Version") or "?"
+	elseif GetAddOnMetadata then
+		version = GetAddOnMetadata("Flightsim", "Version") or "?"
+	end
+	PrintKV("Version", version)
+	PrintKV("BugGrabber loaded", IsAddonLoaded("BugGrabber") and "yes" or "no")
+	PrintKV("BugSack loaded", IsAddonLoaded("BugSack") and "yes" or "no")
 	PrintKV("Has GetSpellCharges", type(GetSpellCharges) == "function" and "yes" or "no")
 	PrintKV("Has C_Spell.GetSpellCharges", (C_Spell and type(C_Spell.GetSpellCharges) == "function") and "yes" or "no")
 	PrintKV("Has C_PlayerInfo.IsPlayerInSkyriding", (C_PlayerInfo and type(C_PlayerInfo.IsPlayerInSkyriding) == "function") and "yes" or "no")
