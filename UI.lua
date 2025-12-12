@@ -779,6 +779,7 @@ function FlightsimUI:StartUpdating()
 		self.tickerFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
 		self.tickerFrame:RegisterEvent("UNIT_AURA")
 		self.tickerFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+		self.tickerFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")  -- For druid flight form
 		self.tickerFrame:SetScript("OnEvent", function(_, event, unit)
 			if event == "UNIT_AURA" and unit ~= "player" then return end
 			-- Force visibility check on mount change and invalidate cache
@@ -792,9 +793,9 @@ function FlightsimUI:StartUpdating()
 
 		-- Adaptive throttling:
 		-- - When visible/skyriding: 20Hz (0.05s) for smooth updates
-		-- - When hidden: 0.2Hz (5s) to save CPU, unless forced by event
+		-- - When hidden: 2Hz (0.5s) to save CPU while staying responsive
 		local isVisible = self.frame:IsShown()
-		local throttle = isVisible and 0.05 or 5.0
+		local throttle = isVisible and 0.05 or 0.5
 
 		if not self._forceVisibilityCheck and self._accum < throttle then
 			return

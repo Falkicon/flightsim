@@ -70,8 +70,8 @@ Confirmed spell IDs for 11.2.7:
 
 ### Performance patterns
 
-- Adaptive throttling: 20Hz when visible, 0.2Hz when hidden
-- Event-driven visibility via `PLAYER_MOUNT_DISPLAY_CHANGED`, `UNIT_AURA`
+- Adaptive throttling: 20Hz when visible, 2Hz when hidden
+- Event-driven visibility via `PLAYER_MOUNT_DISPLAY_CHANGED`, `UNIT_AURA`, `UPDATE_SHAPESHIFT_FORMS`
 - Frame-level caching for `IsSkyridingActive()` to avoid repeated pcalls
 - Reusable tables for cooldown results (no per-frame allocations)
 - Cache invalidation on mount events for instant response
@@ -155,12 +155,12 @@ Automatic packaging is configured via `.pkgmeta` and GitHub webhook.
 
 ### Release types
 
-| Git Action | CurseForge Release |
-|------------|--------------------|
-| Push to main (no tag) | Alpha |
-| Tag with "alpha" (e.g., `1.0.0-alpha`) | Alpha |
-| Tag with "beta" (e.g., `1.0.0-beta`) | Beta |
-| Clean tag (e.g., `1.0.0`) | Release |
+| Git Action                             | CurseForge Release |
+| -------------------------------------- | ------------------ |
+| Push to main (no tag)                  | Alpha              |
+| Tag with "alpha" (e.g., `1.0.0-alpha`) | Alpha              |
+| Tag with "beta" (e.g., `1.0.0-beta`)   | Beta               |
+| Clean tag (e.g., `1.0.0`)              | Release            |
 
 ### Release workflow
 

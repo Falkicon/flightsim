@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Fixed visibility detection for druids in Flight Form (`IsMounted()` returns false for shapeshifts)
 - Fixed OnUpdate quick-exit optimization to not hide frame for druids in Flight Form
+- Fixed 3-5 second delay before HUD appeared on mount
+  - Added `UPDATE_SHAPESHIFT_FORMS` event for instant druid form detection
+  - Reduced hidden-state polling from 5s to 0.5s for faster fallback response
 
 ## [0.1.0] - 2025-12-12
 
