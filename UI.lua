@@ -1221,6 +1221,8 @@ function FlightsimUI:DebugDump()
 	elseif GetAddOnMetadata then
 		version = GetAddOnMetadata("Flightsim", "Version") or "?"
 	end
+	-- @project-version@ is replaced by CurseForge packager; show "dev" for local installs
+	if version:find("@") then version = "dev" end
 	PrintKV("Version", version)
 	-- BugGrabber folder is named "!BugGrabber" (with ! prefix for load order)
 	PrintKV("BugGrabber loaded", (IsAddonLoaded("!BugGrabber") or IsAddonLoaded("BugGrabber")) and "yes" or "no")
