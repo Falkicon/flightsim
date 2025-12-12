@@ -17,7 +17,6 @@ Desktop.ini
 
 # Build artifacts (if using packager)
 .release/
-.pkgmeta
 *.zip
 
 # Temporary files

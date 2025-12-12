@@ -128,13 +128,38 @@ Druid Flight Form (Travel Form while flying) requires special handling:
 
 ## File structure
 
-| File             | Purpose                    | Lines |
-| ---------------- | -------------------------- | ----- |
-| `flightsim.toc`  | Manifest                   | ~15   |
-| `Flightsim.lua`  | Init, defaults, migrations | ~80   |
-| `UI.lua`         | All UI logic               | ~1280 |
-| `Config.lua`     | Slash commands             | ~180  |
-| `SettingsUI.lua` | Settings panel             | ~485  |
+| File             | Purpose                     | Lines |
+| ---------------- | --------------------------- | ----- |
+| `flightsim.toc`  | Manifest                    | ~15   |
+| `Flightsim.lua`  | Init, defaults, migrations  | ~80   |
+| `UI.lua`         | All UI logic                | ~1300 |
+| `Config.lua`     | Slash commands              | ~180  |
+| `SettingsUI.lua` | Settings panel              | ~485  |
+| `.pkgmeta`       | CurseForge packaging config | ~20   |
+
+## CurseForge deployment
+
+Automatic packaging is configured via `.pkgmeta` and GitHub webhook:
+
+1. **Webhook URL**: `https://www.curseforge.com/api/projects/{projectID}/package?token={token}`
+2. **Version token**: `@project-version@` in TOC is replaced with git tag or short hash
+3. **Release types**:
+   - Tagged commits with "alpha" → Alpha
+   - Tagged commits with "beta" → Beta
+   - Other tagged commits → Release
+   - Untagged commits → Alpha
+
+### Release workflow
+
+```bash
+# For release versions:
+git tag 1.0.0
+git push origin 1.0.0
+
+# For beta versions:
+git tag 1.0.0-beta
+git push origin 1.0.0-beta
+```
 
 ## Future considerations
 

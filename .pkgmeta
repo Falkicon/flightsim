@@ -1,0 +1,23 @@
+package-as: Flightsim
+
+enable-nolib-creation: no
+
+ignore:
+  - README.md
+  - CONTRIBUTING.md
+  - ADDON_DEVELOPMENT_GUIDE.md
+  - AGENTS.md
+  - SPEC.md
+  - LICENSE
+  - .git
+  - .github
+  - .gitignore
+  - .vscode
+  - assets/images
+
+# No external libraries - standalone addon
+
+# Manual changelog (CurseForge will also pull from git tags)
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
