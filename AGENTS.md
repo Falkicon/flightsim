@@ -96,6 +96,7 @@ Confirmed spell IDs for 11.2.7:
 | 2025-12-12 | Performance: adaptive throttling, table reuse, caching   |
 | 2025-12-12 | Early IsMounted() check for instant dismount detection   |
 | 2025-12-12 | Druid Flight Form support via GetShapeshiftForm() check  |
+| 2025-12-12 | CurseForge auto-packaging via GitHub webhook             |
 
 ## API compatibility notes
 
@@ -139,15 +140,27 @@ Druid Flight Form (Travel Form while flying) requires special handling:
 
 ## CurseForge deployment
 
-Automatic packaging is configured via `.pkgmeta` and GitHub webhook:
+Automatic packaging is configured via `.pkgmeta` and GitHub webhook.
 
-1. **Webhook URL**: `https://www.curseforge.com/api/projects/{projectID}/package?token={token}`
-2. **Version token**: `@project-version@` in TOC is replaced with git tag or short hash
-3. **Release types**:
-   - Tagged commits with "alpha" → Alpha
-   - Tagged commits with "beta" → Beta
-   - Other tagged commits → Release
-   - Untagged commits → Alpha
+- **Project ID**: `1403044`
+- **Project URL**: https://www.curseforge.com/wow/addons/flightsim
+- **Webhook URL**: `https://www.curseforge.com/api/projects/1403044/package?token={token}`
+
+### How it works
+
+1. Push to GitHub triggers the webhook
+2. CurseForge pulls the repo and runs the packager
+3. `@project-version@` in TOC is replaced with git tag or short hash
+4. `.pkgmeta` controls what files are included/excluded
+
+### Release types
+
+| Git Action | CurseForge Release |
+|------------|--------------------|
+| Push to main (no tag) | Alpha |
+| Tag with "alpha" (e.g., `1.0.0-alpha`) | Alpha |
+| Tag with "beta" (e.g., `1.0.0-beta`) | Beta |
+| Clean tag (e.g., `1.0.0`) | Release |
 
 ### Release workflow
 

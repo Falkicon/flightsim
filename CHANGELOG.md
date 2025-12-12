@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Druid Flight Form support: addon now displays correctly when druids use Travel Form for skyriding
+- CurseForge automatic packaging via GitHub webhook integration
+- `.pkgmeta` configuration for CurseForge packager
 
 ### Fixed
 
