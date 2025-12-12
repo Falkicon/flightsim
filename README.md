@@ -97,4 +97,4 @@ The addon only displays while actively skyriding:
 
 ## License
 
-MIT License – see source files for details.
+MIT License – see [LICENSE](LICENSE) for details.
