@@ -95,6 +95,7 @@ Confirmed spell IDs for 11.2.7:
 | 2025-12-12 | Hide ability bars when spell APIs restricted (Midnight)  |
 | 2025-12-12 | Performance: adaptive throttling, table reuse, caching   |
 | 2025-12-12 | Early IsMounted() check for instant dismount detection   |
+| 2025-12-12 | Druid Flight Form support via GetShapeshiftForm() check  |
 
 ## API compatibility notes
 
@@ -115,6 +116,15 @@ Critical APIs for skyriding detection:
 - `C_PlayerInfo.GetGlidingInfo()` – returns `isGliding, canGlide, forwardSpeed`
 - `C_Spell.GetSpellCooldown()` – cooldown info
 - `C_Spell.GetSpellCharges()` – charge info
+
+### Druid Flight Form Support
+
+Druid Flight Form (Travel Form while flying) requires special handling:
+
+- `IsMounted()` returns `false` for druids in Flight Form (it's a shapeshift, not a mount)
+- `GetShapeshiftForm()` returns `3` for Travel/Flight Form on druids
+- `C_PlayerInfo.GetGlidingInfo()` works correctly for druids doing dynamic flight
+- Detection logic: check both `IsMounted()` OR druid flight form before querying gliding APIs
 
 ## File structure
 

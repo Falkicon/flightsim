@@ -2,7 +2,7 @@
 ## Title: Flightsim
 ## Notes: Flight speed + Skyriding charge tracker.
 ## Author: jasfalk
-## Version: 0.1.0
+## Version: 0.1.1
 ## SavedVariables: FlightsimDB
 
 Flightsim.lua

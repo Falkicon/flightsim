@@ -289,6 +289,20 @@ local function ResolveSpellInfo(token)
 	return spellID, icon
 end
 
+-- Check if player is in druid flight form (Travel Form in flying mode)
+local function IsInDruidFlightForm()
+	-- GetShapeshiftForm returns 3 for Travel/Aquatic/Flight Form on druids
+	-- We also need to verify we're actually flying (not ground travel or swimming)
+	if type(GetShapeshiftForm) ~= "function" then
+		return false
+	end
+	local ok, form = pcall(GetShapeshiftForm)
+	if ok and form == 3 and IsFlying() then
+		return true
+	end
+	return false
+end
+
 function FlightsimUI:IsSkyridingActive()
 	-- Cache result for this frame to avoid repeated pcalls
 	local now = GetTime()
@@ -296,8 +310,11 @@ function FlightsimUI:IsSkyridingActive()
 		return self._skyridingCacheResult
 	end
 
-	-- Quick exit: if not mounted, we're definitely not skyriding
-	if not IsMounted() then
+	-- Quick exit: if not mounted AND not in druid flight form, we're definitely not skyriding
+	-- Druid Flight Form returns false for IsMounted() but can still do dynamic flight
+	local isMounted = IsMounted()
+	local isDruidFlying = IsInDruidFlightForm()
+	if not isMounted and not isDruidFlying then
 		self._skyridingCacheTime = now
 		self._skyridingCacheResult = false
 		return false
@@ -308,6 +325,7 @@ function FlightsimUI:IsSkyridingActive()
 	-- Best-effort detection using GetGlidingInfo (added in 10.0.5)
 	-- isGliding = currently gliding in the air
 	-- canGlide = on a skyriding mount in a valid zone (even on ground)
+	-- This works for both regular mounts AND druid flight form
 	if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
 		local ok, isGliding, canGlide, forwardSpeed = pcall(C_PlayerInfo.GetGlidingInfo)
 		if ok then
@@ -332,9 +350,8 @@ function FlightsimUI:IsSkyridingActive()
 		end
 	end
 
-	-- Last resort: if flying, check for skyriding abilities
-	-- (We already know we're mounted from the early exit above)
-	if not result and IsFlying() then
+	-- Last resort: if flying (mounted or druid form), check for skyriding abilities
+	if not result and IsFlying() and (isMounted or isDruidFlying) then
 		if self.db and self.db.profile and self.db.profile.abilities and self.db.profile.abilities.order then
 			for _, token in ipairs(self.db.profile.abilities.order) do
 				if self.db.profile.abilities.enabled == nil or self.db.profile.abilities.enabled[token] ~= false then
@@ -787,10 +804,12 @@ function FlightsimUI:StartUpdating()
 
 		-- Quick exit for unmounted state - no need to call ApplyVisibility
 		-- which does expensive IsSkyridingActive() check
+		-- Note: Druids in Flight Form have IsMounted()=false (it's a shapeshift, not a mount)
 		local mounted = IsMounted()
-		if not mounted and self.db and self.db.profile and self.db.profile.visibility 
+		local druidFlying = IsInDruidFlightForm()
+		if not mounted and not druidFlying and self.db and self.db.profile and self.db.profile.visibility 
 		   and self.db.profile.visibility.hideWhenNotSkyriding then
-			-- Force hide when not mounted (faster than full visibility check)
+			-- Force hide when not mounted and not in druid flight form (faster than full visibility check)
 			if self.frame:IsShown() then
 				self.frame:Hide()
 				if self.accelFrame then self.accelFrame:Hide() end

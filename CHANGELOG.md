@@ -4,6 +4,17 @@ All notable changes to Flightsim will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2025-12-12
+
+### Added
+
+- Druid Flight Form support: addon now displays correctly when druids use Travel Form for skyriding
+
+### Fixed
+
+- Fixed visibility detection for druids in Flight Form (`IsMounted()` returns false for shapeshifts)
+- Fixed OnUpdate quick-exit optimization to not hide frame for druids in Flight Form
+
 ## [0.1.0] - 2025-12-12
 
 Initial release.
