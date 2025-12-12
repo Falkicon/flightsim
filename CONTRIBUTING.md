@@ -49,6 +49,7 @@ The addon targets Interface 120000 (Midnight beta). When adding features:
 ### Bug Reports
 
 Open an issue with:
+
 - WoW version and client (Retail/Beta)
 - Steps to reproduce
 - Output from `/fs debug` if relevant
@@ -57,6 +58,7 @@ Open an issue with:
 ### Feature Requests
 
 Open an issue describing:
+
 - What you want to accomplish
 - Why it fits the addon's scope (lightweight skyriding HUD)
 
@@ -70,13 +72,13 @@ Open an issue describing:
 
 ## File Structure
 
-| File | Purpose |
-|------|---------|
-| `flightsim.toc` | Addon manifest |
-| `Flightsim.lua` | Init, defaults, migrations |
-| `UI.lua` | All UI logic (~1280 lines) |
-| `Config.lua` | Slash commands |
-| `SettingsUI.lua` | Blizzard Settings panel |
+| File             | Purpose                    |
+| ---------------- | -------------------------- |
+| `flightsim.toc`  | Addon manifest             |
+| `Flightsim.lua`  | Init, defaults, migrations |
+| `UI.lua`         | All UI logic (~1280 lines) |
+| `Config.lua`     | Slash commands             |
+| `SettingsUI.lua` | Blizzard Settings panel    |
 
 ## Testing Checklist
 

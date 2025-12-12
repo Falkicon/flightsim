@@ -1,5 +1,7 @@
 # Flightsim
 
+![Flightsim Banner](assets/images/flightsim-banner-1200.png)
+
 A lightweight World of Warcraft addon that displays flight speed, acceleration, and skyriding ability cooldowns while dragonriding.
 
 ![WoW Version](https://img.shields.io/badge/WoW-11.2.7%2B-blue)
