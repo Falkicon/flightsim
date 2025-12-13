@@ -99,6 +99,10 @@ The addon only displays while actively skyriding:
 - Minimal resource usage: ~150k memory, <0.15 ms/s CPU when idle
 - Graceful degradation when spell APIs are restricted (combat/restricted zones)
 
+## Support
+
+If you find Flightsim useful, consider [sponsoring on GitHub](https://github.com/sponsors/Falkicon) to support continued development and new addons. Every contribution helps!
+
 ## License
 
 MIT License – see [LICENSE](LICENSE) for details.
