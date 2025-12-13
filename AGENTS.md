@@ -144,7 +144,19 @@ Automatic packaging is configured via `.pkgmeta` and GitHub webhook.
 
 - **Project ID**: `1403044`
 - **Project URL**: https://www.curseforge.com/wow/addons/flightsim
-- **Webhook URL**: `https://www.curseforge.com/api/projects/1403044/package?token={token}`
+
+### Webhook setup
+
+The GitHub webhook triggers CurseForge to pull and package on every push:
+
+1. **Generate API token**: https://www.curseforge.com/account/api-tokens
+2. **Add webhook in GitHub**: https://github.com/Falkicon/flightsim/settings/hooks
+   - **Payload URL**: `https://www.curseforge.com/api/projects/1403044/package?token={YOUR_TOKEN}`
+   - **Content type**: `application/json`
+   - **Secret**: (leave empty)
+   - **SSL verification**: Enabled
+   - **Events**: Just the push event
+   - **Active**: Checked
 
 ### How it works
 
