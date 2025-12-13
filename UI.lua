@@ -116,6 +116,11 @@ local function IsSlowSkyridingZone()
 end
 
 local function HasThrillBuff()
+	-- Midnight (12.0+): C_UnitAuras.GetPlayerAuraBySpellID is protected in combat
+	-- Skip the call entirely to avoid ADDON_ACTION_BLOCKED warnings
+	if InCombatLockdown() then
+		return false
+	end
 	if C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function" then
 		local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, THRILL_BUFF_ID)
 		return ok and aura ~= nil
@@ -430,20 +435,29 @@ function FlightsimUI:Init(db)
 	barBg:SetColorTexture(0.08, 0.12, 0.18, 0.85)
 	self.speedBarBg = barBg
 
+	-- Create an overlay frame on top of the StatusBar for text and marker
+	-- This ensures they render above the StatusBar fill texture
+	local overlay = CreateFrame("Frame", nil, frame)
+	overlay:SetAllPoints(frame)
+	overlay:SetFrameLevel(frame:GetFrameLevel() + 10)
+	self.speedBarOverlay = overlay
+
+	-- Sustainable speed marker - parented to overlay frame
 	local sustainableMarkerWidth = (db.profile.ui and db.profile.ui.sustainableSpeedMarkerWidth) or (db.profile.ui and db.profile.ui.optimalMarkerWidth) or 1
 	local sustainableMarkerAlpha = (db.profile.ui and db.profile.ui.sustainableSpeedMarkerAlpha) or 0.2
-	local optimal = frame:CreateTexture(nil, "OVERLAY")
+	local optimal = overlay:CreateTexture(nil, "OVERLAY")
 	optimal:SetColorTexture(1, 1, 1, sustainableMarkerAlpha)
 	optimal:SetWidth(sustainableMarkerWidth)
-	optimal:SetPoint("TOP", frame, "TOP", 0, 0)
-	optimal:SetPoint("BOTTOM", frame, "BOTTOM", 0, 0)
+	optimal:SetPoint("TOP", overlay, "TOP", 0, 0)
+	optimal:SetPoint("BOTTOM", overlay, "BOTTOM", 0, 0)
 	self.sustainableMarker = optimal
 
-	local speedText = frame:CreateFontString(nil, "OVERLAY")
+	-- Speed text - parented to overlay frame
+	local speedText = overlay:CreateFontString(nil, "OVERLAY")
 	-- Sans-serif look like WA.
 	local fontSize = (db.profile.speedBar and db.profile.speedBar.fontSize) or 12
 	speedText:SetFont("Fonts\\ARIALN.TTF", fontSize, "OUTLINE")
-	speedText:SetPoint("LEFT", frame, "LEFT", 6, 0)
+	speedText:SetPoint("LEFT", overlay, "LEFT", 6, 0)
 	speedText:SetJustifyH("LEFT")
 	speedText:SetText("0%")
 	self.speedText = speedText
@@ -946,9 +960,19 @@ function FlightsimUI:StartUpdating()
 		-- Get Surge Forward info first (used by multiple bars for dimming)
 		-- Also use this to detect if spell APIs are available
 		local surgeInfo = GetSpellCooldownSafe(SURGE_FORWARD_SPELL_ID, true)
-		local apisRestricted = (surgeInfo.maxCharges == nil or surgeInfo.maxCharges == 0)
+		
+		-- Midnight (12.0+): Detect secret values - these can't be compared or used in math
+		-- issecretvalue() is a global function in Midnight that returns true for secret values
+		local hasSecretValues = issecretvalue and (
+			issecretvalue(surgeInfo.maxCharges) or 
+			issecretvalue(surgeInfo.currentCharges)
+		)
+		
+		-- APIs are restricted if we got secret values OR nil/0 maxCharges
+		local apisRestricted = hasSecretValues or (surgeInfo.maxCharges == nil or surgeInfo.maxCharges == 0)
 
 		-- Hide ability bars if APIs are restricted (combat lockdown in restricted zones)
+		-- When restricted (secret values in combat), skip ALL ability bar logic to avoid comparisons
 		if apisRestricted then
 			if self.surgeForwardFrame then self.surgeForwardFrame:Hide() end
 			if self.secondWindFrame then self.secondWindFrame:Hide() end
@@ -964,11 +988,10 @@ function FlightsimUI:StartUpdating()
 			if self.whirlingSurgeBar and self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
 				self.whirlingSurgeBar:Show()
 			end
-		end
 
-		local surgeCharges = surgeInfo.currentCharges or 0
-		local surgeMaxCharges = surgeInfo.maxCharges or 6
-		local surgeAtMax = (surgeCharges >= surgeMaxCharges)
+			local surgeCharges = surgeInfo.currentCharges or 0
+			local surgeMaxCharges = surgeInfo.maxCharges or 6
+			local surgeAtMax = (surgeCharges >= surgeMaxCharges)
 
 		-- Surge Forward (6 charges)
 		if self.surgeForwardFrame and self.surgeForwardBars and self.db.profile.abilityBars and self.db.profile.abilityBars.showSurgeForward ~= false then
@@ -1143,6 +1166,7 @@ function FlightsimUI:StartUpdating()
 				end
 			end
 		end
+		end -- end apisRestricted else block
 	end)
 end
 

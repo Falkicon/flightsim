@@ -97,6 +97,9 @@ Confirmed spell IDs for 11.2.7:
 | 2025-12-12 | Early IsMounted() check for instant dismount detection   |
 | 2025-12-12 | Druid Flight Form support via GetShapeshiftForm() check  |
 | 2025-12-12 | CurseForge auto-packaging via GitHub webhook             |
+| 2025-12-13 | Midnight: Use issecretvalue() to detect combat secrets   |
+| 2025-12-13 | Midnight: Skip aura API in combat (ADDON_ACTION_BLOCKED) |
+| 2025-12-13 | Abandon combat view for now; revisit if APIs improve     |
 
 ## API compatibility notes
 
@@ -126,6 +129,48 @@ Druid Flight Form (Travel Form while flying) requires special handling:
 - `GetShapeshiftForm()` returns `3` for Travel/Flight Form on druids
 - `C_PlayerInfo.GetGlidingInfo()` works correctly for druids doing dynamic flight
 - Detection logic: check both `IsMounted()` OR druid flight form before querying gliding APIs
+
+### Midnight (12.0) Secret Values
+
+Midnight introduces "secret values" - API returns that are opaque during combat. These cannot be compared, used in arithmetic, or passed to string functions.
+
+#### Detection pattern
+
+```lua
+-- issecretvalue() is a global in Midnight (nil in earlier clients)
+local hasSecretValues = issecretvalue and (
+    issecretvalue(surgeInfo.maxCharges) or
+    issecretvalue(surgeInfo.currentCharges)
+)
+if hasSecretValues then
+    -- Hide bars, skip all processing
+end
+```
+
+#### What works in combat
+
+| Ability Type   | API                        | Passthrough? | Notes                                    |
+| -------------- | -------------------------- | ------------ | ---------------------------------------- |
+| Charge-based   | `C_Spell.GetSpellCharges`  | ✅ Partial   | Values are secret, can't read/compare    |
+| Cooldown-based | `C_Spell.GetSpellCooldown` | ❌ No        | Can't calculate elapsed time from secret |
+| Aura detection | `C_UnitAuras.*`            | ❌ No        | Protected function, causes ADDON_BLOCKED |
+
+#### Tested approaches for Whirling Surge (cooldown-based)
+
+1. **Direct comparison** - ❌ Errors on `duration > 0`
+2. **`issecretvalue()` binary state** - ❌ Can detect secret but not ready vs on-cooldown
+3. **Cooldown frame passthrough** - ⚠️ Works but shows radial swipe (wrong for horizontal bar)
+4. **`C_Spell.IsSpellUsable()`** - ❌ Returns true even when on cooldown (checks resources, not CD)
+
+#### Current solution
+
+Hide all ability bars when secret values detected. Graceful degradation - speed/acceleration bars still work.
+
+#### Future possibilities
+
+- **Combat mode redesign**: Distinct visual style (e.g., square icons instead of bars) that works with Cooldown frame's radial swipe
+- **Wait for Blizzard**: They may add linear cooldown options or relax restrictions
+- **StatusBar passthrough**: If Blizzard exposes remaining time as a passthrough-compatible value
 
 ## File structure
 
