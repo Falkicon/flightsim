@@ -5,11 +5,11 @@
 A lightweight World of Warcraft addon that displays flight speed, acceleration, and skyriding ability cooldowns while skyriding. Fully supports **Druid Flight Form** (Travel Form while flying).
 
 ![WoW Version](https://img.shields.io/badge/WoW-11.2.7%2B-blue)
-![Interface](https://img.shields.io/badge/Interface-120000-green)
+![Interface](https://img.shields.io/badge/Interface-120001-green)
 [![GitHub](https://img.shields.io/badge/GitHub-Falkicon%2Fflightsim-181717?logo=github)](https://github.com/Falkicon/flightsim)
 [![Sponsor](https://img.shields.io/badge/Sponsor-pink?logo=githubsponsors)](https://github.com/sponsors/Falkicon)
 
-> **Midnight Compatibility**: This addon is being actively tested against the Midnight beta (Interface 120000). All API calls use defensive `pcall` wrappers to handle the expected API pruning in combat and restricted zones.
+> **Midnight Compatibility**: This addon is being actively tested against the Midnight beta (Interface 120001). All API calls use defensive `pcall` wrappers to handle the expected API pruning in combat and restricted zones.
 
 ## Credits
 

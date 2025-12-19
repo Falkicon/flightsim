@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Skipped aura API calls during combat to prevent `ADDON_ACTION_BLOCKED` warnings
 - Wrapped all ability bar logic to skip processing when APIs are restricted
 
+### Changed
+
+- Updated interface version to 120001 (Midnight beta)
+
 ## [1.0.0] - 2025-12-12
 
 First official release! 🎉
