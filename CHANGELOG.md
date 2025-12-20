@@ -4,6 +4,18 @@ All notable changes to Flightsim will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.2] - 2025-12-19
+
+### Fixed
+
+- **Mode Transition Crash**: Fixed a crash occurring when changing flight modes via abilities.
+  - Removed deprecated global `GetSpellInfo` fallback in favor of `C_Spell.GetSpellInfo`.
+- **Error Resilience**: Added `pcall` guards to visibility and update logic to ensure stability during sensitive flight mode transitions.
+
+### Changed
+
+- **Steady Flight Support**: Flightsim now explicitly detects Steady Flight mode and disables the HUD to avoid cluttering the UI when not skyriding.
+
 ## [1.0.1] - 2025-12-13
 
 ### Fixed

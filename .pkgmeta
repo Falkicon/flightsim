@@ -5,7 +5,6 @@ enable-nolib-creation: no
 ignore:
   - README.md
   - CONTRIBUTING.md
-  - ADDON_DEVELOPMENT_GUIDE.md
   - AGENTS.md
   - SPEC.md
   - LICENSE

@@ -105,4 +105,4 @@ If you find Flightsim useful, consider [sponsoring on GitHub](https://github.com
 
 ## License
 
-MIT License – see [LICENSE](LICENSE) for details.
+GPL-3.0 License – see [LICENSE](LICENSE) for details.

@@ -1,0 +1,6 @@
+﻿# Libs are rarely edited directly
+Libs/
+
+# Build artifacts
+*.bak
+*.log
