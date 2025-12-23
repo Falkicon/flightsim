@@ -1,4 +1,84 @@
 FlightsimUI = FlightsimUI or {}
+FlightsimUI.Utils = {}
+
+local function Clamp(n, minV, maxV)
+	if n < minV then
+		return minV
+	end
+	if n > maxV then
+		return maxV
+	end
+	return n
+end
+FlightsimUI.Utils.Clamp = Clamp
+
+-- Blizzard-matching color palette (based on #2BA604 green)
+local COLOR_GREEN = { 0.169, 0.651, 0.016 } -- #2BA604
+local COLOR_YELLOW = { 0.769, 0.651, 0.016 } -- #C4A604 (gold)
+local COLOR_RED = { 0.769, 0.169, 0.016 } -- #C42B04
+
+-- Surge Forward color: #74AFFF (light blue)
+local COLOR_SURGE_FORWARD = { 0.455, 0.686, 1.0 } -- #74AFFF
+local COLOR_SURGE_FORWARD_EMPTY = { 0.18, 0.27, 0.4 } -- Dimmed version
+
+-- Second Wind color: #D379EF (purple/magenta)
+local COLOR_SECOND_WIND = { 0.827, 0.475, 0.937 } -- #D379EF
+local COLOR_SECOND_WIND_EMPTY = { 0.33, 0.19, 0.37 } -- Dimmed version
+
+-- Whirling Surge color: #4AC7D4 (cyan/teal)
+local COLOR_WHIRLING_SURGE = { 0.290, 0.780, 0.831 } -- #4AC7D4
+local COLOR_WHIRLING_SURGE_EMPTY = { 0.12, 0.31, 0.33 } -- Dimmed version
+
+local function ColorForPct(pct)
+	-- Ramp: red (0%) -> yellow (50%) -> green (100%)
+	pct = Clamp(pct or 0, 0, 1)
+	local r, g, b
+	if pct < 0.5 then
+		-- red -> yellow (0% to 50%)
+		local t = pct * 2 -- 0 -> 1 as pct goes 0 -> 0.5
+		r = COLOR_RED[1] + (COLOR_YELLOW[1] - COLOR_RED[1]) * t
+		g = COLOR_RED[2] + (COLOR_YELLOW[2] - COLOR_RED[2]) * t
+		b = COLOR_RED[3] + (COLOR_YELLOW[3] - COLOR_RED[3]) * t
+	else
+		-- yellow -> green (50% to 100%)
+		local t = (pct - 0.5) * 2 -- 0 -> 1 as pct goes 0.5 -> 1
+		r = COLOR_YELLOW[1] + (COLOR_GREEN[1] - COLOR_YELLOW[1]) * t
+		g = COLOR_YELLOW[2] + (COLOR_GREEN[2] - COLOR_YELLOW[2]) * t
+		b = COLOR_YELLOW[3] + (COLOR_GREEN[3] - COLOR_YELLOW[3]) * t
+	end
+	return r, g, b
+end
+FlightsimUI.Utils.ColorForPct = ColorForPct
+
+local function ColorForPctBlue(pct)
+	-- Simple lerp: empty -> full for Whirling Surge (#4AC7D4)
+	pct = Clamp(pct or 0, 0, 1)
+	local r = COLOR_WHIRLING_SURGE_EMPTY[1] + (COLOR_WHIRLING_SURGE[1] - COLOR_WHIRLING_SURGE_EMPTY[1]) * pct
+	local g = COLOR_WHIRLING_SURGE_EMPTY[2] + (COLOR_WHIRLING_SURGE[2] - COLOR_WHIRLING_SURGE_EMPTY[2]) * pct
+	local b = COLOR_WHIRLING_SURGE_EMPTY[3] + (COLOR_WHIRLING_SURGE[3] - COLOR_WHIRLING_SURGE_EMPTY[3]) * pct
+	return r, g, b
+end
+FlightsimUI.Utils.ColorForPctBlue = ColorForPctBlue
+
+local function ColorForPctPurple(pct)
+	-- Simple lerp: empty -> full for Second Wind (#D379EF)
+	pct = Clamp(pct or 0, 0, 1)
+	local r = COLOR_SECOND_WIND_EMPTY[1] + (COLOR_SECOND_WIND[1] - COLOR_SECOND_WIND_EMPTY[1]) * pct
+	local g = COLOR_SECOND_WIND_EMPTY[2] + (COLOR_SECOND_WIND[2] - COLOR_SECOND_WIND_EMPTY[2]) * pct
+	local b = COLOR_SECOND_WIND_EMPTY[3] + (COLOR_SECOND_WIND[3] - COLOR_SECOND_WIND_EMPTY[3]) * pct
+	return r, g, b
+end
+FlightsimUI.Utils.ColorForPctPurple = ColorForPctPurple
+
+local function ColorForPctSurgeForward(pct)
+	-- Simple lerp: empty -> full for Surge Forward (#74AFFF)
+	pct = Clamp(pct or 0, 0, 1)
+	local r = COLOR_SURGE_FORWARD_EMPTY[1] + (COLOR_SURGE_FORWARD[1] - COLOR_SURGE_FORWARD_EMPTY[1]) * pct
+	local g = COLOR_SURGE_FORWARD_EMPTY[2] + (COLOR_SURGE_FORWARD[2] - COLOR_SURGE_FORWARD_EMPTY[2]) * pct
+	local b = COLOR_SURGE_FORWARD_EMPTY[3] + (COLOR_SURGE_FORWARD[3] - COLOR_SURGE_FORWARD_EMPTY[3]) * pct
+	return r, g, b
+end
+FlightsimUI.Utils.ColorForPctSurgeForward = ColorForPctSurgeForward
 
 -- WeakAura-inspired skyriding constants (Retail 11.x):
 -- These are used only where they map cleanly to addon-safe APIs.
@@ -18,80 +98,10 @@ local FAST_FLYING_ZONES = {
 	[2569] = true, -- Aberrus, the Shadowed Crucible
 }
 
-local function Clamp(n, minV, maxV)
-	if n < minV then return minV end
-	if n > maxV then return maxV end
-	return n
-end
-
--- Blizzard-matching color palette (based on #2BA604 green)
-local COLOR_GREEN = { 0.169, 0.651, 0.016 }  -- #2BA604
-local COLOR_YELLOW = { 0.769, 0.651, 0.016 } -- #C4A604 (gold)
-local COLOR_RED = { 0.769, 0.169, 0.016 }    -- #C42B04
-
--- Surge Forward color: #74AFFF (light blue)
-local COLOR_SURGE_FORWARD = { 0.455, 0.686, 1.0 }  -- #74AFFF
-local COLOR_SURGE_FORWARD_EMPTY = { 0.18, 0.27, 0.4 }  -- Dimmed version
-
--- Second Wind color: #D379EF (purple/magenta)
-local COLOR_SECOND_WIND = { 0.827, 0.475, 0.937 }  -- #D379EF
-local COLOR_SECOND_WIND_EMPTY = { 0.33, 0.19, 0.37 }  -- Dimmed version
-
--- Whirling Surge color: #4AC7D4 (cyan/teal)
-local COLOR_WHIRLING_SURGE = { 0.290, 0.780, 0.831 }  -- #4AC7D4
-local COLOR_WHIRLING_SURGE_EMPTY = { 0.12, 0.31, 0.33 }  -- Dimmed version
-
 -- Spell IDs for ability tracking
 local WHIRLING_SURGE_SPELL_ID = 361584
-local SECOND_WIND_SPELL_ID = 425782  -- Second Wind (vigor refresh)
-local SURGE_FORWARD_SPELL_ID = 372608  -- Surge Forward (6 charges, restored by Second Wind)
-
-local function ColorForPct(pct)
-	-- Ramp: red (0%) -> yellow (50%) -> green (100%)
-	pct = Clamp(pct or 0, 0, 1)
-	local r, g, b
-	if pct < 0.5 then
-		-- red -> yellow (0% to 50%)
-		local t = pct * 2  -- 0 -> 1 as pct goes 0 -> 0.5
-		r = COLOR_RED[1] + (COLOR_YELLOW[1] - COLOR_RED[1]) * t
-		g = COLOR_RED[2] + (COLOR_YELLOW[2] - COLOR_RED[2]) * t
-		b = COLOR_RED[3] + (COLOR_YELLOW[3] - COLOR_RED[3]) * t
-	else
-		-- yellow -> green (50% to 100%)
-		local t = (pct - 0.5) * 2  -- 0 -> 1 as pct goes 0.5 -> 1
-		r = COLOR_YELLOW[1] + (COLOR_GREEN[1] - COLOR_YELLOW[1]) * t
-		g = COLOR_YELLOW[2] + (COLOR_GREEN[2] - COLOR_YELLOW[2]) * t
-		b = COLOR_YELLOW[3] + (COLOR_GREEN[3] - COLOR_YELLOW[3]) * t
-	end
-	return r, g, b
-end
-
-local function ColorForPctBlue(pct)
-	-- Simple lerp: empty -> full for Whirling Surge (#4AC7D4)
-	pct = Clamp(pct or 0, 0, 1)
-	local r = COLOR_WHIRLING_SURGE_EMPTY[1] + (COLOR_WHIRLING_SURGE[1] - COLOR_WHIRLING_SURGE_EMPTY[1]) * pct
-	local g = COLOR_WHIRLING_SURGE_EMPTY[2] + (COLOR_WHIRLING_SURGE[2] - COLOR_WHIRLING_SURGE_EMPTY[2]) * pct
-	local b = COLOR_WHIRLING_SURGE_EMPTY[3] + (COLOR_WHIRLING_SURGE[3] - COLOR_WHIRLING_SURGE_EMPTY[3]) * pct
-	return r, g, b
-end
-
-local function ColorForPctPurple(pct)
-	-- Simple lerp: empty -> full for Second Wind (#D379EF)
-	pct = Clamp(pct or 0, 0, 1)
-	local r = COLOR_SECOND_WIND_EMPTY[1] + (COLOR_SECOND_WIND[1] - COLOR_SECOND_WIND_EMPTY[1]) * pct
-	local g = COLOR_SECOND_WIND_EMPTY[2] + (COLOR_SECOND_WIND[2] - COLOR_SECOND_WIND_EMPTY[2]) * pct
-	local b = COLOR_SECOND_WIND_EMPTY[3] + (COLOR_SECOND_WIND[3] - COLOR_SECOND_WIND_EMPTY[3]) * pct
-	return r, g, b
-end
-
-local function ColorForPctSurgeForward(pct)
-	-- Simple lerp: empty -> full for Surge Forward (#74AFFF)
-	pct = Clamp(pct or 0, 0, 1)
-	local r = COLOR_SURGE_FORWARD_EMPTY[1] + (COLOR_SURGE_FORWARD[1] - COLOR_SURGE_FORWARD_EMPTY[1]) * pct
-	local g = COLOR_SURGE_FORWARD_EMPTY[2] + (COLOR_SURGE_FORWARD[2] - COLOR_SURGE_FORWARD_EMPTY[2]) * pct
-	local b = COLOR_SURGE_FORWARD_EMPTY[3] + (COLOR_SURGE_FORWARD[3] - COLOR_SURGE_FORWARD_EMPTY[3]) * pct
-	return r, g, b
-end
+local SECOND_WIND_SPELL_ID = 425782 -- Second Wind (vigor refresh)
+local SURGE_FORWARD_SPELL_ID = 372608 -- Surge Forward (6 charges, restored by Second Wind)
 
 local function GetUnitSpeedSafe(unit)
 	local fn = GetUnitSpeed or UnitSpeed
@@ -121,8 +131,8 @@ local function HasThrillBuff()
 	if InCombatLockdown() then
 		return false
 	end
-	if C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function" then
-		local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, THRILL_BUFF_ID)
+	if C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function" then -- luacheck: ignore
+		local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, THRILL_BUFF_ID) -- luacheck: ignore
 		return ok and aura ~= nil
 	end
 	return false
@@ -272,7 +282,9 @@ local function GetSpellCooldownSafe(spellID, getCharges)
 end
 
 local function ResolveSpellInfo(token)
-	if not token then return nil, nil end
+	if not token then
+		return nil, nil
+	end
 
 	if C_Spell and C_Spell.GetSpellInfo then
 		local ok, info = pcall(C_Spell.GetSpellInfo, token)
@@ -449,7 +461,9 @@ function FlightsimUI:Init(db)
 	self.speedBarOverlay = overlay
 
 	-- Sustainable speed marker - parented to overlay frame
-	local sustainableMarkerWidth = (db.profile.ui and db.profile.ui.sustainableSpeedMarkerWidth) or (db.profile.ui and db.profile.ui.optimalMarkerWidth) or 1
+	local sustainableMarkerWidth = (db.profile.ui and db.profile.ui.sustainableSpeedMarkerWidth)
+		or (db.profile.ui and db.profile.ui.optimalMarkerWidth)
+		or 1
 	local sustainableMarkerAlpha = (db.profile.ui and db.profile.ui.sustainableSpeedMarkerAlpha) or 0.2
 	local optimal = overlay:CreateTexture(nil, "OVERLAY")
 	optimal:SetColorTexture(1, 1, 1, sustainableMarkerAlpha)
@@ -486,7 +500,7 @@ function FlightsimUI:Init(db)
 
 	-- The actual acceleration indicator bar (starts from center, white)
 	local accelBar = accelFrame:CreateTexture(nil, "ARTWORK")
-	accelBar:SetColorTexture(1, 1, 1, 0.9)  -- White
+	accelBar:SetColorTexture(1, 1, 1, 0.9) -- White
 	accelBar:SetHeight(accelBarHeight)
 	self.accelBar = accelBar
 
@@ -494,7 +508,7 @@ function FlightsimUI:Init(db)
 	-- Order: Surge Forward -> Second Wind -> Whirling Surge
 	local abilityBarHeight = (db.profile.ui and db.profile.ui.abilityBarHeight) or 10
 	local barGap = (db.profile.ui and db.profile.ui.barGap) or 2
-	local chargeGap = 2  -- Gap between charge bars within a multi-charge ability
+	local chargeGap = 2 -- Gap between charge bars within a multi-charge ability
 
 	-- Surge Forward charge bars (6 charges, light blue #74AFFF)
 	local surgeForwardFrame = CreateFrame("Frame", nil, UIParent)
@@ -504,7 +518,7 @@ function FlightsimUI:Init(db)
 
 	self.surgeForwardBars = {}
 	self.surgeForwardBarBgs = {}
-	local sfTotalGaps = chargeGap * 5  -- 5 gaps between 6 bars
+	local sfTotalGaps = chargeGap * 5 -- 5 gaps between 6 bars
 	local sfChargeWidth = ((db.profile.ui.width or 150) - sfTotalGaps) / 6
 
 	for i = 1, 6 do
@@ -522,7 +536,7 @@ function FlightsimUI:Init(db)
 		if i == 1 then
 			chargeBar:SetPoint("LEFT", surgeForwardFrame, "LEFT", 0, 0)
 		else
-			chargeBar:SetPoint("LEFT", self.surgeForwardBars[i-1], "RIGHT", chargeGap, 0)
+			chargeBar:SetPoint("LEFT", self.surgeForwardBars[i - 1], "RIGHT", chargeGap, 0)
 		end
 
 		self.surgeForwardBars[i] = chargeBar
@@ -536,7 +550,7 @@ function FlightsimUI:Init(db)
 
 	self.secondWindBars = {}
 	self.secondWindBarBgs = {}
-	local swTotalGaps = chargeGap * 2  -- 2 gaps between 3 bars
+	local swTotalGaps = chargeGap * 2 -- 2 gaps between 3 bars
 	local swChargeWidth = ((db.profile.ui.width or 150) - swTotalGaps) / 3
 
 	for i = 1, 3 do
@@ -554,7 +568,7 @@ function FlightsimUI:Init(db)
 		if i == 1 then
 			chargeBar:SetPoint("LEFT", secondWindFrame, "LEFT", 0, 0)
 		else
-			chargeBar:SetPoint("LEFT", self.secondWindBars[i-1], "RIGHT", chargeGap, 0)
+			chargeBar:SetPoint("LEFT", self.secondWindBars[i - 1], "RIGHT", chargeGap, 0)
 		end
 
 		self.secondWindBars[i] = chargeBar
@@ -591,7 +605,9 @@ function FlightsimUI:Init(db)
 end
 
 function FlightsimUI:RebuildLayout()
-	if not (self.frame and self.db and self.db.profile) then return end
+	if not (self.frame and self.db and self.db.profile) then
+		return
+	end
 
 	local p = self.db.profile
 	local ui = p.ui or {}
@@ -612,10 +628,18 @@ function FlightsimUI:RebuildLayout()
 
 	-- Apply scale to all frames
 	self.frame:SetScale(scale)
-	if self.accelFrame then self.accelFrame:SetScale(scale) end
-	if self.surgeForwardFrame then self.surgeForwardFrame:SetScale(scale) end
-	if self.secondWindFrame then self.secondWindFrame:SetScale(scale) end
-	if self.whirlingSurgeBar then self.whirlingSurgeBar:SetScale(scale) end
+	if self.accelFrame then
+		self.accelFrame:SetScale(scale)
+	end
+	if self.surgeForwardFrame then
+		self.surgeForwardFrame:SetScale(scale)
+	end
+	if self.secondWindFrame then
+		self.secondWindFrame:SetScale(scale)
+	end
+	if self.whirlingSurgeBar then
+		self.whirlingSurgeBar:SetScale(scale)
+	end
 
 	self.frame:SetSize(width, barH)
 
@@ -661,7 +685,7 @@ function FlightsimUI:RebuildLayout()
 					if i == 1 then
 						chargeBar:SetPoint("LEFT", self.surgeForwardFrame, "LEFT", 0, 0)
 					else
-						chargeBar:SetPoint("LEFT", self.surgeForwardBars[i-1], "RIGHT", chargeGap, 0)
+						chargeBar:SetPoint("LEFT", self.surgeForwardBars[i - 1], "RIGHT", chargeGap, 0)
 					end
 				end
 			end
@@ -689,7 +713,7 @@ function FlightsimUI:RebuildLayout()
 					if i == 1 then
 						chargeBar:SetPoint("LEFT", self.secondWindFrame, "LEFT", 0, 0)
 					else
-						chargeBar:SetPoint("LEFT", self.secondWindBars[i-1], "RIGHT", chargeGap, 0)
+						chargeBar:SetPoint("LEFT", self.secondWindBars[i - 1], "RIGHT", chargeGap, 0)
 					end
 				end
 			end
@@ -715,7 +739,9 @@ function FlightsimUI:RebuildLayout()
 end
 
 function FlightsimUI:ApplyVisibility()
-	if not (self.frame and self.db and self.db.profile and self.db.profile.visibility) then return end
+	if not (self.frame and self.db and self.db.profile and self.db.profile.visibility) then
+		return
+	end
 
 	-- Wrap visibility logic in pcall to handle API instability during flight mode transitions
 	local ok, err = pcall(function()
@@ -729,30 +755,51 @@ function FlightsimUI:ApplyVisibility()
 		end
 
 		if shouldShow then
-			if not self.frame:IsShown() then self.frame:Show() end
-			if self.accelFrame and not self.accelFrame:IsShown() then self.accelFrame:Show() end
+			if not self.frame:IsShown() then
+				self.frame:Show()
+			end
+			if self.accelFrame and not self.accelFrame:IsShown() then
+				self.accelFrame:Show()
+			end
 			-- Respect individual ability bar settings
-			if self.surgeForwardFrame and ab.showSurgeForward ~= false then 
-				if not self.surgeForwardFrame:IsShown() then self.surgeForwardFrame:Show() end
+			if self.surgeForwardFrame and ab.showSurgeForward ~= false then
+				if not self.surgeForwardFrame:IsShown() then
+					self.surgeForwardFrame:Show()
+				end
 			end
-			if self.secondWindFrame and ab.showSecondWind ~= false then 
-				if not self.secondWindFrame:IsShown() then self.secondWindFrame:Show() end
+			if self.secondWindFrame and ab.showSecondWind ~= false then
+				if not self.secondWindFrame:IsShown() then
+					self.secondWindFrame:Show()
+				end
 			end
-			if self.whirlingSurgeBar and ab.showWhirlingSurge ~= false then 
-				if not self.whirlingSurgeBar:IsShown() then self.whirlingSurgeBar:Show() end
+			if self.whirlingSurgeBar and ab.showWhirlingSurge ~= false then
+				if not self.whirlingSurgeBar:IsShown() then
+					self.whirlingSurgeBar:Show()
+				end
 			end
 		else
-			if self.frame:IsShown() then self.frame:Hide() end
-			if self.accelFrame and self.accelFrame:IsShown() then self.accelFrame:Hide() end
-			if self.surgeForwardFrame and self.surgeForwardFrame:IsShown() then self.surgeForwardFrame:Hide() end
-			if self.secondWindFrame and self.secondWindFrame:IsShown() then self.secondWindFrame:Hide() end
-			if self.whirlingSurgeBar and self.whirlingSurgeBar:IsShown() then self.whirlingSurgeBar:Hide() end
+			if self.frame:IsShown() then
+				self.frame:Hide()
+			end
+			if self.accelFrame and self.accelFrame:IsShown() then
+				self.accelFrame:Hide()
+			end
+			if self.surgeForwardFrame and self.surgeForwardFrame:IsShown() then
+				self.surgeForwardFrame:Hide()
+			end
+			if self.secondWindFrame and self.secondWindFrame:IsShown() then
+				self.secondWindFrame:Hide()
+			end
+			if self.whirlingSurgeBar and self.whirlingSurgeBar:IsShown() then
+				self.whirlingSurgeBar:Hide()
+			end
 		end
 	end)
 
 	if not ok and self.db.profile.debug then
 		-- Only log if debug is enabled to avoid spamming the user
-		print("Flightsim: Visibility error during transition: " .. tostring(err))
+		local L = Flightsim.L
+		print(L["VISIBILITY_ERROR"] .. tostring(err))
 	end
 end
 
@@ -800,7 +847,9 @@ function FlightsimUI:_GetFallbackSpeedFromPosition(elapsed)
 end
 
 function FlightsimUI:StartUpdating()
-	if not self.frame then return end
+	if not self.frame then
+		return
+	end
 
 	-- Create a separate ticker frame that's always shown (never hidden)
 	-- This ensures ApplyVisibility keeps running even when main frame is hidden
@@ -814,16 +863,18 @@ function FlightsimUI:StartUpdating()
 		self.tickerFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
 		self.tickerFrame:RegisterEvent("UNIT_AURA")
 		self.tickerFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-		self.tickerFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")  -- For druid flight form
+		self.tickerFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS") -- For druid flight form
 		self.tickerFrame:SetScript("OnEvent", function(_, event, unit)
-			if event == "UNIT_AURA" and unit ~= "player" then return end
+			if event == "UNIT_AURA" and unit ~= "player" then
+				return
+			end
 			-- Force visibility check on mount change and invalidate cache
 			self._forceVisibilityCheck = true
-			self._skyridingCacheTime = nil  -- Invalidate cache immediately
+			self._skyridingCacheTime = nil -- Invalidate cache immediately
 		end)
 	end
 
-	self.tickerFrame:SetScript("OnUpdate", function(_, elapsed)
+	self.tickerFrame:SetScript("OnUpdate", function(_, elapsed) -- luacheck: ignore
 		self._accum = (self._accum or 0) + elapsed
 
 		-- Adaptive throttling:
@@ -843,15 +894,29 @@ function FlightsimUI:StartUpdating()
 		-- Note: Druids in Flight Form have IsMounted()=false (it's a shapeshift, not a mount)
 		local mounted = IsMounted()
 		local druidFlying = IsInDruidFlightForm()
-		if not mounted and not druidFlying and self.db and self.db.profile and self.db.profile.visibility 
-		   and self.db.profile.visibility.hideWhenNotSkyriding then
+		if
+			not mounted
+			and not druidFlying
+			and self.db
+			and self.db.profile
+			and self.db.profile.visibility
+			and self.db.profile.visibility.hideWhenNotSkyriding
+		then
 			-- Force hide when not mounted and not in druid flight form (faster than full visibility check)
 			if self.frame:IsShown() then
 				self.frame:Hide()
-				if self.accelFrame then self.accelFrame:Hide() end
-				if self.surgeForwardFrame then self.surgeForwardFrame:Hide() end
-				if self.secondWindFrame then self.secondWindFrame:Hide() end
-				if self.whirlingSurgeBar then self.whirlingSurgeBar:Hide() end
+				if self.accelFrame then
+					self.accelFrame:Hide()
+				end
+				if self.surgeForwardFrame then
+					self.surgeForwardFrame:Hide()
+				end
+				if self.secondWindFrame then
+					self.secondWindFrame:Hide()
+				end
+				if self.whirlingSurgeBar then
+					self.whirlingSurgeBar:Hide()
+				end
 			end
 			return
 		end
@@ -875,7 +940,9 @@ function FlightsimUI:StartUpdating()
 				end
 			end
 			local baseMax = (self.db.profile.speedBar and self.db.profile.speedBar.maxSpeed) or 950
-			if baseMax <= 0 then baseMax = 950 end
+			if baseMax <= 0 then
+				baseMax = 950
+			end
 
 			-- Convert raw speed (yards/sec) to percentage (WA-style: ~790% at stable, ~950% max)
 			local speedPct = (speed / BASE_SPEED_FOR_PCT) * 100
@@ -900,14 +967,18 @@ function FlightsimUI:StartUpdating()
 			if skyriding and self._sessionMaxSpeed and self._sessionMaxSpeed > effectiveMax then
 				effectiveMax = self._sessionMaxSpeed
 			end
-			if effectiveMax <= 0 then effectiveMax = 1 end
+			if effectiveMax <= 0 then
+				effectiveMax = 1
+			end
 
 			local pct = Clamp(speedPct / effectiveMax, 0, 1)
 			self.speedBar:SetValue(pct)
 			local r, g, b = ColorForPct(pct)
 			self.speedBar:SetStatusBarColor(r, g, b, 1)
 
-			local sustainableSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.sustainableSpeed) or (self.db.profile.speedBar and self.db.profile.speedBar.optimalSpeed) or 0
+			local sustainableSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.sustainableSpeed)
+				or (self.db.profile.speedBar and self.db.profile.speedBar.optimalSpeed)
+				or 0
 			if sustainableSpeed and sustainableSpeed > 0 then
 				local op = Clamp(sustainableSpeed / effectiveMax, 0, 1)
 				self.sustainableMarker:Show()
@@ -934,7 +1005,7 @@ function FlightsimUI:StartUpdating()
 				local centerX = barWidth / 2
 
 				-- Scale: clamp raw delta to ±1 range
-				local maxDelta = 30  -- Max delta per update to show full bar extension
+				local maxDelta = 30 -- Max delta per update to show full bar extension
 				local deltaNorm = Clamp(self._smoothDelta / maxDelta, -1, 1)
 
 				-- Apply square root curve: more sensitive near zero, compressed at extremes
@@ -957,13 +1028,17 @@ function FlightsimUI:StartUpdating()
 				elseif curved >= 0 then
 					-- Accelerating: bar extends right from center
 					local extentWidth = curved * centerX
-					if extentWidth < minSize then extentWidth = minSize end
+					if extentWidth < minSize then
+						extentWidth = minSize
+					end
 					self.accelBar:SetWidth(extentWidth)
 					self.accelBar:SetPoint("LEFT", self.accelFrame, "LEFT", centerX, 0)
 				else
 					-- Decelerating: bar extends left from center
-					local extentWidth = (-curved) * centerX
-					if extentWidth < minSize then extentWidth = minSize end
+					local extentWidth = -curved * centerX
+					if extentWidth < minSize then
+						extentWidth = minSize
+					end
 					self.accelBar:SetWidth(extentWidth)
 					self.accelBar:SetPoint("RIGHT", self.accelFrame, "LEFT", centerX, 0)
 				end
@@ -975,7 +1050,7 @@ function FlightsimUI:StartUpdating()
 			-- In combat or restricted zones (Midnight API restrictions), spell APIs may be
 			-- unavailable. We detect this by checking if maxCharges comes back nil/0.
 			-- If APIs are restricted, we hide ability bars gracefully.
-			local ANIM_SPEED = 3.0  -- Speed for "fill up" animation (units per second)
+			local ANIM_SPEED = 3.0 -- Speed for "fill up" animation (units per second)
 			local now_val = GetTime()
 			local dt = now_val - (self._lastAbilityUpdate or now_val)
 			self._lastAbilityUpdate = now_val
@@ -983,32 +1058,48 @@ function FlightsimUI:StartUpdating()
 			-- Get Surge Forward info first (used by multiple bars for dimming)
 			-- Also use this to detect if spell APIs are available
 			local surgeInfo = GetSpellCooldownSafe(SURGE_FORWARD_SPELL_ID, true)
-			
+
 			-- Midnight (12.0+): Detect secret values - these can't be compared or used in math
 			-- issecretvalue() is a global function in Midnight that returns true for secret values
-			local hasSecretValues = issecretvalue and (
-				issecretvalue(surgeInfo.maxCharges) or 
-				issecretvalue(surgeInfo.currentCharges)
-			)
-			
+			local hasSecretValues = issecretvalue
+				and (issecretvalue(surgeInfo.maxCharges) or issecretvalue(surgeInfo.currentCharges))
+
 			-- APIs are restricted if we got secret values OR nil/0 maxCharges
 			local apisRestricted = hasSecretValues or (surgeInfo.maxCharges == nil or surgeInfo.maxCharges == 0)
 
 			-- Hide ability bars if APIs are restricted (combat lockdown in restricted zones)
 			-- When restricted (secret values in combat), skip ALL ability bar logic to avoid comparisons
 			if apisRestricted then
-				if self.surgeForwardFrame then self.surgeForwardFrame:Hide() end
-				if self.secondWindFrame then self.secondWindFrame:Hide() end
-				if self.whirlingSurgeBar then self.whirlingSurgeBar:Hide() end
+				if self.surgeForwardFrame then
+					self.surgeForwardFrame:Hide()
+				end
+				if self.secondWindFrame then
+					self.secondWindFrame:Hide()
+				end
+				if self.whirlingSurgeBar then
+					self.whirlingSurgeBar:Hide()
+				end
 			else
 				-- Show ability bars (visibility permitting)
-				if self.surgeForwardFrame and self.db.profile.abilityBars and self.db.profile.abilityBars.showSurgeForward ~= false then
+				if
+					self.surgeForwardFrame
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showSurgeForward ~= false
+				then
 					self.surgeForwardFrame:Show()
 				end
-				if self.secondWindFrame and self.db.profile.abilityBars and self.db.profile.abilityBars.showSecondWind then
+				if
+					self.secondWindFrame
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showSecondWind
+				then
 					self.secondWindFrame:Show()
 				end
-				if self.whirlingSurgeBar and self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
+				if
+					self.whirlingSurgeBar
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showWhirlingSurge
+				then
 					self.whirlingSurgeBar:Show()
 				end
 
@@ -1017,7 +1108,12 @@ function FlightsimUI:StartUpdating()
 				local surgeAtMax = (surgeCharges >= surgeMaxCharges)
 
 				-- Surge Forward (6 charges)
-				if self.surgeForwardFrame and self.surgeForwardBars and self.db.profile.abilityBars and self.db.profile.abilityBars.showSurgeForward ~= false then
+				if
+					self.surgeForwardFrame
+					and self.surgeForwardBars
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showSurgeForward ~= false
+				then
 					local chargeStart = surgeInfo.chargeStart or 0
 					local chargeDuration = surgeInfo.chargeDuration or 0
 
@@ -1080,7 +1176,11 @@ function FlightsimUI:StartUpdating()
 				end
 
 				-- Whirling Surge (30s cooldown)
-				if self.whirlingSurgeBar and self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
+				if
+					self.whirlingSurgeBar
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showWhirlingSurge
+				then
 					local info_ws = GetSpellCooldownSafe(WHIRLING_SURGE_SPELL_ID)
 					local onCooldown = info_ws and info_ws.startTime and info_ws.duration and info_ws.duration > 1.5
 
@@ -1101,7 +1201,11 @@ function FlightsimUI:StartUpdating()
 						self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
 					else
 						-- Off cooldown - animate quickly to full if we were on cooldown
-						if not self._whirlingSurgeWasReady and self._whirlingSurgeAnimValue and self._whirlingSurgeAnimValue < 1 then
+						if
+							not self._whirlingSurgeWasReady
+							and self._whirlingSurgeAnimValue
+							and self._whirlingSurgeAnimValue < 1
+						then
 							self._whirlingSurgeAnimating = true
 						end
 						self._whirlingSurgeWasReady = true
@@ -1125,16 +1229,21 @@ function FlightsimUI:StartUpdating()
 				end
 
 				-- Second Wind (3 charges, 3 min recharge each)
-				if self.secondWindFrame and self.secondWindBars and self.db.profile.abilityBars and self.db.profile.abilityBars.showSecondWind then
-					local info_sw = GetSpellCooldownSafe(SECOND_WIND_SPELL_ID, true)  -- Request charge info
+				if
+					self.secondWindFrame
+					and self.secondWindBars
+					and self.db.profile.abilityBars
+					and self.db.profile.abilityBars.showSecondWind
+				then
+					local info_sw = GetSpellCooldownSafe(SECOND_WIND_SPELL_ID, true) -- Request charge info
 					local currentCharges = info_sw.currentCharges or 0
 					local maxCharges = info_sw.maxCharges or 3
 					local chargeStart = info_sw.chargeStart or 0
 					local chargeDuration = info_sw.chargeDuration or 0
 
 					-- Use surgeAtMax from above for dimming
-					local barAlpha = surgeAtMax and 0.2 or 1  -- Dim to 20% when Second Wind is unusable
-					local bgAlpha = surgeAtMax and 0.17 or 0.85  -- Dim background proportionally (0.85 * 0.2 ≈ 0.17)
+					local barAlpha = surgeAtMax and 0.2 or 1 -- Dim to 20% when Second Wind is unusable
+					local bgAlpha = surgeAtMax and 0.17 or 0.85 -- Dim background proportionally (0.85 * 0.2 ≈ 0.17)
 
 					for i = 1, 3 do
 						local bar = self.secondWindBars[i]
@@ -1193,7 +1302,8 @@ function FlightsimUI:StartUpdating()
 		end)
 
 		if not ok and self.db.profile.debug then
-			print("Flightsim: Update loop error: " .. tostring(err))
+			local L = Flightsim.L
+			print(L["UPDATE_LOOP_ERROR"] .. tostring(err))
 		end
 	end)
 end
@@ -1202,16 +1312,28 @@ function FlightsimUI:SetScale(scale)
 	scale = Clamp(scale or 1, 0.5, 2.0)
 	self.db.profile.scale = scale
 	-- Apply scale to all frames
-	if self.frame then self.frame:SetScale(scale) end
-	if self.accelFrame then self.accelFrame:SetScale(scale) end
-	if self.surgeForwardFrame then self.surgeForwardFrame:SetScale(scale) end
-	if self.secondWindFrame then self.secondWindFrame:SetScale(scale) end
-	if self.whirlingSurgeBar then self.whirlingSurgeBar:SetScale(scale) end
+	if self.frame then
+		self.frame:SetScale(scale)
+	end
+	if self.accelFrame then
+		self.accelFrame:SetScale(scale)
+	end
+	if self.surgeForwardFrame then
+		self.surgeForwardFrame:SetScale(scale)
+	end
+	if self.secondWindFrame then
+		self.secondWindFrame:SetScale(scale)
+	end
+	if self.whirlingSurgeBar then
+		self.whirlingSurgeBar:SetScale(scale)
+	end
 end
 
 function FlightsimUI:SetWidth(width)
 	width = tonumber(width)
-	if not width then return end
+	if not width then
+		return
+	end
 	width = Clamp(width, 50, 800)
 	self.db.profile.ui.width = width
 	self:RebuildLayout()
@@ -1219,7 +1341,9 @@ end
 
 function FlightsimUI:SetBarHeight(height)
 	height = tonumber(height)
-	if not height then return end
+	if not height then
+		return
+	end
 	height = Clamp(height, 10, 100)
 	self.db.profile.ui.speedBarHeight = height
 	self:RebuildLayout()
@@ -1227,14 +1351,18 @@ end
 
 function FlightsimUI:SetSpeedBarMax(maxSpeed)
 	maxSpeed = tonumber(maxSpeed)
-	if not maxSpeed then return end
+	if not maxSpeed then
+		return
+	end
 	maxSpeed = Clamp(maxSpeed, 100, 1500)
 	self.db.profile.speedBar.maxSpeed = maxSpeed
 end
 
 function FlightsimUI:SetFontSize(fontSize)
 	fontSize = tonumber(fontSize)
-	if not fontSize then return end
+	if not fontSize then
+		return
+	end
 	fontSize = Clamp(fontSize, 8, 48)
 	self.db.profile.speedBar.fontSize = fontSize
 	if self.speedText then
@@ -1244,15 +1372,18 @@ end
 
 function FlightsimUI:SetSustainableSpeed(sustainableSpeed)
 	sustainableSpeed = tonumber(sustainableSpeed)
-	if not sustainableSpeed then return end
+	if not sustainableSpeed then
+		return
+	end
 	local maxSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.maxSpeed) or 1100
 	sustainableSpeed = Clamp(sustainableSpeed, 0, maxSpeed)
 	self.db.profile.speedBar.sustainableSpeed = sustainableSpeed
 end
 
 function FlightsimUI:DebugDump()
+	local L = Flightsim.L
 	local function PrintKV(k, v)
-		print(string.format("Flightsim debug: %s = %s", tostring(k), tostring(v)))
+		print(string.format(L["DEBUG_KV"], tostring(k), tostring(v)))
 	end
 
 	-- Use C_AddOns.IsAddOnLoaded (modern) or fall back to IsAddOnLoaded (legacy)
@@ -1265,7 +1396,7 @@ function FlightsimUI:DebugDump()
 		return false
 	end
 
-	print("Flightsim debug: ----")
+	print(L["DEBUG_HEADER"])
 	-- Use C_AddOns.GetAddOnMetadata (modern) or fall back to GetAddOnMetadata (legacy)
 	local version = "?"
 	if C_AddOns and C_AddOns.GetAddOnMetadata then
@@ -1279,11 +1410,17 @@ function FlightsimUI:DebugDump()
 	PrintKV("BugSack loaded", IsAddonLoaded("BugSack") and "yes" or "no")
 	PrintKV("Has GetSpellCharges", type(GetSpellCharges) == "function" and "yes" or "no")
 	PrintKV("Has C_Spell.GetSpellCharges", (C_Spell and type(C_Spell.GetSpellCharges) == "function") and "yes" or "no")
-	PrintKV("Has C_PlayerInfo.IsPlayerInSkyriding", (C_PlayerInfo and type(C_PlayerInfo.IsPlayerInSkyriding) == "function") and "yes" or "no")
-	PrintKV("Has C_PlayerInfo.IsPlayerInDragonriding", (C_PlayerInfo and type(C_PlayerInfo.IsPlayerInDragonriding) == "function") and "yes" or "no")
+	PrintKV(
+		"Has C_PlayerInfo.IsPlayerInSkyriding",
+		(C_PlayerInfo and type(C_PlayerInfo.IsPlayerInSkyriding) == "function") and "yes" or "no"
+	)
+	PrintKV(
+		"Has C_PlayerInfo.IsPlayerInDragonriding",
+		(C_PlayerInfo and type(C_PlayerInfo.IsPlayerInDragonriding) == "function") and "yes" or "no"
+	)
 
 	if not (self.db and self.db.profile) then
-		print("Flightsim debug: DB not initialized")
+		print(L["DEBUG_DB_NOT_INIT"])
 		return
 	end
 
@@ -1301,7 +1438,7 @@ function FlightsimUI:DebugDump()
 	PrintKV("GetUnitSpeed(player)", string.format("%.2f", speed))
 	PrintKV("IsMounted", IsMounted() and "yes" or "no")
 	PrintKV("IsFlying", IsFlying() and "yes" or "no")
-	
+
 	-- Detailed GetGlidingInfo debug
 	if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
 		local ok, isGliding, canGlide, forwardSpeed = pcall(C_PlayerInfo.GetGlidingInfo)
@@ -1312,11 +1449,11 @@ function FlightsimUI:DebugDump()
 	else
 		PrintKV("GetGlidingInfo", "API not available")
 	end
-	
+
 	PrintKV("IsSkyridingActive", self:IsSkyridingActive() and "yes" or "no")
 	PrintKV("Frame shown", (self.frame and self.frame:IsShown()) and "yes" or "no")
 
-	print("Flightsim debug: abilities ----")
+	print(L["DEBUG_ABILITIES_HEADER"])
 	for i, token in ipairs((p.abilities and p.abilities.order) or {}) do
 		local enabled = (p.abilities.enabled == nil) or (p.abilities.enabled[token] ~= false)
 		local spellID, iconID = ResolveSpellInfo(token)
@@ -1324,24 +1461,27 @@ function FlightsimUI:DebugDump()
 		if spellID then
 			cur, max = GetSpellChargesSafe(spellID)
 		end
-		print(string.format(
-			"Flightsim debug: %d) %s enabled=%s spellID=%s icon=%s charges=%s/%s",
-			i,
-			tostring(token),
-			enabled and "yes" or "no",
-			tostring(spellID),
-			tostring(iconID),
-			tostring(cur),
-			tostring(max)
-		))
+		print(
+			string.format(
+				L["DEBUG_ABILITY_FORMAT"],
+				i,
+				tostring(token),
+				enabled and "yes" or "no",
+				tostring(spellID),
+				tostring(iconID),
+				tostring(cur),
+				tostring(max)
+			)
+		)
 	end
 
-	print("Flightsim debug: ---- end")
+	print(L["DEBUG_FOOTER"])
 end
 
 function FlightsimUI:Status()
+	local L = Flightsim.L
 	if not (self.db and self.db.profile) then
-		print("Flightsim: not initialized")
+		print(L["STATUS_NOT_INIT"])
 		return
 	end
 
@@ -1350,20 +1490,23 @@ function FlightsimUI:Status()
 	local maxSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.maxSpeed) or 20
 	local optimalSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.optimalSpeed) or 0
 
-	local showState = (self.frame and self.frame:IsShown()) and "shown" or "hidden"
-	local ridingState = skyriding and "skyriding" or "not skyriding"
+	local showState = (self.frame and self.frame:IsShown()) and L["SHOWN"] or L["HIDDEN"]
+	local ridingState = skyriding and L["SKYRIDING"] or L["NOT_SKYRIDING"]
 
-	local chargeState = "charges UI disabled"
+	local chargeState = L["CHARGES_DISABLED"]
 
-	local optimalStr = (optimalSpeed and optimalSpeed > 0) and string.format("optimal %.1f", optimalSpeed) or "optimal off"
+	local optimalStr = (optimalSpeed and optimalSpeed > 0) and string.format(L["OPTIMAL_FORMAT"], optimalSpeed)
+		or L["OPTIMAL_OFF"]
 
-	print(string.format(
-		"Flightsim: %s, frame %s, speed %.1f (max %.1f, %s), %s",
-		ridingState,
-		showState,
-		speed,
-		maxSpeed,
-		optimalStr,
-		chargeState
-	))
+	print(
+		string.format(
+			L["STATUS_FORMAT"],
+			ridingState,
+			showState,
+			speed,
+			maxSpeed,
+			optimalStr,
+			chargeState
+		)
+	)
 end

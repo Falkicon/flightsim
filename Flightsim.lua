@@ -2,6 +2,16 @@ local ADDON_NAME = ...
 
 Flightsim = Flightsim or {}
 
+local L = setmetatable({}, {
+	__index = function(t, k)
+		return k
+	end,
+})
+Flightsim.L = L
+
+FlightsimUI = FlightsimUI or {}
+FlightsimUI.Utils = FlightsimUI.Utils or {}
+
 local function CopyDefaults(dst, src)
 	for k, v in pairs(src) do
 		if type(v) == "table" then
@@ -12,6 +22,7 @@ local function CopyDefaults(dst, src)
 		end
 	end
 end
+FlightsimUI.Utils.CopyDefaults = CopyDefaults
 
 local DEFAULTS = {
 	profile = {

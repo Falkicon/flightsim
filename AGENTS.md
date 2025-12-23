@@ -2,7 +2,7 @@
 
 Technical reference for AI agents modifying this addon.
 
-For shared patterns, documentation requirements, and library management, see **[ADDON_DEV/AGENTS.md](../../ADDON_DEV/AGENTS.md)**.
+For shared patterns, library references, and development guides, see **[ADDON_DEV/AGENTS.md](../ADDON_DEV/AGENTS.md)**.
 
 ---
 
@@ -23,11 +23,45 @@ A lightweight replacement for a specific WeakAuras use-case:
 | File | Purpose |
 |------|---------|
 | `flightsim.toc` | Manifest |
-| `Flightsim.lua` | Init, defaults, migrations |
+| `Flightsim.lua` | Init, defaults, migrations, localization setup |
+| `Locales/enUS.lua` | Base English locale strings |
 | `UI.lua` | All UI logic |
 | `Config.lua` | Slash commands |
 | `SettingsUI.lua` | Settings panel |
+| `Tests/helpers_spec.lua` | Unit tests for pure functions |
 | `.pkgmeta` | CurseForge packaging config |
+
+---
+
+## Tooling & Workflow
+
+This addon follows the standard `ADDON_DEV` tooling workflow:
+
+| Task | Command |
+|------|---------|
+| Linting | `@lint` or `powershell -File "_dev_\ADDON_DEV\Tools\LintingTool\lint.ps1" -Addon Flightsim` |
+| Formatting | `@format` or `powershell -File "_dev_\ADDON_DEV\Tools\Formatter\format.ps1" -Addon Flightsim` |
+| Testing | `@test` or `powershell -File "_dev_\ADDON_DEV\Tools\TestRunner\run_tests.ps1" -Addon Flightsim` |
+
+---
+
+## Localization
+
+Since Flightsim is standalone (no Ace3), it uses a minimal manual implementation:
+
+```lua
+-- Flightsim.lua
+local L = setmetatable({}, { __index = function(t, k) return k end })
+Flightsim.L = L
+```
+
+Localizable strings are defined in `Locales/enUS.lua` and should be accessed via `Flightsim.L["KEY"]`.
+
+---
+
+## Testing
+
+Pure utility functions (Clamp, Color functions, etc.) are refactored into `FlightsimUI.Utils` for testability and covered by Busted tests in `Tests/helpers_spec.lua`.
 
 ---
 

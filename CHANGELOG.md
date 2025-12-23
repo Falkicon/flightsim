@@ -4,6 +4,12 @@ All notable changes to Flightsim will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+
+## [1.0.4] - 2025-12-23
+
+### Changed
+- System upgrade: added StyLua formatting, standalone localization, and unit tests. Added comprehensive Busted test suite for core utility functions.
+
 ## [1.0.3] - 2025-12-19
 
 ### Added

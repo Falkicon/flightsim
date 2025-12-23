@@ -3,79 +3,80 @@ FlightsimConfig = FlightsimConfig or {}
 SLASH_FLIGHTSIM1 = "/flightsim"
 SLASH_FLIGHTSIM2 = "/fs"
 SlashCmdList["FLIGHTSIM"] = function(msg)
+	local L = Flightsim.L
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
 
 	if not FlightsimDB or not FlightsimDB.profile then
-		print("Flightsim: not initialized yet.")
+		print(L["NOT_INITIALIZED_YET"])
 		return
 	end
 
 	if msg == "lock" then
 		FlightsimDB.profile.locked = true
-		print("Flightsim: locked")
+		print(L["LOCKED"])
 		return
 	elseif msg == "unlock" then
 		FlightsimDB.profile.locked = false
-		print("Flightsim: unlocked (drag frame to move)")
+		print(L["UNLOCKED"])
 		return
 	elseif msg:match("^scale%s+") then
 		local val = tonumber(msg:match("^scale%s+([%d%.]+)$"))
 		if not val then
-			print("Flightsim: usage: /flightsim scale 1.0")
+			print(L["USAGE_SCALE"])
 			return
 		end
 		if FlightsimUI and FlightsimUI.SetScale then
 			FlightsimUI:SetScale(val)
 		end
-		print("Flightsim: scale set")
+		print(L["SCALE_SET"])
 		return
 	elseif msg:match("^width%s+") then
 		local val = tonumber(msg:match("^width%s+([%d%.]+)$"))
 		if not val then
-			print("Flightsim: usage: /flightsim width 320")
+			print(L["USAGE_WIDTH"])
 			return
 		end
 		if FlightsimUI and FlightsimUI.SetWidth then
 			FlightsimUI:SetWidth(val)
 		end
-		print("Flightsim: width set")
+		print(L["WIDTH_SET"])
 		return
 	elseif msg:match("^barmax%s+") then
 		local val = tonumber(msg:match("^barmax%s+([%d%.]+)$"))
 		if not val then
-			print("Flightsim: usage: /flightsim barmax 930")
+			print(L["USAGE_BARMAX"])
 			return
 		end
 		if FlightsimUI and FlightsimUI.SetSpeedBarMax then
 			FlightsimUI:SetSpeedBarMax(val)
 		end
-		print("Flightsim: speed bar max set")
+		print(L["BARMAX_SET"])
 		return
 	elseif msg:match("^sustainable%s+") or msg:match("^optimal%s+") then
 		local val = tonumber(msg:match("^sustainable%s+([%d%.]+)$") or msg:match("^optimal%s+([%d%.]+)$"))
 		if val == nil then
-			print("Flightsim: usage: /flightsim sustainable 0   (0 hides marker)")
+			print(L["USAGE_SUSTAINABLE"])
 			return
 		end
 		if FlightsimUI and FlightsimUI.SetSustainableSpeed then
 			FlightsimUI:SetSustainableSpeed(val)
 		end
-		print("Flightsim: sustainable speed marker set")
+		print(L["SUSTAINABLE_SET"])
 		return
 	elseif msg == "hidenot" then
 		FlightsimDB.profile.visibility.hideWhenNotSkyriding = true
 		FlightsimDB.profile.visibility.hideWhileSkyriding = false
-		print("Flightsim: will hide when NOT skyriding")
+		print(L["HIDE_NOT_SKYRIDING"])
 		return
 	elseif msg == "hidesky" then
 		FlightsimDB.profile.visibility.hideWhileSkyriding = true
 		FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
-		print("Flightsim: will hide while skyriding")
+		print(L["HIDE_WHILE_SKYRIDING"])
 		return
 	elseif msg == "showalways" then
 		FlightsimDB.profile.visibility.hideWhileSkyriding = false
 		FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
-		print("Flightsim: will always show")
+		print(L["SHOW_ALWAYS"])
 		return
 	elseif msg:match("^toggle%s+") then
 		local query = msg:match("^toggle%s+(.+)$")
@@ -84,13 +85,13 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			if token:lower():find(query, 1, true) then
 				local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
 				FlightsimDB.profile.abilities.enabled[token] = not enabled
-				print(string.format("Flightsim: %s %s", token, (not enabled) and "enabled" or "disabled"))
+				print(string.format(L["ABILITY_TOGGLED"], token, (not enabled) and "enabled" or "disabled"))
 				found = true
 				break
 			end
 		end
 		if not found then
-			print("Flightsim: ability not found. Try /flightsim list")
+			print(L["ABILITY_NOT_FOUND"])
 		else
 			if FlightsimUI and FlightsimUI.RebuildAbilityRows then
 				FlightsimUI:RebuildAbilityRows()
@@ -98,7 +99,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		end
 		return
 	elseif msg == "list" then
-		print("Flightsim abilities:")
+		print(L["ABILITIES_LIST"])
 		for i, token in ipairs(FlightsimDB.profile.abilities.order or {}) do
 			local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
 			print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
@@ -108,7 +109,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		local a, b = msg:match("^move%s+(.+)%s+(%d+)$")
 		local newIndex = tonumber(b)
 		if not (a and newIndex) then
-			print("Flightsim: usage: /flightsim move <ability> <index>")
+			print(L["USAGE_MOVE"])
 			return
 		end
 		local order = FlightsimDB.profile.abilities.order or {}
@@ -120,7 +121,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			end
 		end
 		if not fromIndex then
-			print("Flightsim: ability not found. Try /flightsim list")
+			print(L["ABILITY_NOT_FOUND"])
 			return
 		end
 		newIndex = math.max(1, math.min(#order, newIndex))
@@ -130,20 +131,20 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		if FlightsimUI and FlightsimUI.RebuildAbilityRows then
 			FlightsimUI:RebuildAbilityRows()
 		end
-		print("Flightsim: ability order updated")
+		print(L["ORDER_UPDATED"])
 		return
 	elseif msg == "debug" then
 		if FlightsimUI and FlightsimUI.DebugDump then
 			FlightsimUI:DebugDump()
 		else
-			print("Flightsim: debug not available (UI not initialized yet)")
+			print(L["DEBUG_NOT_AVAILABLE"])
 		end
 		return
 	elseif msg == "status" then
 		if FlightsimUI and FlightsimUI.Status then
 			FlightsimUI:Status()
 		else
-			print("Flightsim: status not available (UI not initialized yet)")
+			print(L["STATUS_NOT_AVAILABLE"])
 		end
 		return
 	elseif msg == "reset" then
@@ -155,11 +156,11 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			FlightsimUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 			FlightsimUI.frame:SetScale(1)
 		end
-		print("Flightsim: position/scale reset")
+		print(L["RESET_DONE"])
 		return
 	end
 
-	print("Flightsim commands:")
+	print(L["COMMANDS_HELP"])
 	print("  /flightsim lock")
 	print("  /flightsim unlock")
 	print("  /flightsim scale <number>")
