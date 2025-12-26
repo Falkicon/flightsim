@@ -123,19 +123,15 @@ Pure utility functions (Clamp, Color functions, etc.) are refactored into `Fligh
 - `GetShapeshiftForm()` returns `3` for Travel/Flight Form on druids
 - Detection: check both `IsMounted()` OR druid flight form before querying gliding APIs
 
-### Midnight (12.0) Secret Values
+### Midnight (12.0) API Handling
 
-```lua
-local hasSecretValues = issecretvalue and (
-    issecretvalue(surgeInfo.maxCharges) or
-    issecretvalue(surgeInfo.currentCharges)
-)
-if hasSecretValues then
-    -- Hide bars, skip all processing
-end
-```
-
-**Current solution:** Hide all ability bars when secret values detected.
+- **Normal Mode**: `C_Spell.GetSpellCharges` and `C_Spell.GetSpellCooldown` work correctly **outside of combat**.
+- **Degraded Mode**: When spell APIs return secret values (typically in combat), all ability bars switch to a binary state (Full/Empty) based on `C_Spell.IsSpellUsable`.
+- **Vigor Removed**: The Vigor resource (Power Type 25 / AlternateMount) was removed from the game in 11.2.7. Skyriding now uses direct charges. Do NOT use `UnitPower("player", 25)` - it returns invalid/secret data.
+- **GetGlidingInfo Unreliable**: In 12.0+, `C_PlayerInfo.GetGlidingInfo()` may return `false/false` even when skyriding. The addon uses Surge Forward spell data (372608) as a fallback detection method.
+- **Arithmetic Protection**: The addon uses `IsSecret()`, `SafeCompare()`, and `SafeToString()` wrappers to avoid Lua errors when arithmetic, comparisons, or formatting are attempted on secret values.
+- **Silent Crash Prevention**: All `or` operators on potential secret returns have been replaced with explicit `nil` checks to prevent immediate crashes.
+- **API Diagnostic**: Run `/fs testapi` to check the current state of Skyriding APIs.
 
 ---
 

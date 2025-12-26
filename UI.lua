@@ -1,5 +1,110 @@
 FlightsimUI = FlightsimUI or {}
-FlightsimUI.Utils = {}
+FlightsimUI.Utils = FlightsimUI.Utils or {}
+FlightsimUI.debugBuffer = {}
+
+-- Performance Tracking
+FlightsimUI.perf = {
+	blocks = {
+		state = 0,
+		speed = 0,
+		accel = 0,
+		prep = 0,
+		surge = 0,
+		whirling = 0,
+		wind = 0,
+	},
+	lastUpdate = 0,
+}
+
+-- Testing Definitions
+FlightsimUI.tests = {
+	{ id = "api_diag", name = "API Diagnostic", category = "API Diagnostic", type = "auto", description = "Checks core skyriding APIs for secret values." },
+	{ id = "ui_compliance", name = "UI Compliance", category = "UI Compliance", type = "auto", description = "Verifies StatusBar compliance with secret passthrough." },
+}
+
+local function IsSecret(val)
+	if val == nil then return false end
+	if issecretvalue then
+		return issecretvalue(val) == true
+	end
+	-- Robust fallback for secret-like objects that crash comparisons
+	local ok = pcall(function() local _ = (val > -1e12) end)
+	return not ok
+end
+
+local function SafeToString(val)
+	if val == nil then
+		return "nil"
+	end
+	if IsSecret(val) then
+		return "???"
+	end
+	return tostring(val)
+end
+
+local function SafeCompare(a, b, op)
+	if a == nil or b == nil then
+		return nil
+	end
+	if IsSecret(a) or IsSecret(b) then
+		return nil
+	end
+	if op == ">" then
+		return a > b
+	elseif op == "<" then
+		return a < b
+	elseif op == ">=" then
+		return a >= b
+	elseif op == "<=" then
+		return a <= b
+	elseif op == "==" then
+		return a == b
+	elseif op == "~=" then
+		return a ~= b
+	end
+	return nil
+end
+
+local function DebugLog(...)
+	if not Flightsim or not Flightsim.debugMode then
+		return
+	end
+
+	local msg = ""
+	local n = select("#", ...)
+	for i = 1, n do
+		local v = select(i, ...)
+		msg = msg .. (i > 1 and " " or "") .. SafeToString(v)
+	end
+
+	-- Log to internal buffer for Mechanic's pull model
+	table.insert(FlightsimUI.debugBuffer, {
+		msg = msg,
+		time = GetTime(),
+	})
+	if #FlightsimUI.debugBuffer > 500 then
+		table.remove(FlightsimUI.debugBuffer, 1)
+	end
+
+	-- Log to Mechanic's live console if available
+	local MechanicLib = LibStub("MechanicLib-1.0", true)
+	if MechanicLib then
+		local category = MechanicLib.Categories.CORE
+		-- Quick category heuristic
+		if msg:find("secret") or msg:find("???") then
+			category = MechanicLib.Categories.SECRET
+		elseif msg:find("API") or msg:find("charges") or msg:find("GetSpell") then
+			category = MechanicLib.Categories.API
+		elseif msg:find("Block") then
+			category = MechanicLib.Categories.PERF
+		end
+		MechanicLib:Log("Flightsim", msg, category)
+	end
+
+	if Flightsim.debugMode then
+		print("|cff74AFFF[Flightsim]|r", msg)
+	end
+end
 
 local function Clamp(n, minV, maxV)
 	if n < minV then
@@ -82,10 +187,7 @@ FlightsimUI.Utils.ColorForPctSurgeForward = ColorForPctSurgeForward
 
 -- WeakAura-inspired skyriding constants (Retail 11.x):
 -- These are used only where they map cleanly to addon-safe APIs.
-local ASCENT_SPELL_ID = 372610
-local THRILL_BUFF_ID = 377234
 local SLOW_SKYRIDING_RATIO = 705 / 830
-local ASCENT_DURATION = 3.5
 -- Base speed for percentage calculation. WA uses ~8.24 y/s (approx 100% mounted ground speed)
 -- so that max skyriding (~65 y/s) shows as ~790% rather than ~930%.
 local BASE_SPEED_FOR_PCT = 8.24
@@ -100,14 +202,16 @@ local FAST_FLYING_ZONES = {
 
 -- Spell IDs for ability tracking
 local WHIRLING_SURGE_SPELL_ID = 361584
-local SECOND_WIND_SPELL_ID = 425782 -- Second Wind (vigor refresh)
-local SURGE_FORWARD_SPELL_ID = 372608 -- Surge Forward (6 charges, restored by Second Wind)
+local SECOND_WIND_SPELL_ID = 425782 -- Second Wind (restores Surge Forward charges)
+local SURGE_FORWARD_SPELL_ID = 372608 -- Surge Forward (6 charges)
 
 local function GetUnitSpeedSafe(unit)
 	local fn = GetUnitSpeed or UnitSpeed
 	if type(fn) == "function" then
 		local ok, result = pcall(fn, unit)
 		if ok and result then
+			-- In Midnight combat, result may be a secret value (not a number).
+			-- We return it anyway so it can be passed to StatusBars.
 			return result
 		end
 	end
@@ -125,47 +229,23 @@ local function IsSlowSkyridingZone()
 	return not FAST_FLYING_ZONES[instanceID]
 end
 
-local function HasThrillBuff()
-	-- Midnight (12.0+): C_UnitAuras.GetPlayerAuraBySpellID is protected in combat
-	-- Skip the call entirely to avoid ADDON_ACTION_BLOCKED warnings
-	if InCombatLockdown() then
-		return false
-	end
-	if C_UnitAuras and type(C_UnitAuras.GetPlayerAuraBySpellID) == "function" then -- luacheck: ignore
-		local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, THRILL_BUFF_ID) -- luacheck: ignore
-		return ok and aura ~= nil
-	end
-	return false
-end
-
 function FlightsimUI:_UpdateSkyridingState(now)
 	-- Zone normalization (WA behavior): treat some zones as "slow" and scale up.
 	self._isSlowSkyriding = IsSlowSkyridingZone()
-
-	-- Detect ascent casts for boost window.
-	-- (We keep this state even if we don't expose a separate UI element yet.)
-	if self._ascentStart and now and (now > self._ascentStart + ASCENT_DURATION) then
-		-- Expired
-		self._ascentStart = nil
-	end
-
-	local thrill = HasThrillBuff()
-	self._hasThrill = thrill
-	if thrill and self._ascentStart and now then
-		self._isBoosting = now < (self._ascentStart + ASCENT_DURATION)
-	else
-		self._isBoosting = false
-	end
 end
 
 function FlightsimUI:_GetSkyridingSpeed(now)
 	-- Returns: speed, isGliding
 	if C_PlayerInfo and type(C_PlayerInfo.GetGlidingInfo) == "function" then
 		local ok, isGliding, _, forwardSpeed = pcall(C_PlayerInfo.GetGlidingInfo)
-		if ok and isGliding and type(forwardSpeed) == "number" then
+		if ok and isGliding then
+			-- In Midnight combat, forwardSpeed may be a secret value.
+			-- isGliding will be true if secret or boolean true.
 			local adjusted = forwardSpeed
+			if not (issecretvalue and issecretvalue(adjusted)) then
 			if self._isSlowSkyriding then
 				adjusted = adjusted / SLOW_SKYRIDING_RATIO
+				end
 			end
 			return adjusted, true
 		end
@@ -193,8 +273,14 @@ local function GetSpellChargesSafe(spellID)
 		if ok then
 			if type(a) == "table" then
 				-- FrameXML typically returns a table with currentCharges/maxCharges.
-				local cur = a.currentCharges or a.charges
-				local max = a.maxCharges or a.max
+				local cur = a.currentCharges
+				if cur == nil then
+					cur = a.charges
+				end
+				local max = a.maxCharges
+				if max == nil then
+					max = a.max
+				end
 				return cur, max
 			end
 			-- Some builds may return (currentCharges, maxCharges, ...)
@@ -248,7 +334,14 @@ local function GetSpellCooldownSafe(spellID, getCharges)
 	end
 
 	-- Fallback to global GetSpellCooldown
-	if not _cooldownResult.startTime and type(GetSpellCooldown) == "function" then
+	local hasStartTime = false
+	if IsSecret(_cooldownResult.startTime) then
+		hasStartTime = true
+	elseif _cooldownResult.startTime ~= nil then
+		hasStartTime = true
+	end
+
+	if not hasStartTime and type(GetSpellCooldown) == "function" then
 		local ok, s, d, e = pcall(GetSpellCooldown, spellID)
 		if ok then
 			_cooldownResult.startTime = s
@@ -337,28 +430,30 @@ function FlightsimUI:IsSkyridingActive()
 
 	local result = false
 
-	-- Best-effort detection using GetGlidingInfo (added in 10.0.5)
-	-- isGliding = currently gliding in the air
-	-- canGlide = on a skyriding mount in a valid zone (even on ground)
-	-- This works for both regular mounts AND druid flight form
+	-- 1. Primary: GetGlidingInfo (The most accurate when it works)
 	if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
 		local ok, isGliding, canGlide = pcall(C_PlayerInfo.GetGlidingInfo)
-		if ok then
-			-- In Steady Flight mode, canGlide returns false even on Skyriding-capable mounts.
-			-- If we are mounted/druid-flying and GetGlidingInfo says we can't glide,
-			-- we should treat it as Steady Flight and disable the HUD.
-			if isGliding or canGlide then
+		if ok and (isGliding or canGlide) then
 				result = true
-			else
-				-- Definitive "not skyriding" state from the primary API
-				self._skyridingCacheTime = now
-				self._skyridingCacheResult = false
-				return false
+		end
+	end
+
+	-- 2. Definitive Fallback: Check for Surge Forward charges (372608)
+	-- If the player has this spell with charges, they are in Skyriding mode.
+	if not result and (isMounted or isDruidFlying) then
+		local surgeCharges = GetSpellCooldownSafe(372608, true)
+		if surgeCharges and surgeCharges.maxCharges then
+			local maxRaw = surgeCharges.maxCharges
+			local isMaxSecret = issecretvalue and issecretvalue(maxRaw)
+			if not isMaxSecret and type(maxRaw) == "number" and maxRaw > 0 then
+				result = true
+			elseif isMaxSecret then
+				result = true
 			end
 		end
 	end
 
-	-- Fallback: check older API names (only if not already true)
+	-- 3. Legacy Fallbacks: check older API names
 	if not result and C_PlayerInfo and C_PlayerInfo.IsPlayerInSkyriding then
 		local ok, val = pcall(C_PlayerInfo.IsPlayerInSkyriding)
 		if ok and type(val) == "boolean" then
@@ -373,28 +468,43 @@ function FlightsimUI:IsSkyridingActive()
 		end
 	end
 
-	-- Last resort: if flying (mounted or druid form), check for skyriding abilities
-	if not result and IsFlying() and (isMounted or isDruidFlying) then
-		if self.db and self.db.profile and self.db.profile.abilities and self.db.profile.abilities.order then
-			for _, token in ipairs(self.db.profile.abilities.order) do
-				if self.db.profile.abilities.enabled == nil or self.db.profile.abilities.enabled[token] ~= false then
-					local spellID = select(1, ResolveSpellInfo(token))
-					if spellID then
-						local cur, max = GetSpellChargesSafe(spellID)
-						if cur ~= nil and max ~= nil and max > 0 then
-							result = true
-							break
-						end
-					end
-				end
-			end
-		end
-	end
-
 	-- Cache the result
 	self._skyridingCacheTime = now
 	self._skyridingCacheResult = result
 	return result
+end
+
+local function IsSecret(val)
+	if val == nil then return false end
+	if issecretvalue then
+		return issecretvalue(val) == true
+	end
+	-- Robust fallback for secret-like objects that crash comparisons
+	local ok = pcall(function() local _ = (val > -1e12) end)
+	return not ok
+end
+
+local function SafeCompare(a, b, op)
+	if a == nil or b == nil then
+		return nil
+	end
+	if IsSecret(a) or IsSecret(b) then
+		return nil
+	end
+	if op == ">" then
+		return a > b
+	elseif op == "<" then
+		return a < b
+	elseif op == ">=" then
+		return a >= b
+	elseif op == "<=" then
+		return a <= b
+	elseif op == "==" then
+		return a == b
+	elseif op == "~=" then
+		return a ~= b
+	end
+	return nil
 end
 
 function FlightsimUI:Init(db)
@@ -428,21 +538,12 @@ function FlightsimUI:Init(db)
 		self.db.profile.y = y
 	end)
 
-	-- Event hooks for skyriding state (ascent cast + zone changes).
+	-- Event hooks for skyriding state (zone changes).
 	local events = CreateFrame("Frame")
 	self._eventFrame = events
-	events:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 	events:RegisterEvent("PLAYER_ENTERING_WORLD")
 	events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 	events:SetScript("OnEvent", function(_, event, ...)
-		if event == "UNIT_SPELLCAST_SUCCEEDED" then
-			local unit, _, spellID = ...
-			if unit == "player" and spellID == ASCENT_SPELL_ID then
-				self._ascentStart = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
-			end
-			return
-		end
-
 		-- Zone-related state refresh
 		self._isSlowSkyriding = IsSlowSkyridingZone()
 	end)
@@ -758,24 +859,31 @@ function FlightsimUI:ApplyVisibility()
 			if not self.frame:IsShown() then
 				self.frame:Show()
 			end
+			self.frame:SetAlpha(1)
+			
 			if self.accelFrame and not self.accelFrame:IsShown() then
 				self.accelFrame:Show()
 			end
+			if self.accelFrame then self.accelFrame:SetAlpha(1) end
+
 			-- Respect individual ability bar settings
 			if self.surgeForwardFrame and ab.showSurgeForward ~= false then
 				if not self.surgeForwardFrame:IsShown() then
 					self.surgeForwardFrame:Show()
 				end
+				self.surgeForwardFrame:SetAlpha(1)
 			end
 			if self.secondWindFrame and ab.showSecondWind ~= false then
 				if not self.secondWindFrame:IsShown() then
 					self.secondWindFrame:Show()
 				end
+				self.secondWindFrame:SetAlpha(1)
 			end
 			if self.whirlingSurgeBar and ab.showWhirlingSurge ~= false then
 				if not self.whirlingSurgeBar:IsShown() then
 					self.whirlingSurgeBar:Show()
 				end
+				self.whirlingSurgeBar:SetAlpha(1)
 			end
 		else
 			if self.frame:IsShown() then
@@ -926,198 +1034,314 @@ function FlightsimUI:StartUpdating()
 			return
 		end
 
-		-- Wrap main update logic in pcall for stability
-		local ok, err = pcall(function()
-			local now = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
-			self:_UpdateSkyridingState(now)
+		local now = (GetTimePreciseSec and GetTimePreciseSec()) or GetTime()
+		local block_start
 
-			-- Prefer skyriding/gliding API for flight; fall back to ground speed when unavailable.
-			local speed, isGliding = self:_GetSkyridingSpeed(now)
+		-- 1. Skyriding State & Speed (Primary detection)
+		block_start = debugprofilestop()
+		local speed, isGliding
+		local ok_state, err_state = pcall(function()
+			self:_UpdateSkyridingState(now)
+			speed, isGliding = self:_GetSkyridingSpeed(now)
 			if not isGliding then
 				speed = GetUnitSpeedSafe("player")
-				if speed <= 0 then
+				if SafeCompare(speed, 0, "<=") then
 					speed = self:_GetFallbackSpeedFromPosition(elapsed)
 				end
 			end
-			local baseMax = (self.db.profile.speedBar and self.db.profile.speedBar.maxSpeed) or 950
-			if baseMax <= 0 then
-				baseMax = 950
-			end
+		end)
+		self.perf.blocks.state = debugprofilestop() - block_start
+		if not ok_state then
+			DebugLog("State/Speed update error:", err_state)
+			speed = 0
+			isGliding = false
+		end
 
-			-- Convert raw speed (yards/sec) to percentage (WA-style: ~790% at stable, ~950% max)
-			local speedPct = (speed / BASE_SPEED_FOR_PCT) * 100
+		-- 2. Speed Bar Update
+		block_start = debugprofilestop()
+		pcall(function()
+			-- Check for secret values (Midnight combat)
+			local isSpeedSecret = IsSecret(speed)
 
-			-- Display as percentage or raw speed
-			local showPercent = self.db.profile.speedBar and self.db.profile.speedBar.showPercent
-			if showPercent ~= false then
-				self.speedText:SetText(string.format("%.0f%%", speedPct))
-			else
-				self.speedText:SetText(string.format("%.1f", speed))
-			end
+			if isSpeedSecret then
+				DebugLog("Speed is secret value")
+				-- DEGRADED MODE (Combat)
+				-- Cannot perform arithmetic or string formatting on secret values.
+				self.speedText:SetText("???")
 
-			-- Normalize bar fill against maxSpeed (as percentage)
-			local skyriding = self:IsSkyridingActive()
-			if skyriding then
-				self._sessionMaxSpeed = math.max(self._sessionMaxSpeed or 0, speedPct)
-			else
-				self._sessionMaxSpeed = nil
-			end
-
-			local effectiveMax = baseMax
-			if skyriding and self._sessionMaxSpeed and self._sessionMaxSpeed > effectiveMax then
-				effectiveMax = self._sessionMaxSpeed
-			end
-			if effectiveMax <= 0 then
-				effectiveMax = 1
-			end
-
-			local pct = Clamp(speedPct / effectiveMax, 0, 1)
-			self.speedBar:SetValue(pct)
-			local r, g, b = ColorForPct(pct)
-			self.speedBar:SetStatusBarColor(r, g, b, 1)
-
-			local sustainableSpeed = (self.db.profile.speedBar and self.db.profile.speedBar.sustainableSpeed)
-				or (self.db.profile.speedBar and self.db.profile.speedBar.optimalSpeed)
-				or 0
-			if sustainableSpeed and sustainableSpeed > 0 then
-				local op = Clamp(sustainableSpeed / effectiveMax, 0, 1)
-				self.sustainableMarker:Show()
-				self.sustainableMarker:ClearAllPoints()
-				self.sustainableMarker:SetPoint("TOP", self.speedBar, "TOPLEFT", op * self.speedBar:GetWidth(), 0)
-				self.sustainableMarker:SetPoint("BOTTOM", self.speedBar, "BOTTOMLEFT", op * self.speedBar:GetWidth(), 0)
-			else
+				-- StatusBar passthrough works - pass the secret speed directly.
+				-- We must also pass a secret or static max to SetMinMaxValues.
+				-- Since we can't calculate percentage, we scale the bar to a fixed 1000 range
+				-- and hope the secret value maps relatively well, or just show full.
+				self.speedBar:SetMinMaxValues(0, 1000) -- Arbitrary high max for secret passthrough
+				self.speedBar:SetValue(speed)
+				self.speedBar:SetStatusBarColor(0.5, 0.5, 0.5, 1) -- Grey for "restricted"
 				self.sustainableMarker:Hide()
+			else
+				-- NORMAL MODE
+				local baseMax = 950
+				if self.db.profile.speedBar and self.db.profile.speedBar.maxSpeed then
+					baseMax = self.db.profile.speedBar.maxSpeed
+				end
+				if baseMax <= 0 then
+					baseMax = 950
+				end
+
+				-- Convert raw speed (yards/sec) to percentage (WA-style: ~790% at stable, ~950% max)
+				local speedVal = 0
+				if type(speed) == "number" and not IsSecret(speed) then
+					speedVal = speed
+				end
+				local speedPct = (speedVal / BASE_SPEED_FOR_PCT) * 100
+
+				-- Display as percentage or raw speed
+				local showPercent = true
+				if self.db.profile.speedBar and self.db.profile.speedBar.showPercent == false then
+					showPercent = false
+				end
+
+				if showPercent then
+					self.speedText:SetText(string.format("%.0f%%", speedPct))
+				else
+					self.speedText:SetText(string.format("%.1f", speedVal))
+				end
+
+				-- Normalize bar fill against maxSpeed (as percentage)
+				local skyriding = self:IsSkyridingActive()
+				if skyriding then
+					local smax = self._sessionMaxSpeed
+					if smax == nil then
+						smax = 0
+					end
+					self._sessionMaxSpeed = math.max(smax, speedPct)
+				else
+					self._sessionMaxSpeed = nil
+				end
+
+				local effectiveMax = baseMax
+				if skyriding and self._sessionMaxSpeed and self._sessionMaxSpeed > effectiveMax then
+					effectiveMax = self._sessionMaxSpeed
+				end
+				if effectiveMax <= 0 then
+					effectiveMax = 1
+				end
+
+				local pct = Clamp(speedPct / effectiveMax, 0, 1)
+				self.speedBar:SetMinMaxValues(0, 1)
+				self.speedBar:SetValue(pct)
+				local r, g, b = ColorForPct(pct)
+				self.speedBar:SetStatusBarColor(r, g, b, 1)
+
+				local sustainableSpeed = 0
+				if self.db.profile.speedBar then
+					sustainableSpeed = self.db.profile.speedBar.sustainableSpeed or self.db.profile.speedBar.optimalSpeed or 0
+				end
+
+				if sustainableSpeed and sustainableSpeed > 0 then
+					local op = Clamp(sustainableSpeed / effectiveMax, 0, 1)
+					self.sustainableMarker:Show()
+					self.sustainableMarker:ClearAllPoints()
+					self.sustainableMarker:SetPoint("TOP", self.speedBar, "TOPLEFT", op * self.speedBar:GetWidth(), 0)
+					self.sustainableMarker:SetPoint("BOTTOM", self.speedBar, "BOTTOMLEFT", op * self.speedBar:GetWidth(), 0)
+				else
+					self.sustainableMarker:Hide()
+				end
+
+				self._lastSpeedPct_Internal = speedPct -- Used for accel bar
+			end
+		end)
+		self.perf.blocks.speed = debugprofilestop() - block_start
+
+		-- 3. Acceleration Bar Update
+		block_start = debugprofilestop()
+		pcall(function()
+			local isSpeedSecret = IsSecret(speed)
+			if isSpeedSecret then
+				if self.accelBar then
+					self.accelBar:Hide()
+				end
+				return
 			end
 
-			-- Acceleration bar: shows rate of speed change
-			-- Calculate delta from last frame
-			local lastSpeedPct = self._lastSpeedPct or speedPct
-			local deltaSpeed = speedPct - lastSpeedPct
-			self._lastSpeedPct = speedPct
+			local speedPct = self._lastSpeedPct_Internal
+			if speedPct then
+				-- Calculate delta from last frame
+				local lastSpeedPct = self._lastSpeedPct
+				if lastSpeedPct == nil then
+					lastSpeedPct = speedPct
+				end
+				local deltaSpeed = speedPct - lastSpeedPct
+				self._lastSpeedPct = speedPct
 
-			-- Smooth the delta a bit to avoid jitter
-			self._smoothDelta = (self._smoothDelta or 0) * 0.7 + deltaSpeed * 0.3
+				-- Smooth the delta a bit to avoid jitter
+				local sDelta = self._smoothDelta
+				if sDelta == nil then
+					sDelta = 0
+				end
+				self._smoothDelta = sDelta * 0.7 + deltaSpeed * 0.3
 
-			-- Update acceleration bar
-			if self.accelBar and self.accelFrame then
-				local barWidth = self.accelFrame:GetWidth()
-				local barHeight = self.accelFrame:GetHeight()
-				local centerX = barWidth / 2
+				-- Update acceleration bar
+				if self.accelBar and self.accelFrame then
+					self.accelBar:Show()
+					local barWidth = self.accelFrame:GetWidth()
+					local barHeight = self.accelFrame:GetHeight()
+					local centerX = barWidth / 2
 
-				-- Scale: clamp raw delta to ±1 range
-				local maxDelta = 30 -- Max delta per update to show full bar extension
-				local deltaNorm = Clamp(self._smoothDelta / maxDelta, -1, 1)
+					-- Scale: clamp raw delta to ±1 range
+					local maxDelta = 30 -- Max delta per update to show full bar extension
+					local deltaNorm = Clamp(self._smoothDelta / maxDelta, -1, 1)
 
-				-- Apply square root curve: more sensitive near zero, compressed at extremes
-				-- sqrt(|x|) * sign(x) gives us the ramped response
-				local sign = deltaNorm >= 0 and 1 or -1
-				local curved = sign * math.sqrt(math.abs(deltaNorm))
+					-- Apply square root curve: more sensitive near zero, compressed at extremes
+					-- sqrt(|x|) * sign(x) gives us the ramped response
+					local sign = deltaNorm >= 0 and 1 or -1
+					local curved = sign * math.sqrt(math.abs(deltaNorm))
 
-				-- Minimum size is a small square (barHeight x barHeight)
-				local minSize = math.max(barHeight, 2)
+					-- Minimum size is a small square (barHeight x barHeight)
+					local minSize = math.max(barHeight, 2)
 
-				self.accelBar:ClearAllPoints()
-				self.accelBar:SetHeight(barHeight)
-				-- Bar is always white
-				self.accelBar:SetColorTexture(1, 1, 1, 0.9)
+					self.accelBar:ClearAllPoints()
+					self.accelBar:SetHeight(barHeight)
+					-- Bar is always white
+					self.accelBar:SetColorTexture(1, 1, 1, 0.9)
 
-				if math.abs(curved) < 0.05 then
-					-- Stable: show small centered square
-					self.accelBar:SetWidth(minSize)
-					self.accelBar:SetPoint("CENTER", self.accelFrame, "CENTER", 0, 0)
-				elseif curved >= 0 then
-					-- Accelerating: bar extends right from center
-					local extentWidth = curved * centerX
-					if extentWidth < minSize then
-						extentWidth = minSize
+					if math.abs(curved) < 0.05 then
+						-- Stable: show small centered square
+						self.accelBar:SetWidth(minSize)
+						self.accelBar:SetPoint("CENTER", self.accelFrame, "CENTER", 0, 0)
+					elseif curved >= 0 then
+						-- Accelerating: bar extends right from center
+						local extentWidth = curved * centerX
+						if extentWidth < minSize then
+							extentWidth = minSize
+						end
+						self.accelBar:SetWidth(extentWidth)
+						self.accelBar:SetPoint("LEFT", self.accelFrame, "LEFT", centerX, 0)
+					else
+						-- Decelerating: bar extends left from center
+						local extentWidth = -curved * centerX
+						if extentWidth < minSize then
+							extentWidth = minSize
+						end
+						self.accelBar:SetWidth(extentWidth)
+						self.accelBar:SetPoint("RIGHT", self.accelFrame, "LEFT", centerX, 0)
 					end
-					self.accelBar:SetWidth(extentWidth)
-					self.accelBar:SetPoint("LEFT", self.accelFrame, "LEFT", centerX, 0)
-				else
-					-- Decelerating: bar extends left from center
-					local extentWidth = -curved * centerX
-					if extentWidth < minSize then
-						extentWidth = minSize
-					end
-					self.accelBar:SetWidth(extentWidth)
-					self.accelBar:SetPoint("RIGHT", self.accelFrame, "LEFT", centerX, 0)
 				end
 			end
+		end)
+		self.perf.blocks.accel = debugprofilestop() - block_start
 
-			-- ============================================================
-			-- Ability Bars: Surge Forward, Second Wind charges & Whirling Surge cooldown
-			-- ============================================================
-			-- In combat or restricted zones (Midnight API restrictions), spell APIs may be
-			-- unavailable. We detect this by checking if maxCharges comes back nil/0.
-			-- If APIs are restricted, we hide ability bars gracefully.
-			local ANIM_SPEED = 3.0 -- Speed for "fill up" animation (units per second)
+		-- 4. Shared Ability State (Prep for charges/cooldowns)
+		block_start = debugprofilestop()
+		local surgeInfo, dt, surgeAtMax
+		local ok_prep, err_prep = pcall(function()
+			DebugLog("--- Ability Update Start ---")
 			local now_val = GetTime()
-			local dt = now_val - (self._lastAbilityUpdate or now_val)
+			dt = now_val - (self._lastAbilityUpdate or now_val)
 			self._lastAbilityUpdate = now_val
 
-			-- Get Surge Forward info first (used by multiple bars for dimming)
-			-- Also use this to detect if spell APIs are available
-			local surgeInfo = GetSpellCooldownSafe(SURGE_FORWARD_SPELL_ID, true)
+			DebugLog("Calling GetSpellCooldownSafe...")
+			surgeInfo = GetSpellCooldownSafe(SURGE_FORWARD_SPELL_ID, true)
+			DebugLog("surgeInfo obtained")
 
-			-- Midnight (12.0+): Detect secret values - these can't be compared or used in math
-			-- issecretvalue() is a global function in Midnight that returns true for secret values
-			local hasSecretValues = issecretvalue
-				and (issecretvalue(surgeInfo.maxCharges) or issecretvalue(surgeInfo.currentCharges))
+			local surgeChargesRaw = surgeInfo.currentCharges
+			local surgeMaxRaw = surgeInfo.maxCharges
+			DebugLog("Raw charges:", SafeToString(surgeChargesRaw), "/", SafeToString(surgeMaxRaw))
 
-			-- APIs are restricted if we got secret values OR nil/0 maxCharges
-			local apisRestricted = hasSecretValues or (surgeInfo.maxCharges == nil or surgeInfo.maxCharges == 0)
+			local isSurgeSecret = IsSecret(surgeChargesRaw) or IsSecret(surgeMaxRaw)
+			DebugLog("isSurgeSecret:", isSurgeSecret)
 
-			-- Hide ability bars if APIs are restricted (combat lockdown in restricted zones)
-			-- When restricted (secret values in combat), skip ALL ability bar logic to avoid comparisons
-			if apisRestricted then
-				if self.surgeForwardFrame then
+			if isSurgeSecret then
+				DebugLog("Surge is secret, using IsSpellUsable")
+				surgeAtMax = C_Spell.IsSpellUsable(SURGE_FORWARD_SPELL_ID) or false
+			else
+				local m = surgeMaxRaw or 6
+				DebugLog("Comparing charges...")
+				surgeAtMax = ((surgeChargesRaw or 0) >= m)
+			end
+			DebugLog("surgeAtMax:", surgeAtMax)
+
+			-- Show/Hide ability frames based on profile
+			if self.surgeForwardFrame then
+				if self.db.profile.abilityBars and self.db.profile.abilityBars.showSurgeForward ~= false then
+					self.surgeForwardFrame:Show()
+				else
 					self.surgeForwardFrame:Hide()
 				end
-				if self.secondWindFrame then
+			end
+			if self.secondWindFrame then
+				if self.db.profile.abilityBars and self.db.profile.abilityBars.showSecondWind then
+					self.secondWindFrame:Show()
+				else
 					self.secondWindFrame:Hide()
 				end
-				if self.whirlingSurgeBar then
+			end
+			if self.whirlingSurgeBar then
+				if self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
+					self.whirlingSurgeBar:Show()
+				else
 					self.whirlingSurgeBar:Hide()
 				end
-			else
-				-- Show ability bars (visibility permitting)
-				if
-					self.surgeForwardFrame
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showSurgeForward ~= false
-				then
-					self.surgeForwardFrame:Show()
-				end
-				if
-					self.secondWindFrame
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showSecondWind
-				then
-					self.secondWindFrame:Show()
-				end
-				if
-					self.whirlingSurgeBar
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showWhirlingSurge
-				then
-					self.whirlingSurgeBar:Show()
-				end
+			end
+		end)
+		self.perf.blocks.prep = debugprofilestop() - block_start
+		if not ok_prep then
+			DebugLog("Block 4 (Prep) error:", err_prep)
+		end
 
-				local surgeCharges = surgeInfo.currentCharges or 0
-				local surgeMaxCharges = surgeInfo.maxCharges or 6
-				local surgeAtMax = (surgeCharges >= surgeMaxCharges)
+		-- 5. Surge Forward Update
+		block_start = debugprofilestop()
+		local ok_sf, err_sf = pcall(function()
+			DebugLog("Entering Block 5 (Surge)...")
+			local surgeCondition = self.surgeForwardFrame
+				and self.surgeForwardBars
+				and self.db.profile.abilityBars
+				and self.db.profile.abilityBars.showSurgeForward ~= false
 
-				-- Surge Forward (6 charges)
-				if
-					self.surgeForwardFrame
-					and self.surgeForwardBars
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showSurgeForward ~= false
-				then
-					local chargeStart = surgeInfo.chargeStart or 0
-					local chargeDuration = surgeInfo.chargeDuration or 0
+			DebugLog("Surge condition:", surgeCondition, "Has surgeInfo:", surgeInfo ~= nil)
 
-					-- Surge Forward does NOT dim when at max (you can use it!)
+			if surgeCondition and surgeInfo then
+				local ANIM_SPEED = 3.0
+				local now_val = GetTime()
+				local surgeChargesRaw = surgeInfo.currentCharges
+				local surgeMaxRaw = surgeInfo.maxCharges
+				local isSurgeSecret = IsSecret(surgeChargesRaw) or IsSecret(surgeMaxRaw)
+				local surgeChargesCount = isSurgeSecret and 0 or (surgeChargesRaw or 0)
+
+				local cStart = surgeInfo.chargeStart
+				local cDur = surgeInfo.chargeDuration
+				local isAnimSecret = IsSecret(cStart) or IsSecret(cDur)
+
+				if isSurgeSecret then
+					local usable = C_Spell.IsSpellUsable(SURGE_FORWARD_SPELL_ID) or false
+					DebugLog("Surge is secret, usable proxy:", usable)
+
+					-- TEST COLOR: RED if secret to distinguish from non-secret
+					local r, g, b = 1, 0, 0
+					if not self.db.profile.debugMode then
+						r, g, b = COLOR_SURGE_FORWARD[1], COLOR_SURGE_FORWARD[2], COLOR_SURGE_FORWARD[3]
+					end
+
+					for i = 1, 6 do
+						local bar = self.surgeForwardBars[i]
+						if bar then
+							-- Midnight Safety: Re-assert bar configuration
+							bar:SetMinMaxValues(0, 1)
+							bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+
+							-- DIRECT HUD TEST: If debug is on, make the first bar BRIGHT GREEN and ALWAYS FULL
+							if i == 1 and self.db.profile.debugMode then
+								bar:SetValue(1)
+								bar:SetStatusBarColor(0, 1, 0, 1) -- Bright Green
+							else
+								bar:SetValue(usable and 1 or 0)
+								bar:SetStatusBarColor(r, g, b, 1)
+							end
+							bar:SetAlpha(1)
+						end
+					end
+				else
+					local chargeStart = (cStart ~= nil and not IsSecret(cStart)) and cStart or 0
+					local chargeDuration = (cDur ~= nil and not IsSecret(cDur)) and cDur or 0
 					local barAlpha = 1
 					local bgAlpha = 0.85
 
@@ -1125,185 +1349,229 @@ function FlightsimUI:StartUpdating()
 						local bar = self.surgeForwardBars[i]
 						local bg = self.surgeForwardBarBgs and self.surgeForwardBarBgs[i]
 						if bar then
-							-- Update background alpha
 							if bg then
 								bg:SetColorTexture(0.08, 0.12, 0.18, bgAlpha)
 							end
 
 							local targetPct = 0
-
-							if i <= surgeCharges then
-								-- This charge is full
+							if SafeCompare(i, surgeChargesCount, "<=") then
 								targetPct = 1
-							elseif i == surgeCharges + 1 and chargeDuration > 0 then
-								-- This charge is recharging
+							elseif SafeCompare(i, surgeChargesCount + 1, "==") and chargeDuration > 0 and not isAnimSecret then
 								local cdElapsed = now_val - chargeStart
 								targetPct = Clamp(cdElapsed / chargeDuration, 0, 1)
 							else
-								-- This charge is empty (waiting for earlier charges)
 								targetPct = 0
 							end
 
-							-- Track if we need to animate (charge just became full)
-							local lastTarget = self._surgeForwardLastTarget and self._surgeForwardLastTarget[i] or 0
+							local lastTarget = (self._surgeForwardLastTarget and self._surgeForwardLastTarget[i]) or 0
 							self._surgeForwardLastTarget = self._surgeForwardLastTarget or {}
 							self._surgeForwardLastTarget[i] = targetPct
 
-							if targetPct >= 1 and lastTarget < 1 then
-								-- Just became full - start animating
+							if SafeCompare(targetPct, 1, ">=") and SafeCompare(lastTarget, 1, "<") then
 								self._surgeForwardAnimating[i] = true
 							end
 
 							if self._surgeForwardAnimating[i] then
-								-- Animating to full
-								self._surgeForwardAnimValue[i] = (self._surgeForwardAnimValue[i] or 0) + dt * ANIM_SPEED
-								if self._surgeForwardAnimValue[i] >= 1 then
-									self._surgeForwardAnimValue[i] = 1
+								local val = (self._surgeForwardAnimValue[i] or 0) + dt * ANIM_SPEED
+								if val >= 1 then
+									val = 1
 									self._surgeForwardAnimating[i] = false
 								end
-								bar:SetValue(self._surgeForwardAnimValue[i])
-								local r_val, g_val, b_val = ColorForPctSurgeForward(self._surgeForwardAnimValue[i])
+								self._surgeForwardAnimValue[i] = val
+
+								-- Midnight Safety: Re-assert configuration every frame
+								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+								bar:SetMinMaxValues(0, 1)
+								bar:SetValue(val)
+								local r_val, g_val, b_val = ColorForPctSurgeForward(val)
 								bar:SetStatusBarColor(r_val, g_val, b_val, barAlpha)
+								bar:SetAlpha(1)
 							else
-								-- Not animating, use actual value
 								self._surgeForwardAnimValue[i] = targetPct
+
+								-- Midnight Safety: Re-assert configuration every frame
+								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+								bar:SetMinMaxValues(0, 1)
 								bar:SetValue(targetPct)
 								local r_val, g_val, b_val = ColorForPctSurgeForward(targetPct)
 								bar:SetStatusBarColor(r_val, g_val, b_val, barAlpha)
-							end
-						end
-					end
-				end
-
-				-- Whirling Surge (30s cooldown)
-				if
-					self.whirlingSurgeBar
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showWhirlingSurge
-				then
-					local info_ws = GetSpellCooldownSafe(WHIRLING_SURGE_SPELL_ID)
-					local onCooldown = info_ws and info_ws.startTime and info_ws.duration and info_ws.duration > 1.5
-
-					if onCooldown then
-						local cdElapsed = now_val - info_ws.startTime
-						local pct_ws = Clamp(cdElapsed / info_ws.duration, 0, 1)
-
-						-- Reset animation state when ability goes on cooldown
-						if self._whirlingSurgeWasReady then
-							self._whirlingSurgeAnimating = false
-							self._whirlingSurgeAnimValue = 0
-						end
-						self._whirlingSurgeWasReady = false
-
-						-- Still on cooldown, show fill based on elapsed time
-						self.whirlingSurgeBar:SetValue(pct_ws)
-						local r_ws, g_ws, b_ws = ColorForPctBlue(pct_ws)
-						self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
-					else
-						-- Off cooldown - animate quickly to full if we were on cooldown
-						if
-							not self._whirlingSurgeWasReady
-							and self._whirlingSurgeAnimValue
-							and self._whirlingSurgeAnimValue < 1
-						then
-							self._whirlingSurgeAnimating = true
-						end
-						self._whirlingSurgeWasReady = true
-
-						if self._whirlingSurgeAnimating then
-							self._whirlingSurgeAnimValue = (self._whirlingSurgeAnimValue or 0) + dt * ANIM_SPEED
-							if self._whirlingSurgeAnimValue >= 1 then
-								self._whirlingSurgeAnimValue = 1
-								self._whirlingSurgeAnimating = false
-							end
-							self.whirlingSurgeBar:SetValue(self._whirlingSurgeAnimValue)
-							local r_ws, g_ws, b_ws = ColorForPctBlue(self._whirlingSurgeAnimValue)
-							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
-						else
-							-- Show full
-							self.whirlingSurgeBar:SetValue(1)
-							local r_ws, g_ws, b_ws = ColorForPctBlue(1)
-							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
-						end
-					end
-				end
-
-				-- Second Wind (3 charges, 3 min recharge each)
-				if
-					self.secondWindFrame
-					and self.secondWindBars
-					and self.db.profile.abilityBars
-					and self.db.profile.abilityBars.showSecondWind
-				then
-					local info_sw = GetSpellCooldownSafe(SECOND_WIND_SPELL_ID, true) -- Request charge info
-					local currentCharges = info_sw.currentCharges or 0
-					local maxCharges = info_sw.maxCharges or 3
-					local chargeStart = info_sw.chargeStart or 0
-					local chargeDuration = info_sw.chargeDuration or 0
-
-					-- Use surgeAtMax from above for dimming
-					local barAlpha = surgeAtMax and 0.2 or 1 -- Dim to 20% when Second Wind is unusable
-					local bgAlpha = surgeAtMax and 0.17 or 0.85 -- Dim background proportionally (0.85 * 0.2 ≈ 0.17)
-
-					for i = 1, 3 do
-						local bar = self.secondWindBars[i]
-						local bg = self.secondWindBarBgs and self.secondWindBarBgs[i]
-						if bar then
-							-- Update background alpha
-							if bg then
-								bg:SetColorTexture(0.08, 0.12, 0.18, bgAlpha)
-							end
-
-							local targetPct = 0
-
-							if i <= currentCharges then
-								-- This charge is full
-								targetPct = 1
-							elseif i == currentCharges + 1 and chargeDuration > 0 then
-								-- This charge is recharging
-								local cdElapsed = now_val - chargeStart
-								targetPct = Clamp(cdElapsed / chargeDuration, 0, 1)
-							else
-								-- This charge is empty (waiting for earlier charges)
-								targetPct = 0
-							end
-
-							-- Track if we need to animate (charge just became full)
-							local lastTarget = self._secondWindLastTarget and self._secondWindLastTarget[i] or 0
-							self._secondWindLastTarget = self._secondWindLastTarget or {}
-							self._secondWindLastTarget[i] = targetPct
-
-							if targetPct >= 1 and lastTarget < 1 then
-								-- Just became full - start animating
-								self._secondWindAnimating[i] = true
-							end
-
-							if self._secondWindAnimating[i] then
-								-- Animating to full
-								self._secondWindAnimValue[i] = (self._secondWindAnimValue[i] or 0) + dt * ANIM_SPEED
-								if self._secondWindAnimValue[i] >= 1 then
-									self._secondWindAnimValue[i] = 1
-									self._secondWindAnimating[i] = false
-								end
-								bar:SetValue(self._secondWindAnimValue[i])
-								local r_sw, g_sw, b_sw = ColorForPctPurple(self._secondWindAnimValue[i])
-								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
-							else
-								-- Not animating, use actual value
-								self._secondWindAnimValue[i] = targetPct
-								bar:SetValue(targetPct)
-								local r_sw, g_sw, b_sw = ColorForPctPurple(targetPct)
-								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
+								bar:SetAlpha(1)
 							end
 						end
 					end
 				end
 			end
 		end)
+		self.perf.blocks.surge = debugprofilestop() - block_start
+		if not ok_sf then
+			DebugLog("Block 5 (Surge) error:", err_sf)
+		end
 
-		if not ok and self.db.profile.debug then
-			local L = Flightsim.L
-			print(L["UPDATE_LOOP_ERROR"] .. tostring(err))
+		-- 6. Whirling Surge Update
+		block_start = debugprofilestop()
+		local ok_ws, err_ws = pcall(function()
+			DebugLog("Entering Block 6 (Whirling)...")
+			if self.whirlingSurgeBar and self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
+				local info_ws = GetSpellCooldownSafe(WHIRLING_SURGE_SPELL_ID)
+				local ws_dur = info_ws.duration
+				local ws_start = info_ws.startTime
+				local isWSSecret = IsSecret(ws_dur) or IsSecret(ws_start)
+
+				if isWSSecret then
+					local usable = C_Spell.IsSpellUsable(WHIRLING_SURGE_SPELL_ID)
+					DebugLog("Whirling is secret, usable proxy:", usable)
+					-- Midnight Safety: Re-assert bar configuration
+					self.whirlingSurgeBar:SetMinMaxValues(0, 1)
+					self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+					self.whirlingSurgeBar:SetValue(usable and 1 or 0)
+					self.whirlingSurgeBar:SetStatusBarColor(COLOR_WHIRLING_SURGE[1], COLOR_WHIRLING_SURGE[2], COLOR_WHIRLING_SURGE[3], 1)
+					self.whirlingSurgeBar:SetAlpha(1)
+				else
+					local onCooldown = ws_dur and ws_dur > 1.5
+					local now_val = GetTime()
+					local ANIM_SPEED = 3.0
+
+					if onCooldown then
+						local cdElapsed = now_val - (ws_start or now_val)
+						local pct_ws = Clamp(cdElapsed / ws_dur, 0, 1)
+						if self._whirlingSurgeWasReady then
+							self._whirlingSurgeAnimating = false
+							self._whirlingSurgeAnimValue = 0
+						end
+						self._whirlingSurgeWasReady = false
+						self.whirlingSurgeBar:SetValue(pct_ws)
+						local r_ws, g_ws, b_ws = ColorForPctBlue(pct_ws)
+						self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
+					else
+						if not self._whirlingSurgeWasReady and (self._whirlingSurgeAnimValue or 0) < 1 then
+							self._whirlingSurgeAnimating = true
+						end
+						self._whirlingSurgeWasReady = true
+						if self._whirlingSurgeAnimating then
+							local val = (self._whirlingSurgeAnimValue or 0) + dt * ANIM_SPEED
+							if val >= 1 then
+								val = 1
+								self._whirlingSurgeAnimating = false
+							end
+							self._whirlingSurgeAnimValue = val
+							-- Midnight Safety
+							self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+							self.whirlingSurgeBar:SetMinMaxValues(0, 1)
+							self.whirlingSurgeBar:SetValue(val)
+							local r_ws, g_ws, b_ws = ColorForPctBlue(val)
+							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
+							self.whirlingSurgeBar:SetAlpha(1)
+						else
+							-- Midnight Safety
+							self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+							self.whirlingSurgeBar:SetMinMaxValues(0, 1)
+							self.whirlingSurgeBar:SetValue(1)
+							local r_ws, g_ws, b_ws = ColorForPctBlue(1)
+							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
+							self.whirlingSurgeBar:SetAlpha(1)
+						end
+					end
+				end
+			end
+		end)
+		self.perf.blocks.whirling = debugprofilestop() - block_start
+		if not ok_ws then
+			DebugLog("Block 6 (Whirling) error:", err_ws)
+		end
+
+		-- 7. Second Wind Update
+		block_start = debugprofilestop()
+		local ok_wind, err_wind = pcall(function()
+			DebugLog("Entering Block 7 (Wind)...")
+			if self.secondWindFrame and self.secondWindBars and self.db.profile.abilityBars and self.db.profile.abilityBars.showSecondWind then
+				local info_sw = GetSpellCooldownSafe(SECOND_WIND_SPELL_ID, true)
+				local swChargesRaw = info_sw.currentCharges
+				local swStart = info_sw.chargeStart
+				local swDur = info_sw.chargeDuration
+				local isSWSecret = IsSecret(swChargesRaw) or IsSecret(swStart) or IsSecret(swDur)
+
+				if isSWSecret then
+					local usable = C_Spell.IsSpellUsable(SECOND_WIND_SPELL_ID)
+					DebugLog("Wind is secret, usable proxy:", usable)
+					local barAlpha = surgeAtMax and 0.2 or 1
+					for i = 1, 3 do
+						local bar = self.secondWindBars[i]
+						if bar then
+							-- Midnight Safety: Re-assert bar configuration
+							bar:SetMinMaxValues(0, 1)
+							bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+							bar:SetValue(usable and 1 or 0)
+							bar:SetStatusBarColor(COLOR_SECOND_WIND[1], COLOR_SECOND_WIND[2], COLOR_SECOND_WIND[3], barAlpha)
+							bar:SetAlpha(1)
+						end
+					end
+				else
+					local currentCharges = swChargesRaw or 0
+					local chargeStart = swStart or 0
+					local chargeDuration = swDur or 0
+					local barAlpha = surgeAtMax and 0.2 or 1
+					local bgAlpha = surgeAtMax and 0.17 or 0.85
+					local now_val = GetTime()
+					local ANIM_SPEED = 3.0
+
+					for i = 1, 3 do
+						local bar = self.secondWindBars[i]
+						local bg = self.secondWindBarBgs and self.secondWindBarBgs[i]
+						if bar then
+							if bg then
+								bg:SetColorTexture(0.08, 0.12, 0.18, bgAlpha)
+							end
+
+							local targetPct = 0
+							if SafeCompare(i, currentCharges, "<=") then
+								targetPct = 1
+							elseif SafeCompare(i, currentCharges + 1, "==") and chargeDuration > 0 then
+								local cdElapsed = now_val - chargeStart
+								targetPct = Clamp(cdElapsed / chargeDuration, 0, 1)
+							else
+								targetPct = 0
+							end
+
+							local lastTarget = (self._secondWindLastTarget and self._secondWindLastTarget[i]) or 0
+							self._secondWindLastTarget = self._secondWindLastTarget or {}
+							self._secondWindLastTarget[i] = targetPct
+
+							if SafeCompare(targetPct, 1, ">=") and SafeCompare(lastTarget, 1, "<") then
+								self._secondWindAnimating[i] = true
+							end
+
+							if self._secondWindAnimating[i] then
+								local val = (self._secondWindAnimValue[i] or 0) + dt * ANIM_SPEED
+								if val >= 1 then
+									val = 1
+									self._secondWindAnimating[i] = false
+								end
+								self._secondWindAnimValue[i] = val
+								-- Midnight Safety
+								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+								bar:SetMinMaxValues(0, 1)
+								bar:SetValue(val)
+								local r_sw, g_sw, b_sw = ColorForPctPurple(val)
+								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
+								bar:SetAlpha(1)
+							else
+								self._secondWindAnimValue[i] = targetPct
+								-- Midnight Safety
+								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+								bar:SetMinMaxValues(0, 1)
+								bar:SetValue(targetPct)
+								local r_sw, g_sw, b_sw = ColorForPctPurple(targetPct)
+								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
+								bar:SetAlpha(1)
+							end
+						end
+					end
+				end
+			end
+		end)
+		self.perf.blocks.wind = debugprofilestop() - block_start
+		if not ok_wind then
+			DebugLog("Block 7 (Wind) error:", err_wind)
 		end
 	end)
 end
@@ -1509,4 +1777,99 @@ function FlightsimUI:Status()
 			chargeState
 		)
 	)
+end
+
+-- ============================================================
+-- Mechanic Integration Helpers
+-- ============================================================
+
+function FlightsimUI:GetPerformanceSubMetrics()
+	local p = self.perf.blocks
+	return {
+		{ name = "State & Speed", msPerSec = p.state, description = "Skyriding detection and raw speed APIs" },
+		{ name = "Speed Bar", msPerSec = p.speed, description = "Speed percent calculation and HUD bar" },
+		{ name = "Accel Bar", msPerSec = p.accel, description = "Acceleration delta calculation and UI" },
+		{ name = "Ability Prep", msPerSec = p.prep, description = "Spell cooldown and charge polling" },
+		{ name = "Surge Forward", msPerSec = p.surge, description = "Surge Forward charges and animations" },
+		{ name = "Whirling Surge", msPerSec = p.whirling, description = "Whirling Surge cooldown bar" },
+		{ name = "Second Wind", msPerSec = p.wind, description = "Second Wind charges and animations" },
+	}
+end
+
+function FlightsimUI:GetTests()
+	return self.tests
+end
+
+function FlightsimUI:RunTest(id)
+	-- No-op for auto tests, they just return results
+	return true
+end
+
+function FlightsimUI:GetTestResult(id)
+	if id == "api_diag" then
+		local details = {}
+
+		-- 1. GetUnitSpeed
+		local speed = GetUnitSpeedSafe("player")
+		local speedSecret = IsSecret(speed)
+		table.insert(details, {
+			label = "GetUnitSpeed(\"player\")",
+			value = SafeToString(speed) .. (speedSecret and " (SECRET)" or ""),
+			status = speedSecret and "warn" or "pass",
+		})
+
+		-- 2. C_PlayerInfo.GetGlidingInfo
+		if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
+			local ok, gliding, canGlide, fwd = pcall(C_PlayerInfo.GetGlidingInfo)
+			local fwdSecret = IsSecret(fwd)
+			table.insert(details, {
+				label = "C_PlayerInfo.GetGlidingInfo",
+				value = string.format("gliding=%s, fwd=%s", tostring(gliding), SafeToString(fwd)),
+				status = fwdSecret and "warn" or "pass",
+			})
+		end
+
+		-- 3. Surge Forward Charges
+		local info = GetSpellCooldownSafe(372608, true)
+		local chargesSecret = IsSecret(info.currentCharges)
+		table.insert(details, {
+			label = "Surge Forward Charges",
+			value = string.format("%s/%s", SafeToString(info.currentCharges), SafeToString(info.maxCharges)),
+			status = chargesSecret and "warn" or "pass",
+		})
+
+		return {
+			passed = true,
+			message = chargesSecret and "Running in Degraded (Combat) Mode" or "Running in Normal Mode",
+			details = details,
+		}
+	elseif id == "ui_compliance" then
+		local details = {}
+
+		-- 1. Speed Bar
+		table.insert(details, {
+			label = "Speed Bar (StatusBar)",
+			value = self.speedBar and "Initialized" or "Missing",
+			status = self.speedBar and "pass" or "fail",
+		})
+
+		-- 2. Passthrough Test
+		local speed = GetUnitSpeedSafe("player")
+		local ok = pcall(function()
+			self.speedBar:SetValue(speed)
+		end)
+		table.insert(details, {
+			label = "Secret Passthrough",
+			value = ok and "Safe" or "CRASH",
+			status = ok and "pass" or "fail",
+		})
+
+		return {
+			passed = ok,
+			message = ok and "UI elements are Midnight compliant" or "UI elements may crash in combat",
+			details = details,
+		}
+	end
+
+	return { passed = false, message = "Unknown test ID" }
 end

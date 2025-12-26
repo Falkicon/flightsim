@@ -6,6 +6,10 @@
 ## X-Curse-Project-ID: 1403044
 ## X-License: GPL-3.0
 ## SavedVariables: FlightsimDB
+## OptionalDeps: !Mechanic
+
+Libs/LibStub/LibStub.lua
+Libs/MechanicLib/MechanicLib.lua
 
 Flightsim.lua
 Locales/enUS.lua

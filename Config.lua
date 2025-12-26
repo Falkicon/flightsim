@@ -1,5 +1,129 @@
 FlightsimConfig = FlightsimConfig or {}
 
+function FlightsimConfig:CreateCompliancePanel(container)
+	local title = container:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	title:SetPoint("TOP", 0, -10)
+	title:SetText("Midnight UI Compliance Lab")
+
+	local function CreateTestBar(y, label, color)
+		local b = CreateFrame("StatusBar", nil, container)
+		b:SetHeight(24)
+		b:SetPoint("TOPLEFT", container, "TOPLEFT", 20, y)
+		b:SetPoint("TOPRIGHT", container, "TOPRIGHT", -20, y)
+		b:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+		b:SetStatusBarColor(unpack(color))
+
+		local bg = b:CreateTexture(nil, "BACKGROUND")
+		bg:SetAllPoints()
+		bg:SetColorTexture(0.1, 0.1, 0.1, 1)
+
+		local t = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		t:SetPoint("CENTER", 0, 0)
+		t:SetText(label)
+
+		return b
+	end
+
+	-- 1. Standard SetValue(1)
+	pcall(function()
+		local b1 = CreateTestBar(-50, "1. SetValue(1) [Control]", { 0, 1, 0 })
+		b1:SetMinMaxValues(0, 1)
+		b1:SetValue(1)
+	end)
+
+	-- 2. Secret Passthrough (Speed)
+	pcall(function()
+		local b2 = CreateTestBar(-80, "2. SetValue(secret) [Speed]", { 0, 0.5, 1 })
+		b2:SetMinMaxValues(0, 1000)
+		local speed = GetUnitSpeed("player")
+		if type(speed) == "number" then
+			b2:SetValue(speed)
+		else
+			b2:SetValue(0)
+		end
+	end)
+
+	-- 3. Boolean Proxy (IsSpellUsable)
+	pcall(function()
+		local b3 = CreateTestBar(-110, "3. SetValue(Proxy) [Surge Usable]", { 1, 0.5, 0 })
+		local usable = C_Spell.IsSpellUsable(372608)
+		b3:SetMinMaxValues(0, 1)
+		b3:SetValue(usable and 1 or 0)
+	end)
+
+	-- 4. Color Texture Fallback
+	pcall(function()
+		local b4 = CreateTestBar(-140, "4. ColorTexture (ArtLayer)", { 1, 0, 1 })
+		b4:SetStatusBarTexture(nil)
+		local tex = b4:CreateTexture(nil, "ARTWORK")
+		tex:SetAllPoints()
+		tex:SetColorTexture(1, 0, 1, 1)
+	end)
+
+	-- 5. SetFillAmount (The 12.0 'New Way'?)
+	pcall(function()
+		local b5 = CreateTestBar(-170, "5. SetFillAmount(0.75)", { 1, 1, 0 })
+		if type(b5.SetFillAmount) == "function" then
+			b5:SetFillAmount(0.75)
+		else
+			b5:SetAlpha(0.3)
+			local t = b5:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+			t:SetPoint("CENTER")
+			t:SetText("SetFillAmount Unsupported")
+		end
+	end)
+
+	-- 6. Taint/Security Test (Whitelisted API)
+	pcall(function()
+		local b6 = CreateTestBar(-200, "6. UnitPower('player', 25) [Vigor]", { 0.5, 0, 0.5 })
+		local vigor = (UnitPower("player", 25))
+		local vigorMax = (UnitPowerMax("player", 25))
+		
+		-- Protection against secret comparison crashes
+		local safeVigorMax = 6
+		if type(vigorMax) == "number" then
+			-- In 12.0, secrets are 'number' type but crash on comparison
+			local ok, isGreater = pcall(function() return vigorMax > 0 end)
+			if ok and isGreater then
+				safeVigorMax = vigorMax
+			end
+		end
+
+		b6:SetMinMaxValues(0, safeVigorMax)
+		
+		if type(vigor) == "number" then
+			b6:SetValue(vigor)
+		else
+			b6:SetValue(0)
+		end
+	end)
+
+	-- 7. Audit Results (Visualizing what Audit found)
+	pcall(function()
+		local b7 = CreateTestBar(-230, "7. Surge Charge Table Count", { 1, 1, 1 })
+		local charges = C_Spell.GetSpellCharges(372608)
+		local count = 0
+		if type(charges) == "table" then
+			for _ in pairs(charges) do
+				count = count + 1
+			end
+		end
+		b7:SetMinMaxValues(0, 6)
+		b7:SetValue(count)
+	end)
+
+	-- 8. Visibility Audit
+	pcall(function()
+		local b8 = CreateTestBar(-260, "8. Alpha/Shown Check", { 1, 0, 0 })
+		b8:SetMinMaxValues(0, 1)
+		b8:SetValue(1)
+	end)
+
+	local footer = container:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	footer:SetPoint("BOTTOM", 0, 10)
+	footer:SetText("These bars test different rendering and API techniques for Midnight.")
+end
+
 SLASH_FLIGHTSIM1 = "/flightsim"
 SLASH_FLIGHTSIM2 = "/fs"
 SlashCmdList["FLIGHTSIM"] = function(msg)
@@ -134,11 +258,9 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		print(L["ORDER_UPDATED"])
 		return
 	elseif msg == "debug" then
-		if FlightsimUI and FlightsimUI.DebugDump then
-			FlightsimUI:DebugDump()
-		else
-			print(L["DEBUG_NOT_AVAILABLE"])
-		end
+		FlightsimDB.profile.debugMode = not FlightsimDB.profile.debugMode
+		Flightsim.debugMode = FlightsimDB.profile.debugMode
+		print("Flightsim debug mode:", Flightsim.debugMode and "ON" or "OFF")
 		return
 	elseif msg == "status" then
 		if FlightsimUI and FlightsimUI.Status then

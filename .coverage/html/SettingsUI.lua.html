@@ -1,0 +1,3627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverage Report: Flightsim - SettingsUI.lua</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --surface: #313244;
+            --text: #cdd6f4;
+            --subtext: #a6adc8;
+            --green: #a6e3a1;
+            --yellow: #f9e2af;
+            --red: #f38ba8;
+            --blue: #89b4fa;
+            --border: #45475a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: var(--blue);
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+        }
+        .timestamp {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .stat-label {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .coverage-high { color: var(--green); }
+        .coverage-medium { color: var(--yellow); }
+        .coverage-low { color: var(--red); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: rgba(0,0,0,0.2);
+            font-weight: 600;
+            color: var(--subtext);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        tr:last-child td { border-bottom: none; }
+        .file-link {
+            color: var(--blue);
+            text-decoration: none;
+        }
+        .file-link:hover { text-decoration: underline; }
+        .progress-bar {
+            width: 100px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .text-right { text-align: right; }
+        .file-detail {
+            background: var(--surface);
+            border-radius: 12px;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        .file-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--blue);
+        }
+        .code-view {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+        .code-line {
+            display: flex;
+            min-height: 1.5rem;
+        }
+        .line-number {
+            width: 50px;
+            padding: 0 0.75rem;
+            text-align: right;
+            color: var(--subtext);
+            user-select: none;
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.1);
+        }
+        .line-content {
+            flex: 1;
+            padding: 0 1rem;
+            white-space: pre;
+        }
+        .line-covered {
+            background: rgba(166, 227, 161, 0.1);
+        }
+        .line-uncovered {
+            background: rgba(243, 139, 168, 0.15);
+        }
+        .line-uncovered .line-number {
+            background: rgba(243, 139, 168, 0.2);
+            color: var(--red);
+        }
+        .nav { margin-bottom: 1rem; }
+        .nav a {
+            color: var(--blue);
+            text-decoration: none;
+            margin-right: 1rem;
+        }
+        .nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="nav">
+            <a href="index.html">← Back to Summary</a>
+        </div>
+        
+        <div class="file-detail">
+            <div class="file-header">
+                <span class="file-name">SettingsUI.lua</span>
+                <span class="coverage-low">0.0% (0/430 lines)</span>
+            </div>
+            <div class="code-view">
+    
+                <div class="code-line ">
+                    <span class="line-number">1</span>
+                    <span class="line-content">local ADDON_NAME = ...</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">2</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">3</span>
+                    <span class="line-content">-- Blizzard Settings (Retail 10.0+). No external libraries.</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">4</span>
+                    <span class="line-content">-- This file intentionally sticks to simple controls (checkbox/slider/dropdown)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">5</span>
+                    <span class="line-content">-- and writes through to FlightsimDB.profile.</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">6</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">7</span>
+                    <span class="line-content">local function GetProfile()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">8</span>
+                    <span class="line-content">	FlightsimDB = FlightsimDB or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">9</span>
+                    <span class="line-content">	FlightsimDB.profile = FlightsimDB.profile or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">10</span>
+                    <span class="line-content">	local p = FlightsimDB.profile</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">11</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">12</span>
+                    <span class="line-content">	p.ui = p.ui or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">13</span>
+                    <span class="line-content">	p.speedBar = p.speedBar or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">14</span>
+                    <span class="line-content">	p.visibility = p.visibility or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">15</span>
+                    <span class="line-content">	p.abilityBars = p.abilityBars or {}</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">16</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">17</span>
+                    <span class="line-content">	-- General</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">18</span>
+                    <span class="line-content">	if p.locked == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">19</span>
+                    <span class="line-content">		p.locked = false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">20</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">21</span>
+                    <span class="line-content">	if p.scale == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">22</span>
+                    <span class="line-content">		p.scale = 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">23</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">24</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">25</span>
+                    <span class="line-content">	-- UI dimensions</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">26</span>
+                    <span class="line-content">	if p.ui.width == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">27</span>
+                    <span class="line-content">		p.ui.width = 150</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">28</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">29</span>
+                    <span class="line-content">	if p.ui.speedBarHeight == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">30</span>
+                    <span class="line-content">		p.ui.speedBarHeight = 20</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">31</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">32</span>
+                    <span class="line-content">	if p.ui.sustainableSpeedMarkerWidth == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">33</span>
+                    <span class="line-content">		p.ui.sustainableSpeedMarkerWidth = p.ui.optimalMarkerWidth or 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">34</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">35</span>
+                    <span class="line-content">	if p.ui.sustainableSpeedMarkerAlpha == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">36</span>
+                    <span class="line-content">		p.ui.sustainableSpeedMarkerAlpha = 0.2</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">37</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">38</span>
+                    <span class="line-content">	if p.ui.accelBarHeight == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">39</span>
+                    <span class="line-content">		p.ui.accelBarHeight = 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">40</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">41</span>
+                    <span class="line-content">	if p.ui.accelBarGap == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">42</span>
+                    <span class="line-content">		p.ui.accelBarGap = 0</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">43</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">44</span>
+                    <span class="line-content">	if p.ui.abilityBarHeight == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">45</span>
+                    <span class="line-content">		p.ui.abilityBarHeight = 5</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">46</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">47</span>
+                    <span class="line-content">	if p.ui.barGap == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">48</span>
+                    <span class="line-content">		p.ui.barGap = 2</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">49</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">50</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">51</span>
+                    <span class="line-content">	-- Speed bar</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">52</span>
+                    <span class="line-content">	if p.speedBar.maxSpeed == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">53</span>
+                    <span class="line-content">		p.speedBar.maxSpeed = 950</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">54</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">55</span>
+                    <span class="line-content">	if p.speedBar.sustainableSpeed == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">56</span>
+                    <span class="line-content">		p.speedBar.sustainableSpeed = p.speedBar.optimalSpeed or 790</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">57</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">58</span>
+                    <span class="line-content">	if p.speedBar.fontSize == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">59</span>
+                    <span class="line-content">		p.speedBar.fontSize = 10</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">60</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">61</span>
+                    <span class="line-content">	if p.speedBar.showPercent == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">62</span>
+                    <span class="line-content">		p.speedBar.showPercent = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">63</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">64</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">65</span>
+                    <span class="line-content">	-- Visibility</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">66</span>
+                    <span class="line-content">	if p.visibility.hideWhenNotSkyriding == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">67</span>
+                    <span class="line-content">		p.visibility.hideWhenNotSkyriding = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">68</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">69</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">70</span>
+                    <span class="line-content">	-- Ability bars</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">71</span>
+                    <span class="line-content">	if p.abilityBars.showSurgeForward == nil then -- luacheck: ignore</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">72</span>
+                    <span class="line-content">		p.abilityBars.showSurgeForward = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">73</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">74</span>
+                    <span class="line-content">	if p.abilityBars.showSecondWind == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">75</span>
+                    <span class="line-content">		p.abilityBars.showSecondWind = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">76</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">77</span>
+                    <span class="line-content">	if p.abilityBars.showWhirlingSurge == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">78</span>
+                    <span class="line-content">		p.abilityBars.showWhirlingSurge = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">79</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">80</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">81</span>
+                    <span class="line-content">	return p</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">82</span>
+                    <span class="line-content">end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">83</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">84</span>
+                    <span class="line-content">local function ApplyIfReady(methodName, ...)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">85</span>
+                    <span class="line-content">	if FlightsimUI and FlightsimUI[methodName] then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">86</span>
+                    <span class="line-content">		local ok = pcall(FlightsimUI[methodName], FlightsimUI, ...)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">87</span>
+                    <span class="line-content">		return ok</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">88</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">89</span>
+                    <span class="line-content">	return false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">90</span>
+                    <span class="line-content">end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">91</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">92</span>
+                    <span class="line-content">-- Custom label formatter for sliders showing decimal values</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">93</span>
+                    <span class="line-content">local function FormatDecimal2(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">94</span>
+                    <span class="line-content">	return string.format(&quot;%.2f&quot;, value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">95</span>
+                    <span class="line-content">end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">96</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">97</span>
+                    <span class="line-content">local function RegisterSettings()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">98</span>
+                    <span class="line-content">	local L = Flightsim.L</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">99</span>
+                    <span class="line-content">	local Clamp = FlightsimUI.Utils.Clamp</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">100</span>
+                    <span class="line-content">	if not (Settings and Settings.RegisterVerticalLayoutCategory and Settings.RegisterAddOnCategory) then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">101</span>
+                    <span class="line-content">		-- Modern Settings UI not available; silently do nothing.</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">102</span>
+                    <span class="line-content">		return</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">103</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">104</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">105</span>
+                    <span class="line-content">	local category = Settings.RegisterVerticalLayoutCategory(&quot;Flightsim&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">106</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">107</span>
+                    <span class="line-content">	local function OnSettingChanged(_, _)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">108</span>
+                    <span class="line-content">		-- Placeholder hook for future: could call Settings.NotifyUpdate if needed.</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">109</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">110</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">111</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">112</span>
+                    <span class="line-content">	-- Visibility Settings</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">113</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">114</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">115</span>
+                    <span class="line-content">	-- Lock frame</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">116</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">117</span>
+                    <span class="line-content">		local name = L[&quot;LOCK_FRAME&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">118</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_Locked&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">119</span>
+                    <span class="line-content">		local defaultValue = false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">120</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">121</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">122</span>
+                    <span class="line-content">			return GetProfile().locked</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">123</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">124</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">125</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">126</span>
+                    <span class="line-content">			GetProfile().locked = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">127</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">128</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">129</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">130</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">131</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">132</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">133</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">134</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">135</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">136</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">137</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">138</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">139</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;LOCK_FRAME_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">140</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">141</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">142</span>
+                    <span class="line-content">	-- Only show when skyriding</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">143</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">144</span>
+                    <span class="line-content">		local name = L[&quot;ONLY_SKYRIDING&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">145</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_HideWhenNotSkyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">146</span>
+                    <span class="line-content">		local defaultValue = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">147</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">148</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">149</span>
+                    <span class="line-content">			local v = GetProfile().visibility</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">150</span>
+                    <span class="line-content">			if v.hideWhenNotSkyriding == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">151</span>
+                    <span class="line-content">				return defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">152</span>
+                    <span class="line-content">			end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">153</span>
+                    <span class="line-content">			return v.hideWhenNotSkyriding</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">154</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">155</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">156</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">157</span>
+                    <span class="line-content">			GetProfile().visibility.hideWhenNotSkyriding = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">158</span>
+                    <span class="line-content">			ApplyIfReady(&quot;ApplyVisibility&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">159</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">160</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">161</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">162</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">163</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">164</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">165</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">166</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">167</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">168</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">169</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">170</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">171</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;ONLY_SKYRIDING_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">172</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">173</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">174</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">175</span>
+                    <span class="line-content">	-- Appearance Settings</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">176</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">177</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">178</span>
+                    <span class="line-content">	-- Scale</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">179</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">180</span>
+                    <span class="line-content">		local name = L[&quot;SCALE&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">181</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_Scale&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">182</span>
+                    <span class="line-content">		local defaultValue = 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">183</span>
+                    <span class="line-content">		local minValue, maxValue, step = 0.5, 2.0, 0.05</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">184</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">185</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">186</span>
+                    <span class="line-content">			return GetProfile().scale or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">187</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">188</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">189</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">190</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">191</span>
+                    <span class="line-content">			GetProfile().scale = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">192</span>
+                    <span class="line-content">			ApplyIfReady(&quot;SetScale&quot;, value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">193</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">194</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">195</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">196</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">197</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">198</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">199</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">200</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">201</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">202</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">203</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">204</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">205</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">206</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">207</span>
+                    <span class="line-content">		if options and options.SetLabelFormatter then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">208</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, FormatDecimal2)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">209</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">210</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">211</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;SCALE_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">212</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">213</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">214</span>
+                    <span class="line-content">	-- Bar width</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">215</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">216</span>
+                    <span class="line-content">		local name = L[&quot;BAR_WIDTH&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">217</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_Width&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">218</span>
+                    <span class="line-content">		local defaultValue = 150</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">219</span>
+                    <span class="line-content">		local minValue, maxValue, step = 50, 800, 10</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">220</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">221</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">222</span>
+                    <span class="line-content">			return GetProfile().ui.width or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">223</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">224</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">225</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">226</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">227</span>
+                    <span class="line-content">			GetProfile().ui.width = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">228</span>
+                    <span class="line-content">			ApplyIfReady(&quot;SetWidth&quot;, value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">229</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">230</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">231</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">232</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">233</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">234</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">235</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">236</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">237</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">238</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">239</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">240</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">241</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">242</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">243</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">244</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">245</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">246</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">247</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">248</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">249</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">250</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">251</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">252</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">253</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;BAR_WIDTH_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">254</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">255</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">256</span>
+                    <span class="line-content">	-- Font size</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">257</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">258</span>
+                    <span class="line-content">		local name = L[&quot;FONT_SIZE&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">259</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_FontSize&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">260</span>
+                    <span class="line-content">		local defaultValue = 10</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">261</span>
+                    <span class="line-content">		local minValue, maxValue, step = 8, 48, 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">262</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">263</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">264</span>
+                    <span class="line-content">			return GetProfile().speedBar.fontSize or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">265</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">266</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">267</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">268</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">269</span>
+                    <span class="line-content">			GetProfile().speedBar.fontSize = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">270</span>
+                    <span class="line-content">			ApplyIfReady(&quot;SetFontSize&quot;, value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">271</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">272</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">273</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">274</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">275</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">276</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">277</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">278</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">279</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">280</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">281</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">282</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">283</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">284</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">285</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">286</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">287</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">288</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">289</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">290</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">291</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">292</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">293</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">294</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">295</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;FONT_SIZE_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">296</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">297</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">298</span>
+                    <span class="line-content">	-- Show as percentage</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">299</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">300</span>
+                    <span class="line-content">		local name = L[&quot;SHOW_PERCENT&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">301</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_ShowPercent&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">302</span>
+                    <span class="line-content">		local defaultValue = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">303</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">304</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">305</span>
+                    <span class="line-content">			local v = GetProfile().speedBar.showPercent</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">306</span>
+                    <span class="line-content">			if v == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">307</span>
+                    <span class="line-content">				return defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">308</span>
+                    <span class="line-content">			end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">309</span>
+                    <span class="line-content">			return v</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">310</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">311</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">312</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">313</span>
+                    <span class="line-content">			GetProfile().speedBar.showPercent = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">314</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">315</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">316</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">317</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">318</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">319</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">320</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">321</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">322</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">323</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">324</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">325</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">326</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;SHOW_PERCENT_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">327</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">328</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">329</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">330</span>
+                    <span class="line-content">	-- SECTION: Speed Bar</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">331</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">332</span>
+                    <span class="line-content">	-- Speed bar height</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">333</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">334</span>
+                    <span class="line-content">		local name = L[&quot;HEIGHT&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">335</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_BarHeight&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">336</span>
+                    <span class="line-content">		local defaultValue = 20</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">337</span>
+                    <span class="line-content">		local minValue, maxValue, step = 10, 100, 2</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">338</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">339</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">340</span>
+                    <span class="line-content">			return GetProfile().ui.speedBarHeight or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">341</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">342</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">343</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">344</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">345</span>
+                    <span class="line-content">			GetProfile().ui.speedBarHeight = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">346</span>
+                    <span class="line-content">			ApplyIfReady(&quot;SetBarHeight&quot;, value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">347</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">348</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">349</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">350</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">351</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">352</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">353</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">354</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">355</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">356</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">357</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">358</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">359</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">360</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">361</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">362</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">363</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">364</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">365</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">366</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">367</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">368</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">369</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">370</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">371</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;SPEED_BAR_HEIGHT_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">372</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">373</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">374</span>
+                    <span class="line-content">	-- Sustain speed marker width</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">375</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">376</span>
+                    <span class="line-content">		local name = L[&quot;SUSTAIN_MARKER_WIDTH&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">377</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_SustainableMarkerWidth&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">378</span>
+                    <span class="line-content">		local defaultValue = 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">379</span>
+                    <span class="line-content">		local minValue, maxValue, step = 1, 5, 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">380</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">381</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">382</span>
+                    <span class="line-content">			return GetProfile().ui.sustainableSpeedMarkerWidth or GetProfile().ui.optimalMarkerWidth or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">383</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">384</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">385</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">386</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">387</span>
+                    <span class="line-content">			GetProfile().ui.sustainableSpeedMarkerWidth = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">388</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">389</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">390</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">391</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">392</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">393</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">394</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">395</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">396</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">397</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">398</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">399</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">400</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">401</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">402</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">403</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">404</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">405</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">406</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">407</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">408</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">409</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">410</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">411</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">412</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">413</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;SUSTAIN_MARKER_WIDTH_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">414</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">415</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">416</span>
+                    <span class="line-content">	-- Sustain speed marker alpha</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">417</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">418</span>
+                    <span class="line-content">		local name = L[&quot;SUSTAIN_MARKER_ALPHA&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">419</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_SustainableMarkerAlpha&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">420</span>
+                    <span class="line-content">		local defaultValue = 0.2</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">421</span>
+                    <span class="line-content">		local minValue, maxValue, step = 0.1, 1.0, 0.1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">422</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">423</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">424</span>
+                    <span class="line-content">			return GetProfile().ui.sustainableSpeedMarkerAlpha or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">425</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">426</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">427</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">428</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">429</span>
+                    <span class="line-content">			GetProfile().ui.sustainableSpeedMarkerAlpha = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">430</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">431</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">432</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">433</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">434</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">435</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">436</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">437</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">438</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">439</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">440</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">441</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">442</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">443</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">444</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">445</span>
+                    <span class="line-content">		if options and options.SetLabelFormatter then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">446</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right, FormatDecimal2)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">447</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">448</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">449</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;SUSTAIN_MARKER_ALPHA_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">450</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">451</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">452</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">453</span>
+                    <span class="line-content">	-- SECTION: Acceleration Bar</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">454</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">455</span>
+                    <span class="line-content">	-- Acceleration bar height</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">456</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">457</span>
+                    <span class="line-content">		local name = L[&quot;HEIGHT&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">458</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_AccelBarHeight&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">459</span>
+                    <span class="line-content">		local defaultValue = 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">460</span>
+                    <span class="line-content">		local minValue, maxValue, step = 1, 10, 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">461</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">462</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">463</span>
+                    <span class="line-content">			return GetProfile().ui.accelBarHeight or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">464</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">465</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">466</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">467</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">468</span>
+                    <span class="line-content">			GetProfile().ui.accelBarHeight = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">469</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">470</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">471</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">472</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">473</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">474</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">475</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">476</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">477</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">478</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">479</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">480</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">481</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">482</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">483</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">484</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">485</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">486</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">487</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">488</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">489</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">490</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">491</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">492</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">493</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">494</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;ACCEL_BAR_HEIGHT_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">495</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">496</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">497</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">498</span>
+                    <span class="line-content">	-- SECTION: Ability Bars</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">499</span>
+                    <span class="line-content">	-- ============================================================</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">500</span>
+                    <span class="line-content">	-- Ability bar height</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">501</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">502</span>
+                    <span class="line-content">		local name = L[&quot;HEIGHT&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">503</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_AbilityBarHeight&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">504</span>
+                    <span class="line-content">		local defaultValue = 5</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">505</span>
+                    <span class="line-content">		local minValue, maxValue, step = 2, 20, 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">506</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">507</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">508</span>
+                    <span class="line-content">			return GetProfile().ui.abilityBarHeight or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">509</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">510</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">511</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">512</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">513</span>
+                    <span class="line-content">			GetProfile().ui.abilityBarHeight = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">514</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">515</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">516</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">517</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">518</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">519</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">520</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">521</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">522</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">523</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">524</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">525</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">526</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">527</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">528</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">529</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">530</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">531</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">532</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">533</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">534</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">535</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">536</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">537</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">538</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">539</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;ABILITY_BAR_HEIGHT_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">540</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">541</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">542</span>
+                    <span class="line-content">	-- Bar gap (between ability bar sections)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">543</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">544</span>
+                    <span class="line-content">		local name = L[&quot;BAR_GAP&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">545</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_BarGap&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">546</span>
+                    <span class="line-content">		local defaultValue = 2</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">547</span>
+                    <span class="line-content">		local minValue, maxValue, step = 0, 10, 1</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">548</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">549</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">550</span>
+                    <span class="line-content">			return GetProfile().ui.barGap or defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">551</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">552</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">553</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">554</span>
+                    <span class="line-content">			value = Clamp(tonumber(value) or defaultValue, minValue, maxValue)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">555</span>
+                    <span class="line-content">			GetProfile().ui.barGap = value</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">556</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">557</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">558</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">559</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">560</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">561</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">562</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">563</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">564</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">565</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">566</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">567</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">568</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">569</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">570</span>
+                    <span class="line-content">		local options = Settings.CreateSliderOptions(minValue, maxValue, step)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">571</span>
+                    <span class="line-content">		if</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">572</span>
+                    <span class="line-content">			options</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">573</span>
+                    <span class="line-content">			and options.SetLabelFormatter</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">574</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">575</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">576</span>
+                    <span class="line-content">			and MinimalSliderWithSteppersMixin.Label.Right</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">577</span>
+                    <span class="line-content">		then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">578</span>
+                    <span class="line-content">			options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">579</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">580</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">581</span>
+                    <span class="line-content">		Settings.CreateSlider(category, setting, options, L[&quot;BAR_GAP_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">582</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">583</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">584</span>
+                    <span class="line-content">	-- Show Surge Forward</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">585</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">586</span>
+                    <span class="line-content">		local name = L[&quot;SHOW_SURGE_FORWARD&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">587</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_ShowSurgeForward&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">588</span>
+                    <span class="line-content">		local defaultValue = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">589</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">590</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">591</span>
+                    <span class="line-content">			local v = GetProfile().abilityBars.showSurgeForward</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">592</span>
+                    <span class="line-content">			if v == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">593</span>
+                    <span class="line-content">				return defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">594</span>
+                    <span class="line-content">			end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">595</span>
+                    <span class="line-content">			return v</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">596</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">597</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">598</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">599</span>
+                    <span class="line-content">			GetProfile().abilityBars.showSurgeForward = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">600</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">601</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">602</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">603</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">604</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">605</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">606</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">607</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">608</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">609</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">610</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">611</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">612</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">613</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;SHOW_SURGE_FORWARD_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">614</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">615</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">616</span>
+                    <span class="line-content">	-- Show Second Wind</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">617</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">618</span>
+                    <span class="line-content">		local name = L[&quot;SHOW_SECOND_WIND&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">619</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_ShowSecondWind&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">620</span>
+                    <span class="line-content">		local defaultValue = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">621</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">622</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">623</span>
+                    <span class="line-content">			local v = GetProfile().abilityBars.showSecondWind</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">624</span>
+                    <span class="line-content">			if v == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">625</span>
+                    <span class="line-content">				return defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">626</span>
+                    <span class="line-content">			end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">627</span>
+                    <span class="line-content">			return v</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">628</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">629</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">630</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">631</span>
+                    <span class="line-content">			GetProfile().abilityBars.showSecondWind = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">632</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">633</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">634</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">635</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">636</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">637</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">638</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">639</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">640</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">641</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">642</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">643</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">644</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">645</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;SHOW_SECOND_WIND_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">646</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">647</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">648</span>
+                    <span class="line-content">	-- Show Whirling Surge</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">649</span>
+                    <span class="line-content">	do</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">650</span>
+                    <span class="line-content">		local name = L[&quot;SHOW_WHIRLING_SURGE&quot;]</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">651</span>
+                    <span class="line-content">		local variable = &quot;Flightsim_ShowWhirlingSurge&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">652</span>
+                    <span class="line-content">		local defaultValue = true</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">653</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">654</span>
+                    <span class="line-content">		local function GetValue()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">655</span>
+                    <span class="line-content">			local v = GetProfile().abilityBars.showWhirlingSurge</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">656</span>
+                    <span class="line-content">			if v == nil then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">657</span>
+                    <span class="line-content">				return defaultValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">658</span>
+                    <span class="line-content">			end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">659</span>
+                    <span class="line-content">			return v</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">660</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">661</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">662</span>
+                    <span class="line-content">		local function SetValue(value)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">663</span>
+                    <span class="line-content">			GetProfile().abilityBars.showWhirlingSurge = value and true or false</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">664</span>
+                    <span class="line-content">			ApplyIfReady(&quot;RebuildLayout&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">665</span>
+                    <span class="line-content">		end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">666</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">667</span>
+                    <span class="line-content">		local setting = Settings.RegisterProxySetting(</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">668</span>
+                    <span class="line-content">			category,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">669</span>
+                    <span class="line-content">			variable,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">670</span>
+                    <span class="line-content">			type(defaultValue),</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">671</span>
+                    <span class="line-content">			name,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">672</span>
+                    <span class="line-content">			defaultValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">673</span>
+                    <span class="line-content">			GetValue,</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">674</span>
+                    <span class="line-content">			SetValue</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">675</span>
+                    <span class="line-content">		)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">676</span>
+                    <span class="line-content">		setting:SetValueChangedCallback(OnSettingChanged)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">677</span>
+                    <span class="line-content">		Settings.CreateCheckbox(category, setting, L[&quot;SHOW_WHIRLING_SURGE_DESC&quot;])</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">678</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">679</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">680</span>
+                    <span class="line-content">	Settings.RegisterAddOnCategory(category)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">681</span>
+                    <span class="line-content">end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">682</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">683</span>
+                    <span class="line-content">local eventFrame = CreateFrame(&quot;Frame&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">684</span>
+                    <span class="line-content">eventFrame:RegisterEvent(&quot;ADDON_LOADED&quot;)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">685</span>
+                    <span class="line-content">eventFrame:SetScript(&quot;OnEvent&quot;, function(_, event, name)</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">686</span>
+                    <span class="line-content">	if event == &quot;ADDON_LOADED&quot; and name == ADDON_NAME then</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">687</span>
+                    <span class="line-content">		RegisterSettings()</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">688</span>
+                    <span class="line-content">	end</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">689</span>
+                    <span class="line-content">end)</span>
+                </div>
+        
+            </div>
+        </div>
+    
+    </div>
+</body>
+</html>

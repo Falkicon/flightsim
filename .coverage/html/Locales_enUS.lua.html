@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverage Report: Flightsim - Locales\enUS.lua</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --surface: #313244;
+            --text: #cdd6f4;
+            --subtext: #a6adc8;
+            --green: #a6e3a1;
+            --yellow: #f9e2af;
+            --red: #f38ba8;
+            --blue: #89b4fa;
+            --border: #45475a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: var(--blue);
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+        }
+        .timestamp {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .stat-label {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .coverage-high { color: var(--green); }
+        .coverage-medium { color: var(--yellow); }
+        .coverage-low { color: var(--red); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: rgba(0,0,0,0.2);
+            font-weight: 600;
+            color: var(--subtext);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        tr:last-child td { border-bottom: none; }
+        .file-link {
+            color: var(--blue);
+            text-decoration: none;
+        }
+        .file-link:hover { text-decoration: underline; }
+        .progress-bar {
+            width: 100px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .text-right { text-align: right; }
+        .file-detail {
+            background: var(--surface);
+            border-radius: 12px;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        .file-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--blue);
+        }
+        .code-view {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+        .code-line {
+            display: flex;
+            min-height: 1.5rem;
+        }
+        .line-number {
+            width: 50px;
+            padding: 0 0.75rem;
+            text-align: right;
+            color: var(--subtext);
+            user-select: none;
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.1);
+        }
+        .line-content {
+            flex: 1;
+            padding: 0 1rem;
+            white-space: pre;
+        }
+        .line-covered {
+            background: rgba(166, 227, 161, 0.1);
+        }
+        .line-uncovered {
+            background: rgba(243, 139, 168, 0.15);
+        }
+        .line-uncovered .line-number {
+            background: rgba(243, 139, 168, 0.2);
+            color: var(--red);
+        }
+        .nav { margin-bottom: 1rem; }
+        .nav a {
+            color: var(--blue);
+            text-decoration: none;
+            margin-right: 1rem;
+        }
+        .nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="nav">
+            <a href="index.html">← Back to Summary</a>
+        </div>
+        
+        <div class="file-detail">
+            <div class="file-header">
+                <span class="file-name">Locales\enUS.lua</span>
+                <span class="coverage-low">0.0% (0/69 lines)</span>
+            </div>
+            <div class="code-view">
+    
+                <div class="code-line ">
+                    <span class="line-number">1</span>
+                    <span class="line-content">local L = Flightsim.L</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">2</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">3</span>
+                    <span class="line-content">L[&quot;NOT_INITIALIZED_YET&quot;] = &quot;Flightsim: not initialized yet.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">4</span>
+                    <span class="line-content">L[&quot;LOCKED&quot;] = &quot;Flightsim: locked&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">5</span>
+                    <span class="line-content">L[&quot;UNLOCKED&quot;] = &quot;Flightsim: unlocked (drag frame to move)&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">6</span>
+                    <span class="line-content">L[&quot;USAGE_SCALE&quot;] = &quot;Flightsim: usage: /flightsim scale 1.0&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">7</span>
+                    <span class="line-content">L[&quot;SCALE_SET&quot;] = &quot;Flightsim: scale set&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">8</span>
+                    <span class="line-content">L[&quot;USAGE_WIDTH&quot;] = &quot;Flightsim: usage: /flightsim width 320&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">9</span>
+                    <span class="line-content">L[&quot;WIDTH_SET&quot;] = &quot;Flightsim: width set&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">10</span>
+                    <span class="line-content">L[&quot;USAGE_BARMAX&quot;] = &quot;Flightsim: usage: /flightsim barmax 930&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">11</span>
+                    <span class="line-content">L[&quot;BARMAX_SET&quot;] = &quot;Flightsim: speed bar max set&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">12</span>
+                    <span class="line-content">L[&quot;USAGE_SUSTAINABLE&quot;] = &quot;Flightsim: usage: /flightsim sustainable 0   (0 hides marker)&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">13</span>
+                    <span class="line-content">L[&quot;SUSTAINABLE_SET&quot;] = &quot;Flightsim: sustainable speed marker set&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">14</span>
+                    <span class="line-content">L[&quot;HIDE_NOT_SKYRIDING&quot;] = &quot;Flightsim: will hide when NOT skyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">15</span>
+                    <span class="line-content">L[&quot;HIDE_WHILE_SKYRIDING&quot;] = &quot;Flightsim: will hide while skyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">16</span>
+                    <span class="line-content">L[&quot;SHOW_ALWAYS&quot;] = &quot;Flightsim: will always show&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">17</span>
+                    <span class="line-content">L[&quot;ABILITY_TOGGLED&quot;] = &quot;Flightsim: %s %s&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">18</span>
+                    <span class="line-content">L[&quot;ABILITY_NOT_FOUND&quot;] = &quot;Flightsim: ability not found. Try /flightsim list&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">19</span>
+                    <span class="line-content">L[&quot;ABILITIES_LIST&quot;] = &quot;Flightsim abilities:&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">20</span>
+                    <span class="line-content">L[&quot;USAGE_MOVE&quot;] = &quot;Flightsim: usage: /flightsim move &lt;ability&gt; &lt;index&gt;&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">21</span>
+                    <span class="line-content">L[&quot;ORDER_UPDATED&quot;] = &quot;Flightsim: ability order updated&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">22</span>
+                    <span class="line-content">L[&quot;DEBUG_NOT_AVAILABLE&quot;] = &quot;Flightsim: debug not available (UI not initialized yet)&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">23</span>
+                    <span class="line-content">L[&quot;STATUS_NOT_AVAILABLE&quot;] = &quot;Flightsim: status not available (UI not initialized yet)&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">24</span>
+                    <span class="line-content">L[&quot;RESET_DONE&quot;] = &quot;Flightsim: position/scale reset&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">25</span>
+                    <span class="line-content">L[&quot;COMMANDS_HELP&quot;] = &quot;Flightsim commands:&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">26</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">27</span>
+                    <span class="line-content">-- Settings</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">28</span>
+                    <span class="line-content">L[&quot;LOCK_FRAME&quot;] = &quot;Lock frame&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">29</span>
+                    <span class="line-content">L[&quot;LOCK_FRAME_DESC&quot;] = &quot;Prevents dragging the Flightsim frame.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">30</span>
+                    <span class="line-content">L[&quot;ONLY_SKYRIDING&quot;] = &quot;Only show when skyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">31</span>
+                    <span class="line-content">L[&quot;ONLY_SKYRIDING_DESC&quot;] = &quot;Hides the frame when not on a skyriding mount.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">32</span>
+                    <span class="line-content">L[&quot;SCALE&quot;] = &quot;Scale&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">33</span>
+                    <span class="line-content">L[&quot;SCALE_DESC&quot;] = &quot;Overall scale of the Flightsim frame.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">34</span>
+                    <span class="line-content">L[&quot;BAR_WIDTH&quot;] = &quot;Bar width&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">35</span>
+                    <span class="line-content">L[&quot;BAR_WIDTH_DESC&quot;] = &quot;Width of all bars.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">36</span>
+                    <span class="line-content">L[&quot;FONT_SIZE&quot;] = &quot;Font size&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">37</span>
+                    <span class="line-content">L[&quot;FONT_SIZE_DESC&quot;] = &quot;Font size for speed text.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">38</span>
+                    <span class="line-content">L[&quot;SHOW_PERCENT&quot;] = &quot;Show speed as percent&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">39</span>
+                    <span class="line-content">L[&quot;SHOW_PERCENT_DESC&quot;] = &quot;Show speed as percentage (e.g. 78%%) instead of raw value.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">40</span>
+                    <span class="line-content">L[&quot;HEIGHT&quot;] = &quot;Height&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">41</span>
+                    <span class="line-content">L[&quot;SPEED_BAR_HEIGHT_DESC&quot;] = &quot;Height of the speed bar.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">42</span>
+                    <span class="line-content">L[&quot;SUSTAIN_MARKER_WIDTH&quot;] = &quot;Sustain marker width&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">43</span>
+                    <span class="line-content">L[&quot;SUSTAIN_MARKER_WIDTH_DESC&quot;] = &quot;Width of the sustainable speed marker line.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">44</span>
+                    <span class="line-content">L[&quot;SUSTAIN_MARKER_ALPHA&quot;] = &quot;Sustain marker opacity&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">45</span>
+                    <span class="line-content">L[&quot;SUSTAIN_MARKER_ALPHA_DESC&quot;] = &quot;Opacity of the sustain speed marker (0.1-1.0).&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">46</span>
+                    <span class="line-content">L[&quot;ACCEL_BAR_HEIGHT_DESC&quot;] = &quot;Height of the acceleration indicator bar.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">47</span>
+                    <span class="line-content">L[&quot;ABILITY_BAR_HEIGHT_DESC&quot;] = &quot;Height of ability cooldown bars.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">48</span>
+                    <span class="line-content">L[&quot;BAR_GAP&quot;] = &quot;Gap between sections&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">49</span>
+                    <span class="line-content">L[&quot;BAR_GAP_DESC&quot;] = &quot;Gap between ability bar charge sections.&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">50</span>
+                    <span class="line-content">L[&quot;SHOW_SURGE_FORWARD&quot;] = &quot;Show Surge Forward&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">51</span>
+                    <span class="line-content">L[&quot;SHOW_SURGE_FORWARD_DESC&quot;] = &quot;Show Surge Forward charge bar (6 charges).&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">52</span>
+                    <span class="line-content">L[&quot;SHOW_SECOND_WIND&quot;] = &quot;Show Second Wind&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">53</span>
+                    <span class="line-content">L[&quot;SHOW_SECOND_WIND_DESC&quot;] = &quot;Show Second Wind charge bar (3 charges).&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">54</span>
+                    <span class="line-content">L[&quot;SHOW_WHIRLING_SURGE&quot;] = &quot;Show Whirling Surge&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">55</span>
+                    <span class="line-content">L[&quot;SHOW_WHIRLING_SURGE_DESC&quot;] = &quot;Show Whirling Surge cooldown bar (30s).&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">56</span>
+                    <span class="line-content"></span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">57</span>
+                    <span class="line-content">-- UI / Debug</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">58</span>
+                    <span class="line-content">L[&quot;VISIBILITY_ERROR&quot;] = &quot;Flightsim: Visibility error during transition: &quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">59</span>
+                    <span class="line-content">L[&quot;UPDATE_LOOP_ERROR&quot;] = &quot;Flightsim: Update loop error: &quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">60</span>
+                    <span class="line-content">L[&quot;DEBUG_KV&quot;] = &quot;Flightsim debug: %s = %s&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">61</span>
+                    <span class="line-content">L[&quot;DEBUG_HEADER&quot;] = &quot;Flightsim debug: ----&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">62</span>
+                    <span class="line-content">L[&quot;DEBUG_DB_NOT_INIT&quot;] = &quot;Flightsim debug: DB not initialized&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">63</span>
+                    <span class="line-content">L[&quot;DEBUG_ABILITIES_HEADER&quot;] = &quot;Flightsim debug: abilities ----&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">64</span>
+                    <span class="line-content">L[&quot;DEBUG_ABILITY_FORMAT&quot;] = &quot;Flightsim debug: %d) %s enabled=%s spellID=%s icon=%s charges=%s/%s&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">65</span>
+                    <span class="line-content">L[&quot;DEBUG_FOOTER&quot;] = &quot;Flightsim debug: ---- end&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">66</span>
+                    <span class="line-content">L[&quot;STATUS_NOT_INIT&quot;] = &quot;Flightsim: not initialized&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">67</span>
+                    <span class="line-content">L[&quot;SHOWN&quot;] = &quot;shown&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">68</span>
+                    <span class="line-content">L[&quot;HIDDEN&quot;] = &quot;hidden&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">69</span>
+                    <span class="line-content">L[&quot;SKYRIDING&quot;] = &quot;skyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">70</span>
+                    <span class="line-content">L[&quot;NOT_SKYRIDING&quot;] = &quot;not skyriding&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">71</span>
+                    <span class="line-content">L[&quot;CHARGES_DISABLED&quot;] = &quot;charges UI disabled&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">72</span>
+                    <span class="line-content">L[&quot;OPTIMAL_FORMAT&quot;] = &quot;optimal %.1f&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">73</span>
+                    <span class="line-content">L[&quot;OPTIMAL_OFF&quot;] = &quot;optimal off&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">74</span>
+                    <span class="line-content">L[&quot;STATUS_FORMAT&quot;] = &quot;Flightsim: %s, frame %s, speed %.1f (max %.1f, %s), %s&quot;</span>
+                </div>
+        
+                <div class="code-line ">
+                    <span class="line-number">75</span>
+                    <span class="line-content"></span>
+                </div>
+        
+            </div>
+        </div>
+    
+    </div>
+</body>
+</html>

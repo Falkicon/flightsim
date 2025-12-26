@@ -149,9 +149,7 @@ Migration notes:
 | -------------- | -------- | ---------------------------------- |
 | Surge Forward  | 372608   | 6 charges, restored by Second Wind |
 | Whirling Surge | 361584   | 30s cooldown dash                  |
-| Second Wind    | 425782   | 3 charges, restores vigor          |
-| Skyward Ascent | 372610   | (tracked, not displayed)           |
-| Aerial Halt    | -        | (tracked, not displayed)           |
+| Second Wind    | 425782   | 3 charges, restores Surge Forward  |
 
 ### 5.3 Speed calculation
 

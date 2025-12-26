@@ -1,0 +1,32 @@
+{
+  "Config.lua": {
+    "lines": 231,
+    "covered": 0,
+    "percent": 0.0
+  },
+  "Flightsim.lua": {
+    "lines": 121,
+    "covered": 57,
+    "percent": 47.1
+  },
+  "Locales\\enUS.lua": {
+    "lines": 69,
+    "covered": 0,
+    "percent": 0.0
+  },
+  "SettingsUI.lua": {
+    "lines": 430,
+    "covered": 0,
+    "percent": 0.0
+  },
+  "UI.lua": {
+    "lines": 1216,
+    "covered": 92,
+    "percent": 7.6
+  },
+  "_total": {
+    "lines": 2067,
+    "covered": 149,
+    "percent": 7.2
+  }
+}

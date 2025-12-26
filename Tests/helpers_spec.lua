@@ -1,62 +1,17 @@
--- Mock FlightsimUI structure
-_G.FlightsimUI = { Utils = {} }
+-- Mock LibStub
+_G.LibStub = function() return { Register = function() end } end
 
--- Helper to load the functions into the mock
-local function loadUtils()
-	-- Clamp
-	_G.FlightsimUI.Utils.Clamp = function(n, minV, maxV)
-		if n < minV then return minV end
-		if n > maxV then return maxV end
-		return n
-	end
+-- Mock C_AddOns
+_G.C_AddOns = {
+    GetAddOnMetadata = function() return "1.0.0" end
+}
 
-	-- Colors (extracted from UI.lua logic)
-	local COLOR_GREEN = { 0.169, 0.651, 0.016 }
-	local COLOR_YELLOW = { 0.769, 0.651, 0.016 }
-	local COLOR_RED = { 0.769, 0.169, 0.016 }
-	local COLOR_SURGE_FORWARD = { 0.455, 0.686, 1.0 }
-	local COLOR_SURGE_FORWARD_EMPTY = { 0.18, 0.27, 0.4 }
-
-	_G.FlightsimUI.Utils.ColorForPct = function(pct)
-		local Clamp = _G.FlightsimUI.Utils.Clamp
-		pct = Clamp(pct or 0, 0, 1)
-		local r, g, b
-		if pct < 0.5 then
-			local t = pct * 2
-			r = COLOR_RED[1] + (COLOR_YELLOW[1] - COLOR_RED[1]) * t
-			g = COLOR_RED[2] + (COLOR_YELLOW[2] - COLOR_RED[2]) * t
-			b = COLOR_RED[3] + (COLOR_YELLOW[3] - COLOR_RED[3]) * t
-		else
-			local t = (pct - 0.5) * 2
-			r = COLOR_YELLOW[1] + (COLOR_GREEN[1] - COLOR_YELLOW[1]) * t
-			g = COLOR_YELLOW[2] + (COLOR_GREEN[2] - COLOR_YELLOW[2]) * t
-			b = COLOR_YELLOW[3] + (COLOR_GREEN[3] - COLOR_YELLOW[3]) * t
-		end
-		return r, g, b
-	end
-
-	_G.FlightsimUI.Utils.ColorForPctSurgeForward = function(pct)
-		local Clamp = _G.FlightsimUI.Utils.Clamp
-		pct = Clamp(pct or 0, 0, 1)
-		local r = COLOR_SURGE_FORWARD_EMPTY[1] + (COLOR_SURGE_FORWARD[1] - COLOR_SURGE_FORWARD_EMPTY[1]) * pct
-		local g = COLOR_SURGE_FORWARD_EMPTY[2] + (COLOR_SURGE_FORWARD[2] - COLOR_SURGE_FORWARD_EMPTY[2]) * pct
-		local b = COLOR_SURGE_FORWARD_EMPTY[3] + (COLOR_SURGE_FORWARD[3] - COLOR_SURGE_FORWARD_EMPTY[3]) * pct
-		return r, g, b
-	end
-
-	_G.FlightsimUI.Utils.CopyDefaults = function(dst, src)
-		for k, v in pairs(src) do
-			if type(v) == "table" then
-				dst[k] = dst[k] or {}
-				_G.FlightsimUI.Utils.CopyDefaults(dst[k], v)
-			elseif dst[k] == nil then
-				dst[k] = v
-			end
-		end
-	end
-end
-
-loadUtils()
+-- Load the addon files to test real code
+-- Flightsim.lua expects the addon name as the first argument
+-- We can simulate this by setting the arg table or just requiring it
+-- if the code handles nil ADDON_NAME gracefully.
+require("Flightsim")
+require("UI")
 
 describe("Flightsim Helpers", function()
 	local Utils = _G.FlightsimUI.Utils

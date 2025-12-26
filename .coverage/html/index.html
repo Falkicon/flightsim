@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverage Report: Flightsim</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --surface: #313244;
+            --text: #cdd6f4;
+            --subtext: #a6adc8;
+            --green: #a6e3a1;
+            --yellow: #f9e2af;
+            --red: #f38ba8;
+            --blue: #89b4fa;
+            --border: #45475a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            color: var(--blue);
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+        }
+        .timestamp {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .stat-label {
+            color: var(--subtext);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .coverage-high { color: var(--green); }
+        .coverage-medium { color: var(--yellow); }
+        .coverage-low { color: var(--red); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: rgba(0,0,0,0.2);
+            font-weight: 600;
+            color: var(--subtext);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        tr:last-child td { border-bottom: none; }
+        .file-link {
+            color: var(--blue);
+            text-decoration: none;
+        }
+        .file-link:hover { text-decoration: underline; }
+        .progress-bar {
+            width: 100px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .text-right { text-align: right; }
+        .file-detail {
+            background: var(--surface);
+            border-radius: 12px;
+            margin-top: 2rem;
+            overflow: hidden;
+        }
+        .file-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--blue);
+        }
+        .code-view {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+        .code-line {
+            display: flex;
+            min-height: 1.5rem;
+        }
+        .line-number {
+            width: 50px;
+            padding: 0 0.75rem;
+            text-align: right;
+            color: var(--subtext);
+            user-select: none;
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.1);
+        }
+        .line-content {
+            flex: 1;
+            padding: 0 1rem;
+            white-space: pre;
+        }
+        .line-covered {
+            background: rgba(166, 227, 161, 0.1);
+        }
+        .line-uncovered {
+            background: rgba(243, 139, 168, 0.15);
+        }
+        .line-uncovered .line-number {
+            background: rgba(243, 139, 168, 0.2);
+            color: var(--red);
+        }
+        .nav { margin-bottom: 1rem; }
+        .nav a {
+            color: var(--blue);
+            text-decoration: none;
+            margin-right: 1rem;
+        }
+        .nav a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <h1>📊 Coverage Report</h1>
+        <p class="timestamp">Flightsim · Generated 2025-12-25 22:26:17</p>
+        
+        <div class="summary-card">
+            <div class="stat">
+                <div class="stat-value coverage-low">7.2%</div>
+                <div class="stat-label">Total Coverage</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">149</div>
+                <div class="stat-label">Lines Covered</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">2067</div>
+                <div class="stat-label">Total Lines</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Files</div>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th class="text-right">Lines</th>
+                    <th class="text-right">Covered</th>
+                    <th class="text-right">Coverage</th>
+                    <th>Progress</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+                <tr>
+                    <td><a href="Config.lua.html" class="file-link">Config.lua</a></td>
+                    <td class="text-right">231</td>
+                    <td class="text-right">0</td>
+                    <td class="text-right coverage-low">0.0%</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill coverage-low" style="width: 0.0%"></div>
+                        </div>
+                    </td>
+                </tr>
+        
+                <tr>
+                    <td><a href="Flightsim.lua.html" class="file-link">Flightsim.lua</a></td>
+                    <td class="text-right">121</td>
+                    <td class="text-right">57</td>
+                    <td class="text-right coverage-low">47.1%</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill coverage-low" style="width: 47.1%"></div>
+                        </div>
+                    </td>
+                </tr>
+        
+                <tr>
+                    <td><a href="Locales_enUS.lua.html" class="file-link">Locales\enUS.lua</a></td>
+                    <td class="text-right">69</td>
+                    <td class="text-right">0</td>
+                    <td class="text-right coverage-low">0.0%</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill coverage-low" style="width: 0.0%"></div>
+                        </div>
+                    </td>
+                </tr>
+        
+                <tr>
+                    <td><a href="SettingsUI.lua.html" class="file-link">SettingsUI.lua</a></td>
+                    <td class="text-right">430</td>
+                    <td class="text-right">0</td>
+                    <td class="text-right coverage-low">0.0%</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill coverage-low" style="width: 0.0%"></div>
+                        </div>
+                    </td>
+                </tr>
+        
+                <tr>
+                    <td><a href="UI.lua.html" class="file-link">UI.lua</a></td>
+                    <td class="text-right">1216</td>
+                    <td class="text-right">92</td>
+                    <td class="text-right coverage-low">7.6%</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill coverage-low" style="width: 7.6%"></div>
+                        </div>
+                    </td>
+                </tr>
+        
+            </tbody>
+        </table>
+    
+    </div>
+</body>
+</html>
