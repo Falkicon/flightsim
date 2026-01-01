@@ -1,9 +1,13 @@
 -- Mock LibStub
-_G.LibStub = function() return { Register = function() end } end
+_G.LibStub = function()
+	return { Register = function() end }
+end
 
 -- Mock C_AddOns
 _G.C_AddOns = {
-    GetAddOnMetadata = function() return "1.0.0" end
+	GetAddOnMetadata = function()
+		return "1.0.0"
+	end,
 }
 
 -- Load the addon files to test real code
@@ -96,4 +100,3 @@ describe("Flightsim Helpers", function()
 		end)
 	end)
 end)
-

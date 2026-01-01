@@ -72,4 +72,3 @@ L["CHARGES_DISABLED"] = "charges UI disabled"
 L["OPTIMAL_FORMAT"] = "optimal %.1f"
 L["OPTIMAL_OFF"] = "optimal off"
 L["STATUS_FORMAT"] = "Flightsim: %s, frame %s, speed %.1f (max %.1f, %s), %s"
-

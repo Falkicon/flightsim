@@ -18,17 +18,33 @@ FlightsimUI.perf = {
 
 -- Testing Definitions
 FlightsimUI.tests = {
-	{ id = "api_diag", name = "API Diagnostic", category = "API Diagnostic", type = "auto", description = "Checks core skyriding APIs for secret values." },
-	{ id = "ui_compliance", name = "UI Compliance", category = "UI Compliance", type = "auto", description = "Verifies StatusBar compliance with secret passthrough." },
+	{
+		id = "api_diag",
+		name = "API Diagnostic",
+		category = "API Diagnostic",
+		type = "auto",
+		description = "Checks core skyriding APIs for secret values.",
+	},
+	{
+		id = "ui_compliance",
+		name = "UI Compliance",
+		category = "UI Compliance",
+		type = "auto",
+		description = "Verifies StatusBar compliance with secret passthrough.",
+	},
 }
 
 local function IsSecret(val)
-	if val == nil then return false end
+	if val == nil then
+		return false
+	end
 	if issecretvalue then
 		return issecretvalue(val) == true
 	end
 	-- Robust fallback for secret-like objects that crash comparisons
-	local ok = pcall(function() local _ = (val > -1e12) end)
+	local ok = pcall(function()
+		local _ = (val > -1e12)
+	end)
 	return not ok
 end
 
@@ -243,8 +259,8 @@ function FlightsimUI:_GetSkyridingSpeed(now)
 			-- isGliding will be true if secret or boolean true.
 			local adjusted = forwardSpeed
 			if not (issecretvalue and issecretvalue(adjusted)) then
-			if self._isSlowSkyriding then
-				adjusted = adjusted / SLOW_SKYRIDING_RATIO
+				if self._isSlowSkyriding then
+					adjusted = adjusted / SLOW_SKYRIDING_RATIO
 				end
 			end
 			return adjusted, true
@@ -434,7 +450,7 @@ function FlightsimUI:IsSkyridingActive()
 	if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
 		local ok, isGliding, canGlide = pcall(C_PlayerInfo.GetGlidingInfo)
 		if ok and (isGliding or canGlide) then
-				result = true
+			result = true
 		end
 	end
 
@@ -475,12 +491,16 @@ function FlightsimUI:IsSkyridingActive()
 end
 
 local function IsSecret(val)
-	if val == nil then return false end
+	if val == nil then
+		return false
+	end
 	if issecretvalue then
 		return issecretvalue(val) == true
 	end
 	-- Robust fallback for secret-like objects that crash comparisons
-	local ok = pcall(function() local _ = (val > -1e12) end)
+	local ok = pcall(function()
+		local _ = (val > -1e12)
+	end)
 	return not ok
 end
 
@@ -860,11 +880,13 @@ function FlightsimUI:ApplyVisibility()
 				self.frame:Show()
 			end
 			self.frame:SetAlpha(1)
-			
+
 			if self.accelFrame and not self.accelFrame:IsShown() then
 				self.accelFrame:Show()
 			end
-			if self.accelFrame then self.accelFrame:SetAlpha(1) end
+			if self.accelFrame then
+				self.accelFrame:SetAlpha(1)
+			end
 
 			-- Respect individual ability bar settings
 			if self.surgeForwardFrame and ab.showSurgeForward ~= false then
@@ -1134,7 +1156,9 @@ function FlightsimUI:StartUpdating()
 
 				local sustainableSpeed = 0
 				if self.db.profile.speedBar then
-					sustainableSpeed = self.db.profile.speedBar.sustainableSpeed or self.db.profile.speedBar.optimalSpeed or 0
+					sustainableSpeed = self.db.profile.speedBar.sustainableSpeed
+						or self.db.profile.speedBar.optimalSpeed
+						or 0
 				end
 
 				if sustainableSpeed and sustainableSpeed > 0 then
@@ -1142,7 +1166,13 @@ function FlightsimUI:StartUpdating()
 					self.sustainableMarker:Show()
 					self.sustainableMarker:ClearAllPoints()
 					self.sustainableMarker:SetPoint("TOP", self.speedBar, "TOPLEFT", op * self.speedBar:GetWidth(), 0)
-					self.sustainableMarker:SetPoint("BOTTOM", self.speedBar, "BOTTOMLEFT", op * self.speedBar:GetWidth(), 0)
+					self.sustainableMarker:SetPoint(
+						"BOTTOM",
+						self.speedBar,
+						"BOTTOMLEFT",
+						op * self.speedBar:GetWidth(),
+						0
+					)
 				else
 					self.sustainableMarker:Hide()
 				end
@@ -1356,7 +1386,11 @@ function FlightsimUI:StartUpdating()
 							local targetPct = 0
 							if SafeCompare(i, surgeChargesCount, "<=") then
 								targetPct = 1
-							elseif SafeCompare(i, surgeChargesCount + 1, "==") and chargeDuration > 0 and not isAnimSecret then
+							elseif
+								SafeCompare(i, surgeChargesCount + 1, "==")
+								and chargeDuration > 0
+								and not isAnimSecret
+							then
 								local cdElapsed = now_val - chargeStart
 								targetPct = Clamp(cdElapsed / chargeDuration, 0, 1)
 							else
@@ -1411,7 +1445,11 @@ function FlightsimUI:StartUpdating()
 		block_start = debugprofilestop()
 		local ok_ws, err_ws = pcall(function()
 			DebugLog("Entering Block 6 (Whirling)...")
-			if self.whirlingSurgeBar and self.db.profile.abilityBars and self.db.profile.abilityBars.showWhirlingSurge then
+			if
+				self.whirlingSurgeBar
+				and self.db.profile.abilityBars
+				and self.db.profile.abilityBars.showWhirlingSurge
+			then
 				local info_ws = GetSpellCooldownSafe(WHIRLING_SURGE_SPELL_ID)
 				local ws_dur = info_ws.duration
 				local ws_start = info_ws.startTime
@@ -1424,7 +1462,12 @@ function FlightsimUI:StartUpdating()
 					self.whirlingSurgeBar:SetMinMaxValues(0, 1)
 					self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 					self.whirlingSurgeBar:SetValue(usable and 1 or 0)
-					self.whirlingSurgeBar:SetStatusBarColor(COLOR_WHIRLING_SURGE[1], COLOR_WHIRLING_SURGE[2], COLOR_WHIRLING_SURGE[3], 1)
+					self.whirlingSurgeBar:SetStatusBarColor(
+						COLOR_WHIRLING_SURGE[1],
+						COLOR_WHIRLING_SURGE[2],
+						COLOR_WHIRLING_SURGE[3],
+						1
+					)
 					self.whirlingSurgeBar:SetAlpha(1)
 				else
 					local onCooldown = ws_dur and ws_dur > 1.5
@@ -1483,7 +1526,12 @@ function FlightsimUI:StartUpdating()
 		block_start = debugprofilestop()
 		local ok_wind, err_wind = pcall(function()
 			DebugLog("Entering Block 7 (Wind)...")
-			if self.secondWindFrame and self.secondWindBars and self.db.profile.abilityBars and self.db.profile.abilityBars.showSecondWind then
+			if
+				self.secondWindFrame
+				and self.secondWindBars
+				and self.db.profile.abilityBars
+				and self.db.profile.abilityBars.showSecondWind
+			then
 				local info_sw = GetSpellCooldownSafe(SECOND_WIND_SPELL_ID, true)
 				local swChargesRaw = info_sw.currentCharges
 				local swStart = info_sw.chargeStart
@@ -1501,7 +1549,12 @@ function FlightsimUI:StartUpdating()
 							bar:SetMinMaxValues(0, 1)
 							bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 							bar:SetValue(usable and 1 or 0)
-							bar:SetStatusBarColor(COLOR_SECOND_WIND[1], COLOR_SECOND_WIND[2], COLOR_SECOND_WIND[3], barAlpha)
+							bar:SetStatusBarColor(
+								COLOR_SECOND_WIND[1],
+								COLOR_SECOND_WIND[2],
+								COLOR_SECOND_WIND[3],
+								barAlpha
+							)
 							bar:SetAlpha(1)
 						end
 					end
@@ -1766,17 +1819,7 @@ function FlightsimUI:Status()
 	local optimalStr = (optimalSpeed and optimalSpeed > 0) and string.format(L["OPTIMAL_FORMAT"], optimalSpeed)
 		or L["OPTIMAL_OFF"]
 
-	print(
-		string.format(
-			L["STATUS_FORMAT"],
-			ridingState,
-			showState,
-			speed,
-			maxSpeed,
-			optimalStr,
-			chargeState
-		)
-	)
+	print(string.format(L["STATUS_FORMAT"], ridingState, showState, speed, maxSpeed, optimalStr, chargeState))
 end
 
 -- ============================================================
@@ -1801,8 +1844,13 @@ function FlightsimUI:GetTests()
 end
 
 function FlightsimUI:RunTest(id)
-	-- No-op for auto tests, they just return results
-	return true
+	local startTime = debugprofilestop()
+	local result = self:GetTestResult(id)
+	if type(result) == "table" then
+		result.duration = (debugprofilestop() - startTime) / 1000
+		result.id = id
+	end
+	return result
 end
 
 function FlightsimUI:GetTestResult(id)
@@ -1813,7 +1861,7 @@ function FlightsimUI:GetTestResult(id)
 		local speed = GetUnitSpeedSafe("player")
 		local speedSecret = IsSecret(speed)
 		table.insert(details, {
-			label = "GetUnitSpeed(\"player\")",
+			label = 'GetUnitSpeed("player")',
 			value = SafeToString(speed) .. (speedSecret and " (SECRET)" or ""),
 			status = speedSecret and "warn" or "pass",
 		})

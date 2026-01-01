@@ -159,3 +159,4 @@ Pure utility functions (Clamp, Color functions, etc.) are refactored into `Fligh
 | 2025-12-13 | Midnight: Use issecretvalue() to detect combat secrets |
 | 2025-12-19 | Explicit Steady Flight detection via GetGlidingInfo.canGlide check |
 | 2025-12-19 | Global GetSpellInfo removal and pcall guards for mode transitions |
+

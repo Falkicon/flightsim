@@ -8,7 +8,9 @@
 
 local MAJOR, MINOR = "MechanicLib-1.0", 3
 local MechanicLib = LibStub:NewLibrary(MAJOR, MINOR)
-if not MechanicLib then return end
+if not MechanicLib then
+	return
+end
 
 -- Storage
 MechanicLib.registered = MechanicLib.registered or {}
@@ -22,7 +24,7 @@ MechanicLib.watchList = MechanicLib.watchList or {}
 --- Use this instead of DevMarker.lua for showing debug UI.
 ---@return boolean enabled True if !Mechanic is available
 function MechanicLib:IsEnabled()
-    return _G.Mechanic ~= nil
+	return _G.Mechanic ~= nil
 end
 
 --------------------------------------------------------------------------------
@@ -65,19 +67,19 @@ end
 ---@param addonName string The addon's name
 ---@param capabilities table Registration capabilities
 function MechanicLib:Register(addonName, capabilities)
-    self.registered[addonName] = capabilities
-    if _G.Mechanic and _G.Mechanic.OnAddonRegistered then
-        _G.Mechanic:OnAddonRegistered(addonName, capabilities)
-    end
+	self.registered[addonName] = capabilities
+	if _G.Mechanic and _G.Mechanic.OnAddonRegistered then
+		_G.Mechanic:OnAddonRegistered(addonName, capabilities)
+	end
 end
 
 --- Unregister an addon.
 ---@param addonName string The addon's name
 function MechanicLib:Unregister(addonName)
-    self.registered[addonName] = nil
-    if _G.Mechanic and _G.Mechanic.OnAddonUnregistered then
-        _G.Mechanic:OnAddonUnregistered(addonName)
-    end
+	self.registered[addonName] = nil
+	if _G.Mechanic and _G.Mechanic.OnAddonUnregistered then
+		_G.Mechanic:OnAddonUnregistered(addonName)
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -87,37 +89,38 @@ end
 --- Add a frame or path to the Mechanic watch list.
 ---@param frameOrPath Frame|string The frame reference or a path string (e.g. "PlayerFrame.health")
 ---@param label string? A descriptive label for the watch item
----@param options table? Optional configuration (e.g. { source = "MyAddon" })
+---@param options table? Optional configuration (e.g. { source = "MyAddon", property = "Visibility" })
 function MechanicLib:AddToWatchList(frameOrPath, label, options)
-    local key = tostring(frameOrPath)
-    self.watchList[key] = {
-        target = frameOrPath,
-        label = label or key,
-        source = options and options.source or "Manual",
-        timestamp = GetTime(),
-    }
+	local key = tostring(frameOrPath)
+	self.watchList[key] = {
+		target = frameOrPath,
+		label = label or key,
+		source = options and options.source or "Manual",
+		property = options and options.property or nil,
+		timestamp = GetTime(),
+	}
 
-    if _G.Mechanic and _G.Mechanic.OnWatchListChanged then
-        _G.Mechanic:OnWatchListChanged()
-    end
+	if _G.Mechanic and _G.Mechanic.OnWatchListChanged then
+		_G.Mechanic:OnWatchListChanged()
+	end
 end
 
 --- Remove a frame or path from the watch list.
 ---@param frameOrPath Frame|string The frame reference or path string to remove
 function MechanicLib:RemoveFromWatchList(frameOrPath)
-    local key = tostring(frameOrPath)
-    if self.watchList[key] then
-        self.watchList[key] = nil
-        if _G.Mechanic and _G.Mechanic.OnWatchListChanged then
-            _G.Mechanic:OnWatchListChanged()
-        end
-    end
+	local key = tostring(frameOrPath)
+	if self.watchList[key] then
+		self.watchList[key] = nil
+		if _G.Mechanic and _G.Mechanic.OnWatchListChanged then
+			_G.Mechanic:OnWatchListChanged()
+		end
+	end
 end
 
 --- Get the current watch list.
 ---@return table watchList The internal watch list table
 function MechanicLib:GetWatchList()
-    return self.watchList
+	return self.watchList
 end
 
 --------------------------------------------------------------------------------
@@ -126,16 +129,16 @@ end
 
 --- Standard log categories
 MechanicLib.Categories = {
-    TRIGGER = "[Trigger]",
-    REGION = "[Region]",
-    API = "[API]",
-    COOLDOWN = "[Cooldown]",
-    EVENT = "[Event]",
-    VALIDATION = "[Validation]",
-    SECRET = "[Secret]",
-    PERF = "[Perf]",
-    LOAD = "[Load]",
-    CORE = "[Core]",
+	TRIGGER = "[Trigger]",
+	REGION = "[Region]",
+	API = "[API]",
+	COOLDOWN = "[Cooldown]",
+	EVENT = "[Event]",
+	VALIDATION = "[Validation]",
+	SECRET = "[Secret]",
+	PERF = "[Perf]",
+	LOAD = "[Load]",
+	CORE = "[Core]",
 }
 
 --- Log a message to Mechanic's console.
@@ -144,9 +147,9 @@ MechanicLib.Categories = {
 ---@param message string The log message
 ---@param category string|nil Optional category (use MechanicLib.Categories)
 function MechanicLib:Log(addonName, message, category)
-    if _G.Mechanic and _G.Mechanic.OnLog then
-        _G.Mechanic:OnLog(addonName, message, category)
-    end
+	if _G.Mechanic and _G.Mechanic.OnLog then
+		_G.Mechanic:OnLog(addonName, message, category)
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -156,7 +159,7 @@ end
 --- Get list of registered addons.
 ---@return table registered Map of addonName -> capabilities
 function MechanicLib:GetRegistered()
-    return self.registered
+	return self.registered
 end
 
 --- Check if an addon has a specific capability.
@@ -164,8 +167,8 @@ end
 ---@param capability string The capability name to check
 ---@return boolean hasCapability True if the addon has the capability
 function MechanicLib:HasCapability(addonName, capability)
-    local caps = self.registered[addonName]
-    return caps ~= nil and caps[capability] ~= nil
+	local caps = self.registered[addonName]
+	return caps ~= nil and caps[capability] ~= nil
 end
 
 --- Get a specific capability from a registered addon.
@@ -173,7 +176,6 @@ end
 ---@param capability string The capability name
 ---@return any capability The capability data or function
 function MechanicLib:GetCapability(addonName, capability)
-    local caps = self.registered[addonName]
-    return caps and caps[capability]
+	local caps = self.registered[addonName]
+	return caps and caps[capability]
 end
-

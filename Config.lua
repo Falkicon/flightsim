@@ -78,19 +78,21 @@ function FlightsimConfig:CreateCompliancePanel(container)
 		local b6 = CreateTestBar(-200, "6. UnitPower('player', 25) [Vigor]", { 0.5, 0, 0.5 })
 		local vigor = (UnitPower("player", 25))
 		local vigorMax = (UnitPowerMax("player", 25))
-		
+
 		-- Protection against secret comparison crashes
 		local safeVigorMax = 6
 		if type(vigorMax) == "number" then
 			-- In 12.0, secrets are 'number' type but crash on comparison
-			local ok, isGreater = pcall(function() return vigorMax > 0 end)
+			local ok, isGreater = pcall(function()
+				return vigorMax > 0
+			end)
 			if ok and isGreater then
 				safeVigorMax = vigorMax
 			end
 		end
 
 		b6:SetMinMaxValues(0, safeVigorMax)
-		
+
 		if type(vigor) == "number" then
 			b6:SetValue(vigor)
 		else

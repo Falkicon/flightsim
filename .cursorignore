@@ -1,6 +1,2 @@
-﻿# Libs are rarely edited directly
+# Ignore all libraries in consuming addons (managed by toolchain)
 Libs/
-
-# Build artifacts
-*.bak
-*.log

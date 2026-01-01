@@ -150,13 +150,19 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 						}
 						-- Add first charge of each ability for quick monitoring
 						if UI.surgeForwardBars and UI.surgeForwardBars[1] then
-							table.insert(frames, { label = "Surge 1", frame = UI.surgeForwardBars[1], property = "Value" })
+							table.insert(
+								frames,
+								{ label = "Surge 1", frame = UI.surgeForwardBars[1], property = "Value" }
+							)
 						end
 						if UI.secondWindBars and UI.secondWindBars[1] then
 							table.insert(frames, { label = "Wind 1", frame = UI.secondWindBars[1], property = "Value" })
 						end
 						if UI.whirlingSurgeBar then
-							table.insert(frames, { label = "Whirling", frame = UI.whirlingSurgeBar, property = "Value" })
+							table.insert(
+								frames,
+								{ label = "Whirling", frame = UI.whirlingSurgeBar, property = "Value" }
+							)
 						end
 						return frames
 					end,
