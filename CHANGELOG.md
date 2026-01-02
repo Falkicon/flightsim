@@ -2,6 +2,11 @@
 ## [1.2.3] - 2026-01-02
 
 ### Changed
+- Added new feature
+
+## [1.2.3] - 2026-01-02
+
+### Changed
 - Release features
 
 ## [1.2.3] - 2026-01-01
