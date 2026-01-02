@@ -1,129 +1,132 @@
 FlightsimConfig = FlightsimConfig or {}
 
-function FlightsimConfig:CreateCompliancePanel(container)
+--- Create a button helper
+local function CreateToolButton(parent, x, y, width, text, onClick)
+	local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+	btn:SetSize(width, 24)
+	btn:SetText(text)
+	btn:SetScript("OnClick", onClick)
+	return btn
+end
+
+--- Create the Tools panel for Mechanic integration
+function FlightsimConfig:CreateToolsPanel(container)
 	local title = container:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	title:SetPoint("TOP", 0, -10)
-	title:SetText("Midnight UI Compliance Lab")
+	title:SetPoint("TOPLEFT", 10, -10)
+	title:SetText("Flightsim Tools")
 
-	local function CreateTestBar(y, label, color)
-		local b = CreateFrame("StatusBar", nil, container)
-		b:SetHeight(24)
-		b:SetPoint("TOPLEFT", container, "TOPLEFT", 20, y)
-		b:SetPoint("TOPRIGHT", container, "TOPRIGHT", -20, y)
-		b:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
-		b:SetStatusBarColor(unpack(color))
+	local desc = container:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	desc:SetPoint("TOPLEFT", 10, -35)
+	desc:SetText("Quick actions for the Flightsim HUD.")
 
-		local bg = b:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints()
-		bg:SetColorTexture(0.1, 0.1, 0.1, 1)
+	-- Row 1: Position & Lock
+	local row1Label = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row1Label:SetPoint("TOPLEFT", 10, -65)
+	row1Label:SetText("Position:")
 
-		local t = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		t:SetPoint("CENTER", 0, 0)
-		t:SetText(label)
-
-		return b
-	end
-
-	-- 1. Standard SetValue(1)
-	pcall(function()
-		local b1 = CreateTestBar(-50, "1. SetValue(1) [Control]", { 0, 1, 0 })
-		b1:SetMinMaxValues(0, 1)
-		b1:SetValue(1)
-	end)
-
-	-- 2. Secret Passthrough (Speed)
-	pcall(function()
-		local b2 = CreateTestBar(-80, "2. SetValue(secret) [Speed]", { 0, 0.5, 1 })
-		b2:SetMinMaxValues(0, 1000)
-		local speed = GetUnitSpeed("player")
-		if type(speed) == "number" then
-			b2:SetValue(speed)
-		else
-			b2:SetValue(0)
+	CreateToolButton(container, 80, -60, 100, "Reset", function()
+		if FlightsimDB and FlightsimDB.profile then
+			FlightsimDB.profile.x = 0
+			FlightsimDB.profile.y = 0
+			FlightsimDB.profile.scale = 1
+			if FlightsimUI and FlightsimUI.frame then
+				FlightsimUI.frame:ClearAllPoints()
+				FlightsimUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+				FlightsimUI.frame:SetScale(1)
+			end
+			print("|cff00ff00Flightsim:|r Position reset to center.")
 		end
 	end)
 
-	-- 3. Boolean Proxy (IsSpellUsable)
-	pcall(function()
-		local b3 = CreateTestBar(-110, "3. SetValue(Proxy) [Surge Usable]", { 1, 0.5, 0 })
-		local usable = C_Spell.IsSpellUsable(372608)
-		b3:SetMinMaxValues(0, 1)
-		b3:SetValue(usable and 1 or 0)
-	end)
-
-	-- 4. Color Texture Fallback
-	pcall(function()
-		local b4 = CreateTestBar(-140, "4. ColorTexture (ArtLayer)", { 1, 0, 1 })
-		b4:SetStatusBarTexture(nil)
-		local tex = b4:CreateTexture(nil, "ARTWORK")
-		tex:SetAllPoints()
-		tex:SetColorTexture(1, 0, 1, 1)
-	end)
-
-	-- 5. SetFillAmount (The 12.0 'New Way'?)
-	pcall(function()
-		local b5 = CreateTestBar(-170, "5. SetFillAmount(0.75)", { 1, 1, 0 })
-		if type(b5.SetFillAmount) == "function" then
-			b5:SetFillAmount(0.75)
-		else
-			b5:SetAlpha(0.3)
-			local t = b5:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-			t:SetPoint("CENTER")
-			t:SetText("SetFillAmount Unsupported")
+	CreateToolButton(container, 185, -60, 80, "Lock", function()
+		if FlightsimDB and FlightsimDB.profile then
+			FlightsimDB.profile.locked = true
+			print("|cff00ff00Flightsim:|r HUD locked.")
 		end
 	end)
 
-	-- 6. Taint/Security Test (Whitelisted API)
-	pcall(function()
-		local b6 = CreateTestBar(-200, "6. UnitPower('player', 25) [Vigor]", { 0.5, 0, 0.5 })
-		local vigor = (UnitPower("player", 25))
-		local vigorMax = (UnitPowerMax("player", 25))
+	CreateToolButton(container, 270, -60, 80, "Unlock", function()
+		if FlightsimDB and FlightsimDB.profile then
+			FlightsimDB.profile.locked = false
+			print("|cff00ff00Flightsim:|r HUD unlocked. Drag to reposition.")
+		end
+	end)
 
-		-- Protection against secret comparison crashes
-		local safeVigorMax = 6
-		if type(vigorMax) == "number" then
-			-- In 12.0, secrets are 'number' type but crash on comparison
-			local ok, isGreater = pcall(function()
-				return vigorMax > 0
-			end)
-			if ok and isGreater then
-				safeVigorMax = vigorMax
+	-- Row 2: Visibility
+	local row2Label = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row2Label:SetPoint("TOPLEFT", 10, -100)
+	row2Label:SetText("Visibility:")
+
+	CreateToolButton(container, 80, -95, 100, "Show Always", function()
+		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
+			FlightsimDB.profile.visibility.hideWhileSkyriding = false
+			FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
+			print("|cff00ff00Flightsim:|r Always visible.")
+		end
+	end)
+
+	CreateToolButton(container, 185, -95, 100, "Sky Only", function()
+		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
+			FlightsimDB.profile.visibility.hideWhileSkyriding = false
+			FlightsimDB.profile.visibility.hideWhenNotSkyriding = true
+			print("|cff00ff00Flightsim:|r Visible only while Skyriding.")
+		end
+	end)
+
+	CreateToolButton(container, 290, -95, 100, "Ground Only", function()
+		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
+			FlightsimDB.profile.visibility.hideWhileSkyriding = true
+			FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
+			print("|cff00ff00Flightsim:|r Visible only when grounded (test mode).")
+		end
+	end)
+
+	-- Row 3: Debug
+	local row3Label = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row3Label:SetPoint("TOPLEFT", 10, -135)
+	row3Label:SetText("Debug:")
+
+	CreateToolButton(container, 80, -130, 100, "Toggle Debug", function()
+		if FlightsimDB and FlightsimDB.profile then
+			FlightsimDB.profile.debugMode = not FlightsimDB.profile.debugMode
+			Flightsim.debugMode = FlightsimDB.profile.debugMode
+			print("|cff00ff00Flightsim:|r Debug mode " .. (Flightsim.debugMode and "ON" or "OFF"))
+		end
+	end)
+
+	CreateToolButton(container, 185, -130, 80, "Status", function()
+		if FlightsimUI and FlightsimUI.Status then
+			FlightsimUI:Status()
+		else
+			print("|cffff0000Flightsim:|r Status not available.")
+		end
+	end)
+
+	-- Row 4: Abilities
+	local row4Label = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row4Label:SetPoint("TOPLEFT", 10, -170)
+	row4Label:SetText("Abilities:")
+
+	CreateToolButton(container, 80, -165, 100, "List All", function()
+		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.abilities then
+			print("|cff00ff00Flightsim:|r Ability bars:")
+			for i, token in ipairs(FlightsimDB.profile.abilities.order or {}) do
+				local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
+				print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
 			end
 		end
-
-		b6:SetMinMaxValues(0, safeVigorMax)
-
-		if type(vigor) == "number" then
-			b6:SetValue(vigor)
-		else
-			b6:SetValue(0)
-		end
 	end)
 
-	-- 7. Audit Results (Visualizing what Audit found)
-	pcall(function()
-		local b7 = CreateTestBar(-230, "7. Surge Charge Table Count", { 1, 1, 1 })
-		local charges = C_Spell.GetSpellCharges(372608)
-		local count = 0
-		if type(charges) == "table" then
-			for _ in pairs(charges) do
-				count = count + 1
-			end
-		end
-		b7:SetMinMaxValues(0, 6)
-		b7:SetValue(count)
-	end)
-
-	-- 8. Visibility Audit
-	pcall(function()
-		local b8 = CreateTestBar(-260, "8. Alpha/Shown Check", { 1, 0, 0 })
-		b8:SetMinMaxValues(0, 1)
-		b8:SetValue(1)
-	end)
-
+	-- Footer
 	local footer = container:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	footer:SetPoint("BOTTOM", 0, 10)
-	footer:SetText("These bars test different rendering and API techniques for Midnight.")
+	footer:SetText("Use /flightsim for more options. API tests moved to Tests tab.")
+end
+
+--- Legacy alias for backwards compatibility
+function FlightsimConfig:CreateCompliancePanel(container)
+	self:CreateToolsPanel(container)
 end
 
 SLASH_FLIGHTSIM1 = "/flightsim"

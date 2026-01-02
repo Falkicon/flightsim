@@ -32,6 +32,13 @@ FlightsimUI.tests = {
 		type = "auto",
 		description = "Verifies StatusBar compliance with secret passthrough.",
 	},
+	{
+		id = "midnight_apis",
+		name = "Midnight API Support",
+		category = "API Diagnostic",
+		type = "auto",
+		description = "Checks availability of new 12.0 APIs and vigor power type.",
+	},
 }
 
 local function IsSecret(val)
@@ -81,6 +88,10 @@ local function SafeCompare(a, b, op)
 	return nil
 end
 
+-- Throttle state for debug logging
+local debugLogThrottle = {}
+local DEBUG_LOG_INTERVAL = 0.1 -- seconds between identical messages
+
 local function DebugLog(...)
 	if not Flightsim or not Flightsim.debugMode then
 		return
@@ -93,6 +104,13 @@ local function DebugLog(...)
 		msg = msg .. (i > 1 and " " or "") .. SafeToString(v)
 	end
 
+	-- Throttle identical messages to prevent console flooding
+	local now = GetTime()
+	if debugLogThrottle[msg] and (now - debugLogThrottle[msg]) < DEBUG_LOG_INTERVAL then
+		return
+	end
+	debugLogThrottle[msg] = now
+
 	-- Log to internal buffer for Mechanic's pull model
 	table.insert(FlightsimUI.debugBuffer, {
 		msg = msg,
@@ -102,7 +120,7 @@ local function DebugLog(...)
 		table.remove(FlightsimUI.debugBuffer, 1)
 	end
 
-	-- Log to Mechanic's live console if available
+	-- Log to Mechanic's live console only (no chat spam)
 	local MechanicLib = LibStub("MechanicLib-1.0", true)
 	if MechanicLib then
 		local category = MechanicLib.Categories.CORE
@@ -115,10 +133,6 @@ local function DebugLog(...)
 			category = MechanicLib.Categories.PERF
 		end
 		MechanicLib:Log("Flightsim", msg, category)
-	end
-
-	if Flightsim.debugMode then
-		print("|cff74AFFF[Flightsim]|r", msg)
 	end
 end
 
@@ -1915,6 +1929,58 @@ function FlightsimUI:GetTestResult(id)
 		return {
 			passed = ok,
 			message = ok and "UI elements are Midnight compliant" or "UI elements may crash in combat",
+			details = details,
+		}
+	elseif id == "midnight_apis" then
+		local details = {}
+		local allPass = true
+
+		-- 1. SetFillAmount (new 12.0 StatusBar API)
+		local testBar = CreateFrame("StatusBar")
+		local hasFillAmount = type(testBar.SetFillAmount) == "function"
+		table.insert(details, {
+			label = "StatusBar:SetFillAmount",
+			value = hasFillAmount and "Available" or "Not Available",
+			status = hasFillAmount and "pass" or "warn",
+		})
+
+		-- 2. UnitPower with Vigor (power type 25)
+		local vigor = UnitPower("player", 25)
+		local vigorMax = UnitPowerMax("player", 25)
+		local vigorSecret = IsSecret(vigor) or IsSecret(vigorMax)
+
+		-- Safe comparison for max check
+		local vigorMaxOk = false
+		if not vigorSecret then
+			local ok, result = pcall(function()
+				return vigorMax > 0
+			end)
+			vigorMaxOk = ok and result
+		end
+
+		table.insert(details, {
+			label = "UnitPower(vigor)",
+			value = vigorSecret and "Secret" or string.format("%s/%s", SafeToString(vigor), SafeToString(vigorMax)),
+			status = vigorSecret and "warn" or (vigorMaxOk and "pass" or "warn"),
+		})
+
+		-- 3. C_Spell.GetSpellCharges table structure
+		local charges = C_Spell.GetSpellCharges(372608)
+		local chargeCount = 0
+		if type(charges) == "table" then
+			for _ in pairs(charges) do
+				chargeCount = chargeCount + 1
+			end
+		end
+		table.insert(details, {
+			label = "C_Spell.GetSpellCharges",
+			value = chargeCount > 0 and string.format("%d fields", chargeCount) or "Empty/nil",
+			status = chargeCount > 0 and "pass" or "warn",
+		})
+
+		return {
+			passed = allPass,
+			message = hasFillAmount and "Full Midnight API support" or "Partial Midnight support (legacy mode)",
 			details = details,
 		}
 	end

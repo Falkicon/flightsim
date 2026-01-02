@@ -8,11 +8,38 @@
 ## SavedVariables: FlightsimDB
 ## OptionalDeps: !Mechanic
 
+# Libraries
 Libs/LibStub/LibStub.lua
 Libs/MechanicLib/MechanicLib.lua
 
+# Core Layer (Pure Lua 5.1, sandbox testable)
+Core/init.lua
+Core/Actions/init.lua
+Core/Utils/math.lua
+Core/Utils/color.lua
+Core/Logic/speed.lua
+Core/Logic/acceleration.lua
+Core/Logic/charges.lua
+Core/Logic/cooldowns.lua
+Core/Logic/visibility.lua
+
+# Bridge Layer (Blizzard API Adapters)
+Bridge/init.lua
+Bridge/Secrets.lua
+Bridge/Context.lua
+Bridge/Events.lua
+Bridge/Executor.lua
+
+# View Layer (UI Frames)
+View/init.lua
+
+# Main Entry (must load before Locales)
 Flightsim.lua
+
+# Localization
 Locales/enUS.lua
+
+# UI + Config (legacy, delegates to new modules)
 UI.lua
 Config.lua
 SettingsUI.lua

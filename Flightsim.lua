@@ -130,11 +130,11 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 					end,
 				},
 
-				-- Tools Integration (Phase 6 Custom Panel)
+				-- Tools Integration
 				tools = {
 					createPanel = function(container)
-						if FlightsimConfig and FlightsimConfig.CreateCompliancePanel then
-							FlightsimConfig:CreateCompliancePanel(container)
+						if FlightsimConfig and FlightsimConfig.CreateToolsPanel then
+							FlightsimConfig:CreateToolsPanel(container)
 						end
 					end,
 				},
