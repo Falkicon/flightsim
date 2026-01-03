@@ -2,6 +2,13 @@ FlightsimUI = FlightsimUI or {}
 FlightsimUI.Utils = FlightsimUI.Utils or {}
 FlightsimUI.debugBuffer = {}
 
+-- FenCore integration for pure logic
+local FenCore = _G.FenCore
+local Math = FenCore and FenCore.Math
+local Secrets = FenCore and FenCore.Secrets
+local Charges = FenCore and FenCore.Charges
+local Cooldowns = FenCore and FenCore.Cooldowns
+
 -- Performance Tracking
 FlightsimUI.perf = {
 	blocks = {
@@ -41,49 +48,29 @@ FlightsimUI.tests = {
 	},
 }
 
-local function IsSecret(val)
-	if val == nil then
-		return false
-	end
-	if issecretvalue then
-		return issecretvalue(val) == true
-	end
-	-- Robust fallback for secret-like objects that crash comparisons
-	local ok = pcall(function()
-		local _ = (val > -1e12)
-	end)
+-- Delegate to FenCore.Secrets for Midnight (12.0+) secret value handling
+local IsSecret = Secrets and Secrets.IsSecret or function(val)
+	if val == nil then return false end
+	if issecretvalue then return issecretvalue(val) == true end
+	local ok = pcall(function() local _ = (val > -1e12) end)
 	return not ok
 end
 
-local function SafeToString(val)
-	if val == nil then
-		return "nil"
-	end
-	if IsSecret(val) then
-		return "???"
-	end
+local SafeToString = Secrets and Secrets.SafeToString or function(val)
+	if val == nil then return "nil" end
+	if IsSecret(val) then return "???" end
 	return tostring(val)
 end
 
-local function SafeCompare(a, b, op)
-	if a == nil or b == nil then
-		return nil
-	end
-	if IsSecret(a) or IsSecret(b) then
-		return nil
-	end
-	if op == ">" then
-		return a > b
-	elseif op == "<" then
-		return a < b
-	elseif op == ">=" then
-		return a >= b
-	elseif op == "<=" then
-		return a <= b
-	elseif op == "==" then
-		return a == b
-	elseif op == "~=" then
-		return a ~= b
+local SafeCompare = Secrets and Secrets.SafeCompare or function(a, b, op)
+	if a == nil or b == nil then return nil end
+	if IsSecret(a) or IsSecret(b) then return nil end
+	if op == ">" then return a > b
+	elseif op == "<" then return a < b
+	elseif op == ">=" then return a >= b
+	elseif op == "<=" then return a <= b
+	elseif op == "==" then return a == b
+	elseif op == "~=" then return a ~= b
 	end
 	return nil
 end
@@ -136,16 +123,12 @@ local function DebugLog(...)
 	end
 end
 
-local function Clamp(n, minV, maxV)
-	if n < minV then
-		return minV
-	end
-	if n > maxV then
-		return maxV
-	end
+-- Delegate to FenCore.Math for clamping
+local Clamp = Math and Math.Clamp or function(n, minV, maxV)
+	if n < minV then return minV end
+	if n > maxV then return maxV end
 	return n
 end
-FlightsimUI.Utils.Clamp = Clamp
 
 -- Blizzard-matching color palette (based on #2BA604 green)
 local COLOR_GREEN = { 0.169, 0.651, 0.016 } -- #2BA604
@@ -214,6 +197,165 @@ local function ColorForPctSurgeForward(pct)
 	return r, g, b
 end
 FlightsimUI.Utils.ColorForPctSurgeForward = ColorForPctSurgeForward
+
+-- Core utility delegations (for test compatibility)
+FlightsimUI.Utils.Clamp = Clamp
+FlightsimUI.Utils.IsSecret = IsSecret
+FlightsimUI.Utils.SafeToString = SafeToString
+FlightsimUI.Utils.SafeCompare = SafeCompare
+
+-- Phase 3: Color cache for custom colors
+local _colorCache = {}
+
+function FlightsimUI:InvalidateColorCache()
+	wipe(_colorCache)
+end
+
+function FlightsimUI:GetSpeedColor(pct)
+	pct = Clamp(pct or 0, 0, 1)
+
+	-- Check if custom colors are enabled
+	local colors = self.db and self.db.profile and self.db.profile.colors
+	if not colors or not colors.speedBar or not colors.speedBar.useCustom then
+		-- Use default gradient
+		return ColorForPct(pct)
+	end
+
+	-- Check cache first
+	local cacheKey = math.floor(pct * 100)
+	if _colorCache.speed and _colorCache.speed[cacheKey] then
+		local cached = _colorCache.speed[cacheKey]
+		return cached[1], cached[2], cached[3], cached[4]
+	end
+
+	local g = colors.speedBar.gradient
+	local r, gv, b, a
+
+	if pct < 0.5 then
+		-- Lerp start -> middle
+		local t = pct * 2
+		r = g.start.r + (g.middle.r - g.start.r) * t
+		gv = g.start.g + (g.middle.g - g.start.g) * t
+		b = g.start.b + (g.middle.b - g.start.b) * t
+		a = g.start.a + (g.middle.a - g.start.a) * t
+	else
+		-- Lerp middle -> finish
+		local t = (pct - 0.5) * 2
+		r = g.middle.r + (g.finish.r - g.middle.r) * t
+		gv = g.middle.g + (g.finish.g - g.middle.g) * t
+		b = g.middle.b + (g.finish.b - g.middle.b) * t
+		a = g.middle.a + (g.finish.a - g.middle.a) * t
+	end
+
+	-- Cache result
+	_colorCache.speed = _colorCache.speed or {}
+	_colorCache.speed[cacheKey] = { r, gv, b, a }
+
+	return r, gv, b, a
+end
+
+function FlightsimUI:GetAbilityColor(abilityKey)
+	local colors = self.db and self.db.profile and self.db.profile.colors
+	if colors and colors.abilities and colors.abilities[abilityKey] then
+		local c = colors.abilities[abilityKey]
+		return c.r, c.g, c.b, c.a
+	end
+	-- Fall back to defaults
+	if abilityKey == "surgeForward" then
+		return 0.455, 0.686, 1.0, 1
+	elseif abilityKey == "secondWind" then
+		return 0.827, 0.475, 0.937, 1
+	elseif abilityKey == "whirlingSurge" then
+		return 0.290, 0.780, 0.831, 1
+	end
+	return 1, 1, 1, 1
+end
+
+function FlightsimUI:GetAccelColor(accelValue)
+	local colors = self.db and self.db.profile and self.db.profile.colors
+	if not colors or not colors.accelBar or not colors.accelBar.useDynamic then
+		return 1, 1, 1, 0.9 -- Default white
+	end
+
+	if accelValue < -0.05 then
+		-- Decelerating
+		local c = colors.accelBar.decel
+		return c.r, c.g, c.b, c.a
+	elseif accelValue > 0.05 then
+		-- Accelerating
+		local c = colors.accelBar.accel
+		return c.r, c.g, c.b, c.a
+	end
+	-- Neutral stays white
+	return 1, 1, 1, 0.9
+end
+
+-- Ability gradient functions that use custom colors
+function FlightsimUI:GetSurgeForwardColor(pct)
+	pct = Clamp(pct or 0, 0, 1)
+	local fr, fg, fb = self:GetAbilityColor("surgeForward")
+	-- Calculate empty version (dimmed ~40%)
+	local er, eg, eb = fr * 0.4, fg * 0.4, fb * 0.4
+	-- Lerp from empty to full
+	local r = er + (fr - er) * pct
+	local g = eg + (fg - eg) * pct
+	local b = eb + (fb - eb) * pct
+	return r, g, b
+end
+
+function FlightsimUI:GetWhirlingSurgeColor(pct)
+	pct = Clamp(pct or 0, 0, 1)
+	local fr, fg, fb = self:GetAbilityColor("whirlingSurge")
+	-- Calculate empty version (dimmed ~40%)
+	local er, eg, eb = fr * 0.4, fg * 0.4, fb * 0.4
+	-- Lerp from empty to full
+	local r = er + (fr - er) * pct
+	local g = eg + (fg - eg) * pct
+	local b = eb + (fb - eb) * pct
+	return r, g, b
+end
+
+function FlightsimUI:GetSecondWindColor(pct)
+	pct = Clamp(pct or 0, 0, 1)
+	local fr, fg, fb = self:GetAbilityColor("secondWind")
+	-- Calculate empty version (dimmed ~40%)
+	local er, eg, eb = fr * 0.4, fg * 0.4, fb * 0.4
+	-- Lerp from empty to full
+	local r = er + (fr - er) * pct
+	local g = eg + (fg - eg) * pct
+	local b = eb + (fb - eb) * pct
+	return r, g, b
+end
+
+function FlightsimUI:UpdateFrameColors()
+	-- Invalidate color cache
+	self:InvalidateColorCache()
+
+	-- Apply custom frame colors if set
+	local colors = self.db and self.db.profile and self.db.profile.colors
+	if colors and colors.frame then
+		local bg = colors.frame.background
+		if bg and self.speedBarBg then
+			self.speedBarBg:SetColorTexture(bg.r, bg.g, bg.b, bg.a)
+		end
+	end
+
+	-- Rebuild to apply all color changes
+	if self.RebuildLayout then
+		self:RebuildLayout()
+	end
+end
+
+function FlightsimUI:UpdateFont()
+	if not self.speedText then return end
+
+	local p = self.db and self.db.profile and self.db.profile.speedBar or {}
+	local fontFamily = p.fontFamily or "Fonts\\ARIALN.TTF"
+	local fontSize = p.fontSize or 10
+	local fontOutline = p.fontOutline or "OUTLINE"
+
+	self.speedText:SetFont(fontFamily, fontSize, fontOutline)
+end
 
 -- WeakAura-inspired skyriding constants (Retail 11.x):
 -- These are used only where they map cleanly to addon-safe APIs.
@@ -468,7 +610,7 @@ function FlightsimUI:IsSkyridingActive()
 		end
 	end
 
-	-- 2. Definitive Fallback: Check for Surge Forward charges (372608)
+	-- 2. Fallback: Check for Surge Forward charges (372608)
 	-- If the player has this spell with charges, they are in Skyriding mode.
 	if not result and (isMounted or isDruidFlying) then
 		local surgeCharges = GetSpellCooldownSafe(372608, true)
@@ -483,62 +625,10 @@ function FlightsimUI:IsSkyridingActive()
 		end
 	end
 
-	-- 3. Legacy Fallbacks: check older API names
-	if not result and C_PlayerInfo and C_PlayerInfo.IsPlayerInSkyriding then
-		local ok, val = pcall(C_PlayerInfo.IsPlayerInSkyriding)
-		if ok and type(val) == "boolean" then
-			result = val
-		end
-	end
-
-	if not result and C_PlayerInfo and C_PlayerInfo.IsPlayerInDragonriding then
-		local ok, val = pcall(C_PlayerInfo.IsPlayerInDragonriding)
-		if ok and type(val) == "boolean" then
-			result = val
-		end
-	end
-
 	-- Cache the result
 	self._skyridingCacheTime = now
 	self._skyridingCacheResult = result
 	return result
-end
-
-local function IsSecret(val)
-	if val == nil then
-		return false
-	end
-	if issecretvalue then
-		return issecretvalue(val) == true
-	end
-	-- Robust fallback for secret-like objects that crash comparisons
-	local ok = pcall(function()
-		local _ = (val > -1e12)
-	end)
-	return not ok
-end
-
-local function SafeCompare(a, b, op)
-	if a == nil or b == nil then
-		return nil
-	end
-	if IsSecret(a) or IsSecret(b) then
-		return nil
-	end
-	if op == ">" then
-		return a > b
-	elseif op == "<" then
-		return a < b
-	elseif op == ">=" then
-		return a >= b
-	elseif op == "<=" then
-		return a <= b
-	elseif op == "==" then
-		return a == b
-	elseif op == "~=" then
-		return a ~= b
-	end
-	return nil
 end
 
 function FlightsimUI:Init(db)
@@ -609,9 +699,12 @@ function FlightsimUI:Init(db)
 
 	-- Speed text - parented to overlay frame
 	local speedText = overlay:CreateFontString(nil, "OVERLAY")
-	-- Sans-serif look like WA.
-	local fontSize = (db.profile.speedBar and db.profile.speedBar.fontSize) or 12
-	speedText:SetFont("Fonts\\ARIALN.TTF", fontSize, "OUTLINE")
+	-- Use font settings from profile
+	local p = db.profile.speedBar or {}
+	local fontFamily = p.fontFamily or "Fonts\\ARIALN.TTF"
+	local fontSize = p.fontSize or 10
+	local fontOutline = p.fontOutline or "OUTLINE"
+	speedText:SetFont(fontFamily, fontSize, fontOutline)
 	speedText:SetPoint("LEFT", overlay, "LEFT", 6, 0)
 	speedText:SetJustifyH("LEFT")
 	speedText:SetText("0%")
@@ -883,9 +976,14 @@ function FlightsimUI:ApplyVisibility()
 		local v = self.db.profile.visibility
 		local ab = self.db.profile.abilityBars or {}
 		local skyriding = self:IsSkyridingActive()
+		local flying = IsFlying()
 
 		local shouldShow = true
-		if v.hideWhenNotSkyriding and not skyriding then
+		-- F3 fix: Require actively flying, not just mounted on a skyriding mount
+		if v.hideWhenNotSkyriding and (not skyriding or not flying) then
+			shouldShow = false
+		end
+		if v.hideWhileSkyriding and skyriding then
 			shouldShow = false
 		end
 
@@ -1165,7 +1263,7 @@ function FlightsimUI:StartUpdating()
 				local pct = Clamp(speedPct / effectiveMax, 0, 1)
 				self.speedBar:SetMinMaxValues(0, 1)
 				self.speedBar:SetValue(pct)
-				local r, g, b = ColorForPct(pct)
+				local r, g, b = self:GetSpeedColor(pct)
 				self.speedBar:SetStatusBarColor(r, g, b, 1)
 
 				local sustainableSpeed = 0
@@ -1175,7 +1273,9 @@ function FlightsimUI:StartUpdating()
 						or 0
 				end
 
-				if sustainableSpeed and sustainableSpeed > 0 then
+				-- F5: Check showSustainMarker toggle (defaults to true)
+				local showSustainMarker = self.db.profile.ui.showSustainMarker ~= false
+				if showSustainMarker and sustainableSpeed and sustainableSpeed > 0 then
 					local op = Clamp(sustainableSpeed / effectiveMax, 0, 1)
 					self.sustainableMarker:Show()
 					self.sustainableMarker:ClearAllPoints()
@@ -1245,8 +1345,9 @@ function FlightsimUI:StartUpdating()
 
 					self.accelBar:ClearAllPoints()
 					self.accelBar:SetHeight(barHeight)
-					-- Bar is always white
-					self.accelBar:SetColorTexture(1, 1, 1, 0.9)
+					-- Get color based on acceleration direction
+					local ar, ag, ab, aa = self:GetAccelColor(curved)
+					self.accelBar:SetColorTexture(ar, ag, ab, aa)
 
 					if math.abs(curved) < 0.05 then
 						-- Stable: show small centered square
@@ -1362,7 +1463,7 @@ function FlightsimUI:StartUpdating()
 					-- TEST COLOR: RED if secret to distinguish from non-secret
 					local r, g, b = 1, 0, 0
 					if not self.db.profile.debugMode then
-						r, g, b = COLOR_SURGE_FORWARD[1], COLOR_SURGE_FORWARD[2], COLOR_SURGE_FORWARD[3]
+						r, g, b = self:GetAbilityColor("surgeForward")
 					end
 
 					for i = 1, 6 do
@@ -1431,7 +1532,7 @@ function FlightsimUI:StartUpdating()
 								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 								bar:SetMinMaxValues(0, 1)
 								bar:SetValue(val)
-								local r_val, g_val, b_val = ColorForPctSurgeForward(val)
+								local r_val, g_val, b_val = self:GetSurgeForwardColor(val)
 								bar:SetStatusBarColor(r_val, g_val, b_val, barAlpha)
 								bar:SetAlpha(1)
 							else
@@ -1441,7 +1542,7 @@ function FlightsimUI:StartUpdating()
 								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 								bar:SetMinMaxValues(0, 1)
 								bar:SetValue(targetPct)
-								local r_val, g_val, b_val = ColorForPctSurgeForward(targetPct)
+								local r_val, g_val, b_val = self:GetSurgeForwardColor(targetPct)
 								bar:SetStatusBarColor(r_val, g_val, b_val, barAlpha)
 								bar:SetAlpha(1)
 							end
@@ -1476,12 +1577,8 @@ function FlightsimUI:StartUpdating()
 					self.whirlingSurgeBar:SetMinMaxValues(0, 1)
 					self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 					self.whirlingSurgeBar:SetValue(usable and 1 or 0)
-					self.whirlingSurgeBar:SetStatusBarColor(
-						COLOR_WHIRLING_SURGE[1],
-						COLOR_WHIRLING_SURGE[2],
-						COLOR_WHIRLING_SURGE[3],
-						1
-					)
+					local ws_r, ws_g, ws_b = self:GetAbilityColor("whirlingSurge")
+					self.whirlingSurgeBar:SetStatusBarColor(ws_r, ws_g, ws_b, 1)
 					self.whirlingSurgeBar:SetAlpha(1)
 				else
 					local onCooldown = ws_dur and ws_dur > 1.5
@@ -1497,7 +1594,7 @@ function FlightsimUI:StartUpdating()
 						end
 						self._whirlingSurgeWasReady = false
 						self.whirlingSurgeBar:SetValue(pct_ws)
-						local r_ws, g_ws, b_ws = ColorForPctBlue(pct_ws)
+						local r_ws, g_ws, b_ws = self:GetWhirlingSurgeColor(pct_ws)
 						self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
 					else
 						if not self._whirlingSurgeWasReady and (self._whirlingSurgeAnimValue or 0) < 1 then
@@ -1515,7 +1612,7 @@ function FlightsimUI:StartUpdating()
 							self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 							self.whirlingSurgeBar:SetMinMaxValues(0, 1)
 							self.whirlingSurgeBar:SetValue(val)
-							local r_ws, g_ws, b_ws = ColorForPctBlue(val)
+							local r_ws, g_ws, b_ws = self:GetWhirlingSurgeColor(val)
 							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
 							self.whirlingSurgeBar:SetAlpha(1)
 						else
@@ -1523,7 +1620,7 @@ function FlightsimUI:StartUpdating()
 							self.whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 							self.whirlingSurgeBar:SetMinMaxValues(0, 1)
 							self.whirlingSurgeBar:SetValue(1)
-							local r_ws, g_ws, b_ws = ColorForPctBlue(1)
+							local r_ws, g_ws, b_ws = self:GetWhirlingSurgeColor(1)
 							self.whirlingSurgeBar:SetStatusBarColor(r_ws, g_ws, b_ws, 1)
 							self.whirlingSurgeBar:SetAlpha(1)
 						end
@@ -1556,6 +1653,7 @@ function FlightsimUI:StartUpdating()
 					local usable = C_Spell.IsSpellUsable(SECOND_WIND_SPELL_ID)
 					DebugLog("Wind is secret, usable proxy:", usable)
 					local barAlpha = surgeAtMax and 0.2 or 1
+					local sw_r, sw_g, sw_b = self:GetAbilityColor("secondWind")
 					for i = 1, 3 do
 						local bar = self.secondWindBars[i]
 						if bar then
@@ -1563,12 +1661,7 @@ function FlightsimUI:StartUpdating()
 							bar:SetMinMaxValues(0, 1)
 							bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 							bar:SetValue(usable and 1 or 0)
-							bar:SetStatusBarColor(
-								COLOR_SECOND_WIND[1],
-								COLOR_SECOND_WIND[2],
-								COLOR_SECOND_WIND[3],
-								barAlpha
-							)
+							bar:SetStatusBarColor(sw_r, sw_g, sw_b, barAlpha)
 							bar:SetAlpha(1)
 						end
 					end
@@ -1618,7 +1711,7 @@ function FlightsimUI:StartUpdating()
 								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 								bar:SetMinMaxValues(0, 1)
 								bar:SetValue(val)
-								local r_sw, g_sw, b_sw = ColorForPctPurple(val)
+								local r_sw, g_sw, b_sw = self:GetSecondWindColor(val)
 								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
 								bar:SetAlpha(1)
 							else
@@ -1627,7 +1720,7 @@ function FlightsimUI:StartUpdating()
 								bar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
 								bar:SetMinMaxValues(0, 1)
 								bar:SetValue(targetPct)
-								local r_sw, g_sw, b_sw = ColorForPctPurple(targetPct)
+								local r_sw, g_sw, b_sw = self:GetSecondWindColor(targetPct)
 								bar:SetStatusBarColor(r_sw, g_sw, b_sw, barAlpha)
 								bar:SetAlpha(1)
 							end
@@ -1700,9 +1793,7 @@ function FlightsimUI:SetFontSize(fontSize)
 	end
 	fontSize = Clamp(fontSize, 8, 48)
 	self.db.profile.speedBar.fontSize = fontSize
-	if self.speedText then
-		self.speedText:SetFont("Fonts\\ARIALN.TTF", fontSize, "OUTLINE")
-	end
+	self:UpdateFont()
 end
 
 function FlightsimUI:SetSustainableSpeed(sustainableSpeed)
@@ -1768,6 +1859,7 @@ function FlightsimUI:DebugDump()
 	PrintKV("speedBar.maxSpeed", p.speedBar and p.speedBar.maxSpeed)
 	PrintKV("speedBar.optimalSpeed", p.speedBar and p.speedBar.optimalSpeed)
 	PrintKV("hideWhenNotSkyriding", p.visibility and p.visibility.hideWhenNotSkyriding)
+	PrintKV("hideWhileSkyriding", p.visibility and p.visibility.hideWhileSkyriding)
 
 	local speed = GetUnitSpeedSafe("player")
 	PrintKV("GetUnitSpeed(player)", string.format("%.2f", speed))

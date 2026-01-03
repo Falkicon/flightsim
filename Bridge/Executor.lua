@@ -1,12 +1,13 @@
 -- Flightsim Bridge: Executor
--- Orchestrates Core logic execution with WoW context
+-- Orchestrates FenCore + FlightsimLogic execution with WoW context
 -- AFD pattern: Bridge:Execute(action, context) -> ActionResult
 
 local Bridge = FlightsimBridge
 local Context = Bridge.Context
-local Secrets = Bridge.Secrets
-local Core = FlightsimCore
-local Actions = Core.Actions
+local FenCore = _G.FenCore
+local Secrets = FenCore.Secrets
+local Logic = FlightsimLogic
+local Result = FenCore.ActionResult
 
 ---@class ExecutorModule
 local Executor = {}
@@ -55,7 +56,7 @@ end
 ---@return ActionResult<SpeedBarData>
 function Executor.Speed(ctx)
 	if ctx.player.isSpeedSecret then
-		return Actions.success({
+		return Result.success({
 			isSecret = true,
 			displayText = "???",
 			barColor = { 0.5, 0.5, 0.5 },
@@ -67,7 +68,7 @@ function Executor.Speed(ctx)
 	local speedBar = profile.speedBar or {}
 
 	-- Calculate speed
-	local speedResult = Core.Logic.Speed.Calculate({
+	local speedResult = Logic.Speed.Calculate({
 		rawSpeed = ctx.player.speed or 0,
 		isSlowZone = ctx.zone.isSlowSkyriding,
 		configuredMax = speedBar.maxSpeed or 950,
@@ -79,7 +80,7 @@ function Executor.Speed(ctx)
 		return speedResult
 	end
 
-	local data = Actions.unwrap(speedResult)
+	local data = Result.unwrap(speedResult)
 
 	-- Update session max if skyriding
 	if ctx.player.isSkyriding then
@@ -92,7 +93,7 @@ function Executor.Speed(ctx)
 	end
 
 	-- Get color
-	local r, g, b = Core.Utils.Color.ForSpeed(data.fillPct)
+	local r, g, b = Logic.Color.ForSpeed(data.fillPct)
 
 	-- Format display text
 	local showPercent = speedBar.showPercent ~= false
@@ -103,7 +104,7 @@ function Executor.Speed(ctx)
 		displayText = string.format("%.1f", data.rawSpeed)
 	end
 
-	return Actions.success({
+	return Result.success({
 		isSecret = false,
 		speedPct = data.speedPct,
 		fillPct = data.fillPct,
@@ -121,7 +122,7 @@ end
 ---@return ActionResult<AccelBarData>
 function Executor.Acceleration(ctx, barWidth, barHeight)
 	if ctx.player.isSpeedSecret then
-		return Actions.success({
+		return Result.success({
 			isSecret = true,
 			shouldHide = true,
 		})
@@ -130,13 +131,13 @@ function Executor.Acceleration(ctx, barWidth, barHeight)
 	-- Get current speed percentage
 	local speedResult = Executor.Speed(ctx)
 	if not speedResult.success then
-		return Actions.success({ shouldHide = true })
+		return Result.success({ shouldHide = true })
 	end
 
-	local speedPct = Actions.unwrap(speedResult).speedPct or 0
+	local speedPct = Result.unwrap(speedResult).speedPct or 0
 
 	-- Calculate acceleration
-	local accelResult = Core.Logic.Acceleration.Calculate({
+	local accelResult = Logic.Acceleration.Calculate({
 		currentSpeed = speedPct,
 		lastSpeed = frameState.lastSpeedPct,
 		previousSmooth = frameState.smoothDelta,
@@ -145,16 +146,16 @@ function Executor.Acceleration(ctx, barWidth, barHeight)
 	})
 
 	if not accelResult.success then
-		return Actions.success({ shouldHide = true })
+		return Result.success({ shouldHide = true })
 	end
 
-	local data = Actions.unwrap(accelResult)
+	local data = Result.unwrap(accelResult)
 
 	-- Update state
 	frameState.lastSpeedPct = speedPct
 	frameState.smoothDelta = data.smoothDelta
 
-	return Actions.success({
+	return Result.success({
 		isSecret = false,
 		shouldHide = false,
 		width = data.barWidth,
@@ -173,7 +174,7 @@ end
 function Executor.Charges(ctx, abilityKey, maxCharges)
 	local abilityData = ctx.abilities[abilityKey]
 	if not abilityData then
-		return Actions.error("INVALID_ABILITY", "Unknown ability: " .. tostring(abilityKey))
+		return Result.error("INVALID_ABILITY", "Unknown ability: " .. tostring(abilityKey))
 	end
 
 	local charges = abilityData.charges
@@ -181,7 +182,7 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 
 	-- Handle secret values
 	if charges.isSecret then
-		local secretResult = Core.Logic.Charges.HandleSecretFallback(isUsable, maxCharges)
+		local secretResult = FenCore.Charges.HandleSecretFallback(isUsable, maxCharges)
 		return secretResult
 	end
 
@@ -198,7 +199,7 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 	end
 
 	-- Calculate charge states
-	local chargeResult = Core.Logic.Charges.CalculateAllCharges({
+	local chargeResult = FenCore.Charges.CalculateAllCharges({
 		currentCharges = charges.currentCharges,
 		maxCharges = maxCharges,
 		chargeStart = charges.chargeStart,
@@ -211,7 +212,7 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 		return chargeResult
 	end
 
-	local data = Actions.unwrap(chargeResult)
+	local data = Result.unwrap(chargeResult)
 
 	-- Update animation state and calculate display values
 	local displayStates = {}
@@ -226,8 +227,8 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 
 		-- Advance animation
 		if animating[i] then
-			local animResult = Core.Logic.Charges.AdvanceAnimation(animValues[i] or 0, ctx.deltaTime)
-			local animData = Actions.unwrap(animResult)
+			local animResult = FenCore.Charges.AdvanceAnimation(animValues[i] or 0, ctx.deltaTime)
+			local animData = Result.unwrap(animResult)
 			animValues[i] = animData.value
 			displayPct = animData.value
 			if animData.isComplete then
@@ -247,7 +248,7 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 		}
 	end
 
-	return Actions.success({
+	return Result.success({
 		isSecret = false,
 		states = displayStates,
 		allFull = data.allFull,
@@ -261,7 +262,7 @@ end
 function Executor.Cooldown(ctx)
 	local abilityData = ctx.abilities.whirlingSurge
 	if not abilityData then
-		return Actions.error("INVALID_ABILITY", "Whirling Surge data not found")
+		return Result.error("INVALID_ABILITY", "Whirling Surge data not found")
 	end
 
 	local cooldown = abilityData.cooldown
@@ -269,12 +270,12 @@ function Executor.Cooldown(ctx)
 
 	-- Handle secret values
 	if cooldown.isSecret then
-		local secretResult = Core.Logic.Cooldowns.HandleSecretFallback(isUsable)
+		local secretResult = FenCore.Cooldowns.HandleSecretFallback(isUsable)
 		return secretResult
 	end
 
 	-- Calculate cooldown state
-	local cdResult = Core.Logic.Cooldowns.Calculate({
+	local cdResult = FenCore.Cooldowns.Calculate({
 		startTime = cooldown.startTime,
 		duration = cooldown.duration,
 		now = ctx.now,
@@ -288,7 +289,7 @@ function Executor.Cooldown(ctx)
 		return cdResult
 	end
 
-	local data = Actions.unwrap(cdResult)
+	local data = Result.unwrap(cdResult)
 
 	-- Update state
 	frameState.whirlWasReady = data.isReady
@@ -296,9 +297,9 @@ function Executor.Cooldown(ctx)
 	frameState.whirlAnimValue = data.animValue
 
 	-- Get color
-	local r, g, b = Core.Utils.Color.ForWhirlingSurge(data.displayValue)
+	local r, g, b = Logic.Color.ForWhirlingSurge(data.displayValue)
 
-	return Actions.success({
+	return Result.success({
 		isSecret = false,
 		displayValue = data.displayValue,
 		isReady = data.isReady,
@@ -315,7 +316,7 @@ function Executor.Visibility(ctx)
 	local db = ctx.db or {}
 	local profile = db.profile or {}
 
-	return Core.Logic.Visibility.Calculate({
+	return Logic.Visibility.Calculate({
 		visibility = profile.visibility or {},
 		abilityBars = profile.abilityBars or {},
 		playerState = {
@@ -343,29 +344,29 @@ function Executor.FullUpdate(db, barDimensions)
 	if not visResult.success then
 		return visResult
 	end
-	local visibility = Actions.unwrap(visResult)
+	local visibility = Result.unwrap(visResult)
 
 	-- If HUD is hidden, return early
 	if not visibility.showHUD then
-		return Actions.success({
+		return Result.success({
 			visibility = visibility,
 			shouldUpdate = false,
 		})
 	end
 
 	-- Calculate all components
-	local speedData = Actions.unwrap(Executor.Speed(ctx))
-	local accelData = Actions.unwrap(
+	local speedData = Result.unwrap(Executor.Speed(ctx))
+	local accelData = Result.unwrap(
 		Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4)
 	)
 
-	local surgeData = visibility.showSurgeForward and Actions.unwrap(Executor.Charges(ctx, "surgeForward", 6)) or nil
+	local surgeData = visibility.showSurgeForward and Result.unwrap(Executor.Charges(ctx, "surgeForward", 6)) or nil
 
-	local windData = visibility.showSecondWind and Actions.unwrap(Executor.Charges(ctx, "secondWind", 3)) or nil
+	local windData = visibility.showSecondWind and Result.unwrap(Executor.Charges(ctx, "secondWind", 3)) or nil
 
-	local whirlData = visibility.showWhirlingSurge and Actions.unwrap(Executor.Cooldown(ctx)) or nil
+	local whirlData = visibility.showWhirlingSurge and Result.unwrap(Executor.Cooldown(ctx)) or nil
 
-	return Actions.success({
+	return Result.success({
 		visibility = visibility,
 		shouldUpdate = true,
 		speed = speedData,

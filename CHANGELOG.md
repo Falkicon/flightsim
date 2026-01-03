@@ -1,4 +1,9 @@
 # Changelog
+## [1.3.0] - 2026-01-03
+
+### Added
+- Architecture refactor: Logic/Bridge/View layers, FenCore integration for utilities
+
 ## [1.2.3] - 2026-01-02
 
 ### Changed

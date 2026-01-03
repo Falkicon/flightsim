@@ -1,10 +1,11 @@
 -- Flightsim Bridge: Context Builder
--- Queries WoW APIs and builds context tables for Core layer
--- All WoW API calls happen here - Core receives clean data
+-- Queries WoW APIs and builds context tables for Logic layer
+-- All WoW API calls happen here - Logic receives clean data
 
 local Bridge = FlightsimBridge
-local Secrets = Bridge.Secrets
-local SpeedLogic = FlightsimCore.Logic.Speed
+local FenCore = _G.FenCore
+local Secrets = FenCore.Secrets
+local SpeedLogic = FlightsimLogic.Speed
 
 ---@class ContextModule
 local Context = {}

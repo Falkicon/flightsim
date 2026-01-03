@@ -1,0 +1,642 @@
+local ADDON_NAME, ns = ...
+
+-- AceConfig options table for Flightsim
+-- Replaces SettingsUI.lua with hierarchical settings
+
+local L = Flightsim.L
+
+-- Options table for AceConfig
+local options = {
+	name = "Flightsim",
+	type = "group",
+	childGroups = "tab", -- Use left nav tabs like ActionHud
+	args = {
+		general = {
+			name = "General",
+			type = "group",
+			order = 1,
+			args = {
+				locked = {
+					name = L["LOCK_FRAME"] or "Lock Frame",
+					desc = L["LOCK_FRAME_DESC"] or "Prevents dragging the Flightsim frame.",
+					type = "toggle",
+					order = 1,
+					get = function()
+						return Flightsim.db.profile.locked
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.locked = v
+					end,
+				},
+				scale = {
+					name = L["SCALE"] or "Scale",
+					desc = L["SCALE_DESC"] or "Overall scale of the Flightsim frame.",
+					type = "range",
+					order = 2,
+					min = 0.5,
+					max = 2.0,
+					step = 0.05,
+					get = function()
+						return Flightsim.db.profile.scale
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.scale = v
+						if FlightsimUI and FlightsimUI.SetScale then
+							FlightsimUI:SetScale(v)
+						end
+					end,
+				},
+				width = {
+					name = L["BAR_WIDTH"] or "Bar Width",
+					desc = L["BAR_WIDTH_DESC"] or "Width of all bars.",
+					type = "range",
+					order = 3,
+					min = 50,
+					max = 800,
+					step = 10,
+					get = function()
+						return Flightsim.db.profile.ui.width
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.width = v
+						if FlightsimUI and FlightsimUI.SetWidth then
+							FlightsimUI:SetWidth(v)
+						end
+					end,
+				},
+				visibilityHeader = {
+					name = "Visibility",
+					type = "header",
+					order = 10,
+				},
+				hideWhenNotSkyriding = {
+					name = L["ONLY_SKYRIDING"] or "Only Show When Skyriding",
+					desc = L["ONLY_SKYRIDING_DESC"] or "Hides the frame when not actively skyriding.",
+					type = "toggle",
+					order = 11,
+					get = function()
+						return Flightsim.db.profile.visibility.hideWhenNotSkyriding
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.visibility.hideWhenNotSkyriding = v
+						if FlightsimUI and FlightsimUI.ApplyVisibility then
+							FlightsimUI:ApplyVisibility()
+						end
+					end,
+				},
+				-- Frame colors moved here from Colors section
+				frameColorsHeader = {
+					name = "Frame Colors",
+					type = "header",
+					order = 20,
+				},
+				frameBackground = {
+					name = "Background",
+					desc = "Background color behind ability bars.",
+					type = "color",
+					hasAlpha = true,
+					order = 21,
+					get = function()
+						local c = Flightsim.db.profile.colors.frame.background
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.frame.background
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.UpdateFrameColors then
+							FlightsimUI:UpdateFrameColors()
+						end
+					end,
+				},
+				frameBorder = {
+					name = "Border",
+					desc = "Border color around ability bars.",
+					type = "color",
+					hasAlpha = true,
+					order = 22,
+					get = function()
+						local c = Flightsim.db.profile.colors.frame.border
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.frame.border
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.UpdateFrameColors then
+							FlightsimUI:UpdateFrameColors()
+						end
+					end,
+				},
+			},
+		},
+		speedBar = {
+			name = "Speed Bar",
+			type = "group",
+			order = 2,
+			args = {
+				height = {
+					name = "Height",
+					desc = L["SPEED_BAR_HEIGHT_DESC"] or "Height of the speed bar.",
+					type = "range",
+					order = 1,
+					min = 10,
+					max = 100,
+					step = 2,
+					get = function()
+						return Flightsim.db.profile.ui.speedBarHeight
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.speedBarHeight = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				textHeader = {
+					name = "Text Display",
+					type = "header",
+					order = 5,
+				},
+				fontFamily = {
+					name = "Font",
+					desc = "Font family for speed text.",
+					type = "select",
+					order = 6,
+					values = {
+						["Fonts\\ARIALN.TTF"] = "Arial Narrow",
+						["Fonts\\FRIZQT__.TTF"] = "Friz Quadrata",
+						["Fonts\\MORPHEUS.TTF"] = "Morpheus",
+						["Fonts\\skurri.TTF"] = "Skurri",
+					},
+					get = function()
+						return Flightsim.db.profile.speedBar.fontFamily or "Fonts\\ARIALN.TTF"
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.speedBar.fontFamily = v
+						if FlightsimUI and FlightsimUI.UpdateFont then
+							FlightsimUI:UpdateFont()
+						end
+					end,
+				},
+				fontSize = {
+					name = L["FONT_SIZE"] or "Font Size",
+					desc = L["FONT_SIZE_DESC"] or "Size of the speed text.",
+					type = "range",
+					order = 7,
+					min = 8,
+					max = 48,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.speedBar.fontSize
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.speedBar.fontSize = v
+						if FlightsimUI and FlightsimUI.UpdateFont then
+							FlightsimUI:UpdateFont()
+						end
+					end,
+				},
+				fontOutline = {
+					name = "Outline",
+					desc = "Text outline style.",
+					type = "select",
+					order = 8,
+					values = {
+						[""] = "None",
+						["OUTLINE"] = "Outline",
+						["OUTLINE, THICKOUTLINE"] = "Thick Outline",
+					},
+					get = function()
+						return Flightsim.db.profile.speedBar.fontOutline or "OUTLINE"
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.speedBar.fontOutline = v
+						if FlightsimUI and FlightsimUI.UpdateFont then
+							FlightsimUI:UpdateFont()
+						end
+					end,
+				},
+				showPercent = {
+					name = L["SHOW_PERCENT"] or "Show as Percentage",
+					desc = L["SHOW_PERCENT_DESC"] or "Display speed as percentage instead of raw value.",
+					type = "toggle",
+					order = 9,
+					get = function()
+						return Flightsim.db.profile.speedBar.showPercent
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.speedBar.showPercent = v
+					end,
+				},
+				sustainHeader = {
+					name = "Sustain Marker",
+					type = "header",
+					order = 10,
+				},
+				showSustainMarker = {
+					name = "Show Sustain Marker",
+					desc = "Shows a vertical line at sustainable flight speed.",
+					type = "toggle",
+					order = 11,
+					get = function()
+						return Flightsim.db.profile.ui.showSustainMarker ~= false
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.showSustainMarker = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				sustainMarkerWidth = {
+					name = L["SUSTAIN_MARKER_WIDTH"] or "Marker Width",
+					desc = L["SUSTAIN_MARKER_WIDTH_DESC"] or "Width of the sustainable speed marker line.",
+					type = "range",
+					order = 12,
+					min = 1,
+					max = 5,
+					step = 1,
+					hidden = function()
+						return Flightsim.db.profile.ui.showSustainMarker == false
+					end,
+					get = function()
+						return Flightsim.db.profile.ui.sustainableSpeedMarkerWidth or 1
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.sustainableSpeedMarkerWidth = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				sustainMarkerAlpha = {
+					name = L["SUSTAIN_MARKER_ALPHA"] or "Marker Opacity",
+					desc = L["SUSTAIN_MARKER_ALPHA_DESC"] or "Opacity of the sustain speed marker (0.1-1.0).",
+					type = "range",
+					order = 13,
+					min = 0.1,
+					max = 1.0,
+					step = 0.1,
+					hidden = function()
+						return Flightsim.db.profile.ui.showSustainMarker == false
+					end,
+					get = function()
+						return Flightsim.db.profile.ui.sustainableSpeedMarkerAlpha or 0.2
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.sustainableSpeedMarkerAlpha = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				-- Speed bar colors moved here from Colors section
+				colorsHeader = {
+					name = "Colors",
+					type = "header",
+					order = 20,
+				},
+				useCustomSpeedColors = {
+					name = "Use Custom Colors",
+					desc = "Enable custom speed bar colors instead of default gradient.",
+					type = "toggle",
+					order = 21,
+					get = function()
+						return Flightsim.db.profile.colors.speedBar.useCustom
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.colors.speedBar.useCustom = v
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				speedStartColor = {
+					name = "Low Speed (0%)",
+					desc = "Color at minimum speed.",
+					type = "color",
+					hasAlpha = true,
+					order = 22,
+					hidden = function()
+						return not Flightsim.db.profile.colors.speedBar.useCustom
+					end,
+					get = function()
+						local c = Flightsim.db.profile.colors.speedBar.gradient.start
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.speedBar.gradient.start
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				speedMiddleColor = {
+					name = "Mid Speed (50%)",
+					desc = "Color at half speed.",
+					type = "color",
+					hasAlpha = true,
+					order = 23,
+					hidden = function()
+						return not Flightsim.db.profile.colors.speedBar.useCustom
+					end,
+					get = function()
+						local c = Flightsim.db.profile.colors.speedBar.gradient.middle
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.speedBar.gradient.middle
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				speedEndColor = {
+					name = "High Speed (100%)",
+					desc = "Color at maximum speed.",
+					type = "color",
+					hasAlpha = true,
+					order = 24,
+					hidden = function()
+						return not Flightsim.db.profile.colors.speedBar.useCustom
+					end,
+					get = function()
+						local c = Flightsim.db.profile.colors.speedBar.gradient.finish
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.speedBar.gradient.finish
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				speedColorTip = {
+					name = "|cff888888Tip: Set all three colors the same for a solid color bar.|r",
+					type = "description",
+					order = 25,
+					hidden = function()
+						return not Flightsim.db.profile.colors.speedBar.useCustom
+					end,
+				},
+			},
+		},
+		accelBar = {
+			name = "Acceleration Bar",
+			type = "group",
+			order = 3,
+			args = {
+				height = {
+					name = "Height",
+					desc = L["ACCEL_BAR_HEIGHT_DESC"] or "Height of the acceleration indicator bar.",
+					type = "range",
+					order = 1,
+					min = 1,
+					max = 10,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.ui.accelBarHeight
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.accelBarHeight = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				-- Acceleration bar colors moved here from Colors section
+				colorsHeader = {
+					name = "Colors",
+					type = "header",
+					order = 10,
+				},
+				useDynamicAccelColors = {
+					name = "Dynamic Colors",
+					desc = "Change color based on acceleration direction.",
+					type = "toggle",
+					order = 11,
+					get = function()
+						return Flightsim.db.profile.colors.accelBar.useDynamic
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.colors.accelBar.useDynamic = v
+					end,
+				},
+				decelColor = {
+					name = "Deceleration",
+					desc = "Color when losing speed.",
+					type = "color",
+					hasAlpha = true,
+					order = 12,
+					hidden = function()
+						return not Flightsim.db.profile.colors.accelBar.useDynamic
+					end,
+					get = function()
+						local c = Flightsim.db.profile.colors.accelBar.decel
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.accelBar.decel
+						c.r, c.g, c.b, c.a = r, g, b, a
+					end,
+				},
+				accelColor = {
+					name = "Acceleration",
+					desc = "Color when gaining speed.",
+					type = "color",
+					hasAlpha = true,
+					order = 13,
+					hidden = function()
+						return not Flightsim.db.profile.colors.accelBar.useDynamic
+					end,
+					get = function()
+						local c = Flightsim.db.profile.colors.accelBar.accel
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.accelBar.accel
+						c.r, c.g, c.b, c.a = r, g, b, a
+					end,
+				},
+			},
+		},
+		abilityBars = {
+			name = "Ability Bars",
+			type = "group",
+			order = 4,
+			args = {
+				height = {
+					name = "Height",
+					desc = L["ABILITY_BAR_HEIGHT_DESC"] or "Height of ability cooldown bars.",
+					type = "range",
+					order = 1,
+					min = 2,
+					max = 20,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.ui.abilityBarHeight
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.abilityBarHeight = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				barGap = {
+					name = L["BAR_GAP"] or "Bar Gap",
+					desc = L["BAR_GAP_DESC"] or "Gap between ability bar sections.",
+					type = "range",
+					order = 2,
+					min = 0,
+					max = 10,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.ui.barGap
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.barGap = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				visibilityHeader = {
+					name = "Visibility",
+					type = "header",
+					order = 10,
+				},
+				showSurgeForward = {
+					name = L["SHOW_SURGE_FORWARD"] or "Show Surge Forward",
+					desc = L["SHOW_SURGE_FORWARD_DESC"] or "Show Surge Forward charge bar (6 charges).",
+					type = "toggle",
+					order = 11,
+					get = function()
+						return Flightsim.db.profile.abilityBars.showSurgeForward
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.abilityBars.showSurgeForward = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				showSecondWind = {
+					name = L["SHOW_SECOND_WIND"] or "Show Second Wind",
+					desc = L["SHOW_SECOND_WIND_DESC"] or "Show Second Wind charge bar (3 charges).",
+					type = "toggle",
+					order = 12,
+					get = function()
+						return Flightsim.db.profile.abilityBars.showSecondWind
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.abilityBars.showSecondWind = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				showWhirlingSurge = {
+					name = L["SHOW_WHIRLING_SURGE"] or "Show Whirling Surge",
+					desc = L["SHOW_WHIRLING_SURGE_DESC"] or "Show Whirling Surge cooldown bar.",
+					type = "toggle",
+					order = 13,
+					get = function()
+						return Flightsim.db.profile.abilityBars.showWhirlingSurge
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.abilityBars.showWhirlingSurge = v
+						if FlightsimUI and FlightsimUI.RebuildLayout then
+							FlightsimUI:RebuildLayout()
+						end
+					end,
+				},
+				-- Ability bar colors moved here from Colors section
+				colorsHeader = {
+					name = "Colors",
+					type = "header",
+					order = 20,
+				},
+				surgeForwardColor = {
+					name = "Surge Forward",
+					desc = "Color for Surge Forward charge bar.",
+					type = "color",
+					hasAlpha = true,
+					order = 21,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.surgeForward
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.surgeForward
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				secondWindColor = {
+					name = "Second Wind",
+					desc = "Color for Second Wind charge bar.",
+					type = "color",
+					hasAlpha = true,
+					order = 22,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.secondWind
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.secondWind
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				whirlingSurgeColor = {
+					name = "Whirling Surge",
+					desc = "Color for Whirling Surge cooldown bar.",
+					type = "color",
+					hasAlpha = true,
+					order = 23,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.whirlingSurge
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.whirlingSurge
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+			},
+		},
+		profiles = nil, -- Populated at runtime with AceDBOptions
+	},
+}
+
+-- Module initialization (called from Flightsim.lua after AceDB is ready)
+function ns:InitializeSettings()
+	-- Register options with AceConfig
+	LibStub("AceConfig-3.0"):RegisterOptionsTable("Flightsim", options)
+
+	-- Add to Blizzard Interface Options
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Flightsim", "Flightsim")
+
+	-- Add profiles tab
+	options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(Flightsim.db)
+
+	-- Register slash commands to open settings
+	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", function()
+		LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+	end)
+	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", function()
+		LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+	end)
+end
+
+ns.options = options

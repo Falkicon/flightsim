@@ -1,0 +1,29 @@
+{
+  "$schema": "https://mechanic.dev/schemas/libs.json",
+  "description": "Flightsim addon libraries - uses FenCore for pure logic and Ace3 for settings",
+  "mode": "include",
+  "libraries": {
+    "LibStub": "latest",
+    "CallbackHandler-1.0": "latest",
+    "AceAddon-3.0": "latest",
+    "AceDB-3.0": "latest",
+    "AceDBOptions-3.0": "latest",
+    "AceConfig-3.0": "latest",
+    "AceConsole-3.0": "latest",
+    "AceGUI-3.0": "latest",
+    "MechanicLib": "local",
+    "FenCore": "local"
+  },
+  "notes": {
+    "LibStub": "Required for all Ace libraries",
+    "CallbackHandler-1.0": "Required by Ace libraries",
+    "AceAddon-3.0": "Addon framework",
+    "AceDB-3.0": "SavedVariables management with profiles",
+    "AceDBOptions-3.0": "Profile management UI",
+    "AceConfig-3.0": "Settings framework with hierarchical options",
+    "AceConsole-3.0": "Slash command registration",
+    "AceGUI-3.0": "Settings dialog widgets",
+    "MechanicLib": "Mechanic integration - synced from !Mechanic",
+    "FenCore": "Pure logic domains (Math, Secrets, Charges, Cooldowns)"
+  }
+}

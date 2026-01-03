@@ -1,0 +1,18 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- FenCore - Embedded Library Loader -->
+
+    <!-- Core (load first) -->
+    <Script file="Core\FenCore.lua"/>
+    <Script file="Core\ActionResult.lua"/>
+    <Script file="Core\Catalog.lua"/>
+
+    <!-- Domains (depend on Core) -->
+    <Script file="Domains\Math.lua"/>
+    <Script file="Domains\Secrets.lua"/>
+    <Script file="Domains\Progress.lua"/>
+    <Script file="Domains\Charges.lua"/>
+    <Script file="Domains\Cooldowns.lua"/>
+    <Script file="Domains\Color.lua"/>
+    <Script file="Domains\Time.lua"/>
+    <Script file="Domains\Text.lua"/>
+</Ui>

@@ -2,7 +2,7 @@
 
 Technical reference for AI agents modifying this addon.
 
-For shared patterns, library references, and development guides, see **[ADDON_DEV/AGENTS.md](../ADDON_DEV/AGENTS.md)**.
+For shared patterns, library references, and development guides, see **[Mechanic](../Mechanic/AGENTS.md)**.
 
 ---
 
@@ -14,7 +14,7 @@ A lightweight replacement for a specific WeakAuras use-case:
 - Acceleration indicator
 - Skyriding ability cooldown/charge tracking (Surge Forward, Second Wind, Whirling Surge)
 
-**Note:** Standalone addon with no external dependencies (no Ace3).
+**Note:** Uses Ace3 for database and configuration management.
 
 ---
 
@@ -35,13 +35,23 @@ A lightweight replacement for a specific WeakAuras use-case:
 
 ## Tooling & Workflow
 
-This addon follows the standard `ADDON_DEV` tooling workflow:
+This addon uses **Mechanic** for development tooling:
 
 | Task | Command |
 |------|---------|
-| Linting | `@lint` or `powershell -File "_dev_\ADDON_DEV\Tools\LintingTool\lint.ps1" -Addon Flightsim` |
-| Formatting | `@format` or `powershell -File "_dev_\ADDON_DEV\Tools\Formatter\format.ps1" -Addon Flightsim` |
-| Testing | `@test` or `powershell -File "_dev_\ADDON_DEV\Tools\TestRunner\run_tests.ps1" -Addon Flightsim` |
+| Linting | `mech call addon.lint -i '{"addon": "Flightsim"}'` |
+| Formatting | `mech call addon.format -i '{"addon": "Flightsim"}'` |
+| Testing | `mech call sandbox.test -i '{"addon": "Flightsim"}'` |
+| Lib Check | `mech call libs.check -i '{"addon": "Flightsim"}'` |
+| Validation | `mech call addon.validate -i '{"addon": "Flightsim"}'` |
+| Deprecations | `mech call addon.deprecations -i '{"addon": "Flightsim"}'` |
+
+**Development Loop:**
+```bash
+# After any code change:
+mech call reload.trigger                    # Focus WoW + trigger /reload
+mech call addon.output -i '{"agent_mode": true}'  # Get errors/logs
+```
 
 ---
 
@@ -62,6 +72,28 @@ Localizable strings are defined in `Locales/enUS.lua` and should be accessed via
 ## Testing
 
 Pure utility functions (Clamp, Color functions, etc.) are refactored into `FlightsimUI.Utils` for testability and covered by Busted tests in `Tests/helpers_spec.lua`.
+
+---
+
+## FenCore Integration
+
+Flightsim uses **FenCore** for pure logic domains:
+
+| Domain | Usage |
+|--------|-------|
+| `FenCore.Math` | `Clamp()` for value clamping |
+| `FenCore.Secrets` | `IsSecret()`, `SafeToString()`, `SafeCompare()` for Midnight secret value handling |
+
+**Pattern:** UI.lua delegates to FenCore with graceful fallbacks:
+```lua
+local FenCore = _G.FenCore
+local Math = FenCore and FenCore.Math
+local Clamp = Math and Math.Clamp or function(n, min, max) ... end
+```
+
+The `FlightsimUI.Utils` namespace exposes these for test compatibility.
+
+**Libraries:** See `Libs/libs.json` for dependency tracking.
 
 ---
 
@@ -159,4 +191,5 @@ Pure utility functions (Clamp, Color functions, etc.) are refactored into `Fligh
 | 2025-12-13 | Midnight: Use issecretvalue() to detect combat secrets |
 | 2025-12-19 | Explicit Steady Flight detection via GetGlidingInfo.canGlide check |
 | 2025-12-19 | Global GetSpellInfo removal and pcall guards for mode transitions |
+| 2026-01-03 | FenCore migration: delegate utilities (Clamp, IsSecret, SafeCompare) to FenCore domains |
 

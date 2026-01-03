@@ -1,4 +1,4 @@
-local ADDON_NAME = ...
+local ADDON_NAME, ns = ...
 
 Flightsim = Flightsim or {}
 Flightsim.debugMode = false
@@ -28,7 +28,8 @@ local function CopyDefaults(dst, src)
 end
 FlightsimUI.Utils.CopyDefaults = CopyDefaults
 
-local DEFAULTS = {
+-- AceDB defaults table
+local defaults = {
 	profile = {
 		locked = false,
 		debugMode = false,
@@ -41,6 +42,7 @@ local DEFAULTS = {
 			rowHeight = 22,
 			padding = 10,
 			gap = 6,
+			showSustainMarker = true,
 			sustainableSpeedMarkerWidth = 1,
 			sustainableSpeedMarkerAlpha = 0.2,
 			accelBarHeight = 1,
@@ -53,6 +55,8 @@ local DEFAULTS = {
 			sustainableSpeed = 790,
 			fontSize = 10,
 			showPercent = true,
+			fontFamily = "Fonts\\ARIALN.TTF",
+			fontOutline = "OUTLINE",
 		},
 		visibility = {
 			hideWhenNotSkyriding = true,
@@ -75,24 +79,74 @@ local DEFAULTS = {
 				["Second Wind"] = true,
 			},
 		},
+		-- Phase 3: Color customization
+		colors = {
+			speedBar = {
+				useCustom = false,
+				gradient = {
+					start = { r = 0.769, g = 0.169, b = 0.016, a = 1 }, -- Red
+					middle = { r = 0.769, g = 0.651, b = 0.016, a = 1 }, -- Yellow
+					finish = { r = 0.169, g = 0.651, b = 0.016, a = 1 }, -- Green
+				},
+			},
+			accelBar = {
+				useDynamic = false,
+				decel = { r = 1, g = 0, b = 0, a = 0.9 },
+				accel = { r = 0, g = 1, b = 0, a = 0.9 },
+			},
+			abilities = {
+				surgeForward = { r = 0.455, g = 0.686, b = 1.0, a = 1 }, -- #74AFFF
+				secondWind = { r = 0.827, g = 0.475, b = 0.937, a = 1 }, -- #D379EF
+				whirlingSurge = { r = 0.290, g = 0.780, b = 0.831, a = 1 }, -- #4AC7D4
+			},
+			frame = {
+				background = { r = 0.08, g = 0.12, b = 0.18, a = 0.85 },
+				border = { r = 0, g = 0, b = 0, a = 0 }, -- Invisible by default
+			},
+		},
 	},
 }
+
+-- Profile change callback
+function Flightsim:OnProfileChanged()
+	-- Rebuild UI when profile changes
+	if FlightsimUI then
+		FlightsimUI.db = self.db
+		if FlightsimUI.RebuildLayout then
+			FlightsimUI:RebuildLayout()
+		end
+		if FlightsimUI.ApplyVisibility then
+			FlightsimUI:ApplyVisibility()
+		end
+	end
+	-- Sync debug mode
+	self.debugMode = self.db.profile.debugMode
+end
 
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:SetScript("OnEvent", function(_, event, name)
 	if event == "ADDON_LOADED" and name == ADDON_NAME then
-		FlightsimDB = FlightsimDB or {}
-		CopyDefaults(FlightsimDB, DEFAULTS)
+		-- Initialize AceDB
+		Flightsim.db = LibStub("AceDB-3.0"):New("FlightsimDB", defaults, true)
 
+		-- Register profile change callbacks
+		Flightsim.db.RegisterCallback(Flightsim, "OnProfileChanged", "OnProfileChanged")
+		Flightsim.db.RegisterCallback(Flightsim, "OnProfileCopied", "OnProfileChanged")
+		Flightsim.db.RegisterCallback(Flightsim, "OnProfileReset", "OnProfileChanged")
+
+		-- Initialize UI with db reference
 		if FlightsimUI and FlightsimUI.Init then
-			FlightsimUI:Init(FlightsimDB)
+			FlightsimUI:Init(Flightsim.db)
+		end
+
+		-- Initialize settings (AceConfig)
+		if ns.InitializeSettings then
+			ns:InitializeSettings()
 		end
 
 		-- Sync debug mode from settings
-		if FlightsimDB.profile then
-			Flightsim.debugMode = FlightsimDB.profile.debugMode
-		end
+		Flightsim.debugMode = Flightsim.db.profile.debugMode
 
 		-- Register with Mechanic if available
 		if MechanicLib then
@@ -173,10 +227,10 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 						type = "toggle",
 						name = "Debug Mode",
 						get = function()
-							return FlightsimDB.profile.debugMode
+							return Flightsim.db.profile.debugMode
 						end,
 						set = function(v)
-							FlightsimDB.profile.debugMode = v
+							Flightsim.db.profile.debugMode = v
 							Flightsim.debugMode = v
 						end,
 					},

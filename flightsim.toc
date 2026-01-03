@@ -2,26 +2,32 @@
 ## Title: Flightsim
 ## Notes: Flight speed + Skyriding charge tracker.
 ## Author: jasfalk
-## Version: 1.2.3
+## Version: 1.3.0
 ## X-Curse-Project-ID: 1403044
 ## X-License: GPL-3.0
 ## SavedVariables: FlightsimDB
 ## OptionalDeps: !Mechanic
 
-# Libraries
+# Libraries - Core
 Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.xml
+Libs/FenCore/FenCore.xml
 Libs/MechanicLib/MechanicLib.lua
 
-# Core Layer (Pure Lua 5.1, sandbox testable)
-Core/init.lua
-Core/Actions/init.lua
-Core/Utils/math.lua
-Core/Utils/color.lua
-Core/Logic/speed.lua
-Core/Logic/acceleration.lua
-Core/Logic/charges.lua
-Core/Logic/cooldowns.lua
-Core/Logic/visibility.lua
+# Libraries - Ace3
+Libs/AceAddon-3.0/AceAddon-3.0.xml
+Libs/AceDB-3.0/AceDB-3.0.xml
+Libs/AceDBOptions-3.0/AceDBOptions-3.0.xml
+Libs/AceConsole-3.0/AceConsole-3.0.xml
+Libs/AceGUI-3.0/AceGUI-3.0.xml
+Libs/AceConfig-3.0/AceConfig-3.0.xml
+
+# Logic Layer (Flightsim-specific, uses FenCore)
+Logic/init.lua
+Logic/speed.lua
+Logic/acceleration.lua
+Logic/visibility.lua
+Logic/color.lua
 
 # Bridge Layer (Blizzard API Adapters)
 Bridge/init.lua
@@ -39,7 +45,9 @@ Flightsim.lua
 # Localization
 Locales/enUS.lua
 
+# Settings (AceConfig)
+Settings.lua
+
 # UI + Config (legacy, delegates to new modules)
 UI.lua
 Config.lua
-SettingsUI.lua
