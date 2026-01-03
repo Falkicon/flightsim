@@ -209,8 +209,14 @@ function Context.GetSpellCooldown(spellID)
 		if ok and info then
 			result.startTime = info.startTime or 0
 			result.duration = info.duration or 0
-			result.enabled = info.isEnabled ~= false
-			result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
+			-- Handle potentially secret isEnabled value
+			if Secrets.IsSecret(info.isEnabled) then
+				result.enabled = true -- Assume enabled for secrets
+				result.isSecret = true
+			else
+				result.enabled = info.isEnabled ~= false
+				result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
+			end
 			return result
 		end
 	end
@@ -272,6 +278,7 @@ function Context.Build(db, lastFrameTime)
 	local isSkyriding = Context.IsSkyridingActive()
 	local isMounted = IsMounted()
 	local isDruidFlying = Context.IsInDruidFlightForm()
+	local isFlying = IsFlying() or isGliding or isDruidFlying
 
 	-- Abilities
 	local surgeCharges = Context.GetSpellCharges(SURGE_FORWARD_SPELL_ID)
@@ -295,6 +302,7 @@ function Context.Build(db, lastFrameTime)
 			isMounted = isMounted,
 			isSkyriding = isSkyriding,
 			isDruidFlying = isDruidFlying,
+			isFlying = isFlying,
 		},
 
 		abilities = {

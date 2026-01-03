@@ -13,10 +13,29 @@ local Bridge = FlightsimBridge
 local Executor = Bridge.Executor
 local Events = Bridge.Events
 
+-- FenCore references
+local FenCore = _G.FenCore
+local ActionResult = FenCore.ActionResult
+
+-- Logic layer references
+local Logic = FlightsimLogic
+local Color = Logic.Color
+
 -- Internal state
 local isInitialized = false
 local tickerFrame = nil
 local lastUpdateTime = 0
+
+-- Performance tracking
+FlightsimView.perf = {
+	executor = 0,
+	visibility = 0,
+	speed = 0,
+	accel = 0,
+	surge = 0,
+	wind = 0,
+	whirling = 0,
+}
 
 -- Throttling
 local UPDATE_INTERVAL_ACTIVE = 0.05 -- 20Hz when visible
@@ -53,50 +72,268 @@ end
 
 --- Create all UI frames.
 function FlightsimView:CreateFrames()
-	-- Main HUD frame
-	if not self.frame then
-		self.frame = CreateFrame("StatusBar", "FlightsimHUD", UIParent)
-		self.frame:SetSize(200, 12)
-		self.frame:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
-		self.frame:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-		self.frame:SetMinMaxValues(0, 1)
+	local db = self.db
+	local ui = db.profile.ui or {}
+	local width = ui.width or 150
 
-		-- Make draggable when unlocked
-		self.frame:SetMovable(true)
-		self.frame:EnableMouse(true)
-		self.frame:RegisterForDrag("LeftButton")
-		self.frame:SetScript("OnDragStart", function(f)
-			if not self.db.profile.ui.locked then
-				f:StartMoving()
-			end
-		end)
-		self.frame:SetScript("OnDragStop", function(f)
-			f:StopMovingOrSizing()
-			local point, _, relPoint, x, y = f:GetPoint()
-			if self.db.profile.ui then
-				self.db.profile.ui.point = point
-				self.db.profile.ui.relPoint = relPoint
-				self.db.profile.ui.x = x
-				self.db.profile.ui.y = y
-			end
-		end)
-	end
+	-- Container frame (background behind all bars)
+	local container = CreateFrame("Frame", "FlightsimContainer", UIParent)
+	container:SetSize(width, 100)
+	container:SetPoint("CENTER", UIParent, "CENTER", db.profile.x or 0, db.profile.y or 0)
+	container:SetScale(db.profile.scale or 1)
+	self.container = container
+
+	-- Container background
+	local containerBg = container:CreateTexture(nil, "BACKGROUND", nil, -8)
+	containerBg:SetAllPoints(container)
+	local bgColor = db.profile.colors and db.profile.colors.frame and db.profile.colors.frame.background
+		or { r = 0, g = 0, b = 0, a = 0.3 }
+	containerBg:SetColorTexture(bgColor.r, bgColor.g, bgColor.b, bgColor.a)
+	self.containerBg = containerBg
+
+	-- Border textures (positioned OUTSIDE the container)
+	self.borders = {}
+	local borderColor = db.profile.colors and db.profile.colors.frame and db.profile.colors.frame.border
+		or { r = 0, g = 0, b = 0, a = 0 }
+	local borderWidth = db.profile.colors and db.profile.colors.frame and db.profile.colors.frame.borderWidth or 0
+
+	-- Top border: sits above container, extends to cover corners
+	local topBorder = container:CreateTexture(nil, "OVERLAY")
+	topBorder:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+	topBorder:SetPoint("BOTTOMLEFT", container, "TOPLEFT", -borderWidth, 0)
+	topBorder:SetPoint("BOTTOMRIGHT", container, "TOPRIGHT", borderWidth, 0)
+	topBorder:SetHeight(borderWidth)
+	self.borders.top = topBorder
+
+	-- Bottom border: sits below container, extends to cover corners
+	local bottomBorder = container:CreateTexture(nil, "OVERLAY")
+	bottomBorder:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+	bottomBorder:SetPoint("TOPLEFT", container, "BOTTOMLEFT", -borderWidth, 0)
+	bottomBorder:SetPoint("TOPRIGHT", container, "BOTTOMRIGHT", borderWidth, 0)
+	bottomBorder:SetHeight(borderWidth)
+	self.borders.bottom = bottomBorder
+
+	-- Left border: sits to the left of container
+	local leftBorder = container:CreateTexture(nil, "OVERLAY")
+	leftBorder:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+	leftBorder:SetPoint("TOPRIGHT", container, "TOPLEFT", 0, 0)
+	leftBorder:SetPoint("BOTTOMRIGHT", container, "BOTTOMLEFT", 0, 0)
+	leftBorder:SetWidth(borderWidth)
+	self.borders.left = leftBorder
+
+	-- Right border: sits to the right of container
+	local rightBorder = container:CreateTexture(nil, "OVERLAY")
+	rightBorder:SetColorTexture(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+	rightBorder:SetPoint("TOPLEFT", container, "TOPRIGHT", 0, 0)
+	rightBorder:SetPoint("BOTTOMLEFT", container, "BOTTOMRIGHT", 0, 0)
+	rightBorder:SetWidth(borderWidth)
+	self.borders.right = rightBorder
+
+	-- Make container draggable when unlocked
+	container:SetMovable(true)
+	container:EnableMouse(true)
+	container:RegisterForDrag("LeftButton")
+	container:SetScript("OnDragStart", function(f)
+		if not db.profile.locked then
+			f:StartMoving()
+		end
+	end)
+	container:SetScript("OnDragStop", function(f)
+		f:StopMovingOrSizing()
+		local _, _, _, x, y = f:GetPoint(1)
+		db.profile.x = x
+		db.profile.y = y
+	end)
+
+	-- Main HUD frame (speed bar) - parented to container
+	local frame = CreateFrame("StatusBar", "FlightsimHUD", container)
+	frame:SetSize(width, ui.speedBarHeight or 20)
+	frame:SetPoint("TOP", container, "TOP", 0, 0)
+	frame:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+	frame:SetMinMaxValues(0, 1)
+	frame:SetValue(0)
+	self.frame = frame
+
+	-- Speed bar background (transparent - container provides bg)
+	local speedBarBg = frame:CreateTexture(nil, "BACKGROUND")
+	speedBarBg:SetAllPoints(frame)
+	speedBarBg:SetColorTexture(0, 0, 0, 0)
+	self.speedBarBg = speedBarBg
+
+	-- Overlay frame for text and marker (above StatusBar fill)
+	local overlay = CreateFrame("Frame", nil, frame)
+	overlay:SetAllPoints(frame)
+	overlay:SetFrameLevel(frame:GetFrameLevel() + 10)
+	self.speedBarOverlay = overlay
+
+	-- Sustainable speed marker
+	local markerWidth = ui.sustainableSpeedMarkerWidth or 1
+	local markerAlpha = ui.sustainableSpeedMarkerAlpha or 0.2
+	local sustainableMarker = overlay:CreateTexture(nil, "OVERLAY")
+	sustainableMarker:SetColorTexture(1, 1, 1, markerAlpha)
+	sustainableMarker:SetWidth(markerWidth)
+	sustainableMarker:SetPoint("TOP", overlay, "TOP", 0, 0)
+	sustainableMarker:SetPoint("BOTTOM", overlay, "BOTTOM", 0, 0)
+	self.sustainableMarker = sustainableMarker
 
 	-- Speed text
-	if not self.speedText then
-		self.speedText = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-		self.speedText:SetPoint("CENTER", self.frame, "CENTER")
+	local p = db.profile.speedBar or {}
+	local fontFamily = p.fontFamily or "Fonts\\ARIALN.TTF"
+	local fontSize = p.fontSize or 10
+	local fontOutline = p.fontOutline or "OUTLINE"
+	local speedText = overlay:CreateFontString(nil, "OVERLAY")
+	speedText:SetFont(fontFamily, fontSize, fontOutline)
+	speedText:SetPoint("LEFT", overlay, "LEFT", 6, 0)
+	speedText:SetJustifyH("LEFT")
+	speedText:SetText("0%")
+	self.speedText = speedText
+
+	-- Acceleration bar (below speed bar)
+	local accelBarHeight = ui.accelBarHeight or 2
+	local accelGap = ui.accelBarGap or 2
+
+	local accelFrame = CreateFrame("Frame", nil, container)
+	accelFrame:SetSize(width, accelBarHeight)
+	accelFrame:SetPoint("TOP", frame, "BOTTOM", 0, -accelGap)
+	self.accelFrame = accelFrame
+
+	local accelBg = accelFrame:CreateTexture(nil, "BACKGROUND")
+	accelBg:SetAllPoints(accelFrame)
+	accelBg:SetColorTexture(0, 0, 0, 0)
+	self.accelBarBg = accelBg
+
+	local accelBar = accelFrame:CreateTexture(nil, "ARTWORK")
+	accelBar:SetColorTexture(1, 1, 1, 0.9)
+	accelBar:SetHeight(accelBarHeight)
+	self.accelBar = accelBar
+
+	-- Ability bars configuration
+	local abilityBarHeight = ui.abilityBarHeight or 10
+	local barGap = ui.barGap or 2
+	local chargeGap = 2
+
+	-- Get ability color settings
+	local abilityColors = db.profile.colors and db.profile.colors.abilities or {}
+
+	-- Surge Forward (6 charges, blue #74AFFF)
+	local surgeForwardFrame = CreateFrame("Frame", nil, container)
+	surgeForwardFrame:SetSize(width, abilityBarHeight)
+	surgeForwardFrame:SetPoint("TOP", accelFrame, "BOTTOM", 0, -barGap)
+	self.surgeForwardFrame = surgeForwardFrame
+
+	-- Surge Forward frame background (behind all charge bars)
+	local sfFrameBg = surgeForwardFrame:CreateTexture(nil, "BACKGROUND", nil, -8)
+	sfFrameBg:SetAllPoints(surgeForwardFrame)
+	local sfFrameBgColor = abilityColors.surgeForwardFrameBg or { r = 0, g = 0, b = 0, a = 0 }
+	sfFrameBg:SetColorTexture(sfFrameBgColor.r, sfFrameBgColor.g, sfFrameBgColor.b, sfFrameBgColor.a)
+	self.surgeForwardFrameBg = sfFrameBg
+
+	self.surgeForwardBars = {}
+	self.surgeForwardBarBgs = {}
+	local sfTotalGaps = chargeGap * 5
+	local sfChargeWidth = (width - sfTotalGaps) / 6
+	local sfBarBgColor = abilityColors.surgeForwardBarBg or { r = 0.1, g = 0.15, b = 0.25, a = 0.5 }
+
+	for i = 1, 6 do
+		local chargeBar = CreateFrame("StatusBar", nil, surgeForwardFrame)
+		chargeBar:SetSize(sfChargeWidth, abilityBarHeight)
+		chargeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+		chargeBar:SetMinMaxValues(0, 1)
+		chargeBar:SetValue(1)
+
+		local chargeBg = chargeBar:CreateTexture(nil, "BACKGROUND")
+		chargeBg:SetAllPoints(chargeBar)
+		chargeBg:SetColorTexture(sfBarBgColor.r, sfBarBgColor.g, sfBarBgColor.b, sfBarBgColor.a)
+		self.surgeForwardBarBgs[i] = chargeBg
+
+		if i == 1 then
+			chargeBar:SetPoint("LEFT", surgeForwardFrame, "LEFT", 0, 0)
+		else
+			chargeBar:SetPoint("LEFT", self.surgeForwardBars[i - 1], "RIGHT", chargeGap, 0)
+		end
+
+		self.surgeForwardBars[i] = chargeBar
 	end
 
-	-- Sustainable marker
-	if not self.sustainableMarker then
-		self.sustainableMarker = self.frame:CreateTexture(nil, "OVERLAY")
-		self.sustainableMarker:SetWidth(2)
-		self.sustainableMarker:SetColorTexture(1, 1, 1, 0.8)
+	-- Second Wind (3 charges, purple #D379EF)
+	local secondWindFrame = CreateFrame("Frame", nil, container)
+	secondWindFrame:SetSize(width, abilityBarHeight)
+	secondWindFrame:SetPoint("TOP", surgeForwardFrame, "BOTTOM", 0, -barGap)
+	self.secondWindFrame = secondWindFrame
+
+	-- Second Wind frame background (behind all charge bars)
+	local swFrameBg = secondWindFrame:CreateTexture(nil, "BACKGROUND", nil, -8)
+	swFrameBg:SetAllPoints(secondWindFrame)
+	local swFrameBgColor = abilityColors.secondWindFrameBg or { r = 0, g = 0, b = 0, a = 0 }
+	swFrameBg:SetColorTexture(swFrameBgColor.r, swFrameBgColor.g, swFrameBgColor.b, swFrameBgColor.a)
+	self.secondWindFrameBg = swFrameBg
+
+	self.secondWindBars = {}
+	self.secondWindBarBgs = {}
+	local swTotalGaps = chargeGap * 2
+	local swChargeWidth = (width - swTotalGaps) / 3
+	local swBarBgColor = abilityColors.secondWindBarBg or { r = 0.2, g = 0.1, b = 0.25, a = 0.5 }
+
+	for i = 1, 3 do
+		local chargeBar = CreateFrame("StatusBar", nil, secondWindFrame)
+		chargeBar:SetSize(swChargeWidth, abilityBarHeight)
+		chargeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+		chargeBar:SetMinMaxValues(0, 1)
+		chargeBar:SetValue(1)
+
+		local chargeBg = chargeBar:CreateTexture(nil, "BACKGROUND")
+		chargeBg:SetAllPoints(chargeBar)
+		chargeBg:SetColorTexture(swBarBgColor.r, swBarBgColor.g, swBarBgColor.b, swBarBgColor.a)
+		self.secondWindBarBgs[i] = chargeBg
+
+		if i == 1 then
+			chargeBar:SetPoint("LEFT", secondWindFrame, "LEFT", 0, 0)
+		else
+			chargeBar:SetPoint("LEFT", self.secondWindBars[i - 1], "RIGHT", chargeGap, 0)
+		end
+
+		self.secondWindBars[i] = chargeBar
 	end
 
-	-- Initialize components (will be created by component modules)
-	-- Components.SpeedBar, Components.AccelBar, etc.
+	-- Whirling Surge (cooldown bar, cyan #4AC7D4)
+	local whirlingSurgeBar = CreateFrame("StatusBar", nil, container)
+	whirlingSurgeBar:SetSize(width, abilityBarHeight)
+	whirlingSurgeBar:SetPoint("TOP", secondWindFrame, "BOTTOM", 0, -barGap)
+	whirlingSurgeBar:SetStatusBarTexture("Interface/Buttons/WHITE8X8")
+	whirlingSurgeBar:SetMinMaxValues(0, 1)
+	whirlingSurgeBar:SetValue(1)
+	self.whirlingSurgeBar = whirlingSurgeBar
+
+	local whirlingSurgeBg = whirlingSurgeBar:CreateTexture(nil, "BACKGROUND")
+	whirlingSurgeBg:SetAllPoints(whirlingSurgeBar)
+	local wsBarBgColor = abilityColors.whirlingSurgeBarBg or { r = 0.1, g = 0.2, b = 0.22, a = 0.5 }
+	whirlingSurgeBg:SetColorTexture(wsBarBgColor.r, wsBarBgColor.g, wsBarBgColor.b, wsBarBgColor.a)
+	self.whirlingSurgeBg = whirlingSurgeBg
+
+	-- Update container size based on visible bars
+	self:UpdateContainerSize()
+end
+
+--- Update container size to fit all visible bars.
+function FlightsimView:UpdateContainerSize()
+	if not self.container or not self.db then
+		return
+	end
+
+	local ui = self.db.profile.ui or {}
+	local width = ui.width or 150
+	local speedBarHeight = ui.speedBarHeight or 20
+	local accelBarHeight = ui.accelBarHeight or 2
+	local accelGap = ui.accelBarGap or 2
+	local abilityBarHeight = ui.abilityBarHeight or 10
+	local barGap = ui.barGap or 2
+
+	local totalHeight = speedBarHeight + accelGap + accelBarHeight
+	totalHeight = totalHeight + barGap + abilityBarHeight -- Surge Forward
+	totalHeight = totalHeight + barGap + abilityBarHeight -- Second Wind
+	totalHeight = totalHeight + barGap + abilityBarHeight -- Whirling Surge
+
+	self.container:SetSize(width, totalHeight)
 end
 
 --- Start the update loop.
@@ -130,36 +367,51 @@ function FlightsimView:OnUpdate(elapsed)
 	end
 	lastUpdateTime = now
 
-	-- Execute full update through Bridge
+	-- Execute full update through Bridge (with timing)
+	local execStart = debugprofilestop()
 	local result = Executor.FullUpdate(self.db, {
 		accelBarWidth = self.accelFrame and self.accelFrame:GetWidth() or 200,
 		accelBarHeight = self.accelFrame and self.accelFrame:GetHeight() or 4,
 	})
+	self.perf.executor = debugprofilestop() - execStart
 
 	if not result.success then
 		return
 	end
 
-	local data = FlightsimCore.Actions.unwrap(result)
+	local data = ActionResult.unwrap(result)
 
-	-- Apply visibility
+	-- Apply visibility (with timing)
 	if data.visibility then
+		local visStart = debugprofilestop()
 		self:ApplyVisibilityState(data.visibility)
+		self.perf.visibility = debugprofilestop() - visStart
 	end
 
-	-- Update components if visible
+	-- Update components if visible (with timing)
 	if data.shouldUpdate then
+		local speedStart = debugprofilestop()
 		self:UpdateSpeed(data.speed)
+		self.perf.speed = debugprofilestop() - speedStart
+
+		local accelStart = debugprofilestop()
 		self:UpdateAcceleration(data.acceleration)
+		self.perf.accel = debugprofilestop() - accelStart
 
 		if data.surgeForward then
+			local surgeStart = debugprofilestop()
 			self:UpdateChargeBar("surgeForward", data.surgeForward)
+			self.perf.surge = debugprofilestop() - surgeStart
 		end
 		if data.secondWind then
+			local windStart = debugprofilestop()
 			self:UpdateChargeBar("secondWind", data.secondWind)
+			self.perf.wind = debugprofilestop() - windStart
 		end
 		if data.whirlingSurge then
+			local whirlStart = debugprofilestop()
 			self:UpdateCooldownBar(data.whirlingSurge)
+			self.perf.whirling = debugprofilestop() - whirlStart
 		end
 	end
 end
@@ -167,17 +419,16 @@ end
 --- Apply visibility state to frames.
 ---@param visibility table Visibility state from Executor
 function FlightsimView:ApplyVisibilityState(visibility)
-	if visibility.showHUD then
-		if not self.frame:IsShown() then
-			self.frame:Show()
-		end
-	else
-		if self.frame:IsShown() then
-			self.frame:Hide()
+	-- Container controls overall visibility
+	if self.container then
+		if visibility.showHUD then
+			self.container:Show()
+		else
+			self.container:Hide()
 		end
 	end
 
-	-- Apply to ability frames (if they exist)
+	-- Individual ability visibility
 	if self.surgeForwardFrame then
 		if visibility.showSurgeForward then
 			self.surgeForwardFrame:Show()
@@ -272,8 +523,8 @@ function FlightsimView:UpdateChargeBar(abilityKey, data)
 		return
 	end
 
-	local colorFunc = abilityKey == "surgeForward" and FlightsimCore.Utils.Color.ForSurgeForward
-		or FlightsimCore.Utils.Color.ForSecondWind
+	local colorFunc = abilityKey == "surgeForward" and Color.ForSurgeForward
+		or Color.ForSecondWind
 
 	for i, state in ipairs(data.states or {}) do
 		local bar = bars[i]
@@ -304,4 +555,223 @@ function FlightsimView:ApplyVisibility()
 	lastUpdateTime = 0
 end
 
+-- ============================================================================
+-- Settings Integration Methods
+-- Called from Settings.lua when preferences change
+-- ============================================================================
+
+--- Set scale for all frames.
+---@param scale number Scale factor (0.5-2.0)
+function FlightsimView:SetScale(scale)
+	scale = scale or 1
+	if scale < 0.5 then scale = 0.5 end
+	if scale > 2.0 then scale = 2.0 end
+
+	-- Only set scale on container - all child frames inherit it
+	if self.container then
+		self.container:SetScale(scale)
+	end
+end
+
+--- Rebuild all frames with current settings.
+--- Called when dimensions or layout settings change.
+function FlightsimView:RebuildLayout()
+	if not self.db then
+		return
+	end
+
+	local db = self.db
+	local ui = db.profile.ui or {}
+	local width = ui.width or 150
+
+	-- Update main frame
+	if self.frame then
+		self.frame:SetSize(width, ui.speedBarHeight or 20)
+	end
+
+	-- Update accel frame
+	if self.accelFrame then
+		self.accelFrame:SetSize(width, ui.accelBarHeight or 2)
+	end
+
+	-- Update ability bar heights and widths
+	local abilityBarHeight = ui.abilityBarHeight or 10
+	local barGap = ui.barGap or 2
+	local chargeGap = 2
+
+	-- Surge Forward (6 charges)
+	if self.surgeForwardFrame then
+		self.surgeForwardFrame:SetSize(width, abilityBarHeight)
+		local sfTotalGaps = chargeGap * 5
+		local sfChargeWidth = (width - sfTotalGaps) / 6
+		for i, bar in ipairs(self.surgeForwardBars or {}) do
+			bar:SetSize(sfChargeWidth, abilityBarHeight)
+		end
+	end
+
+	-- Second Wind (3 charges)
+	if self.secondWindFrame then
+		self.secondWindFrame:SetSize(width, abilityBarHeight)
+		local swTotalGaps = chargeGap * 2
+		local swChargeWidth = (width - swTotalGaps) / 3
+		for i, bar in ipairs(self.secondWindBars or {}) do
+			bar:SetSize(swChargeWidth, abilityBarHeight)
+		end
+	end
+
+	-- Whirling Surge
+	if self.whirlingSurgeBar then
+		self.whirlingSurgeBar:SetSize(width, abilityBarHeight)
+	end
+
+	-- Update sustain marker
+	if self.sustainableMarker then
+		local markerWidth = ui.sustainableSpeedMarkerWidth or 1
+		local markerAlpha = ui.sustainableSpeedMarkerAlpha or 0.2
+		self.sustainableMarker:SetWidth(markerWidth)
+		self.sustainableMarker:SetColorTexture(1, 1, 1, markerAlpha)
+	end
+
+	-- Reposition frames with new gaps
+	if self.accelFrame and self.frame then
+		self.accelFrame:ClearAllPoints()
+		self.accelFrame:SetPoint("TOP", self.frame, "BOTTOM", 0, -(ui.accelBarGap or 2))
+	end
+	if self.surgeForwardFrame and self.accelFrame then
+		self.surgeForwardFrame:ClearAllPoints()
+		self.surgeForwardFrame:SetPoint("TOP", self.accelFrame, "BOTTOM", 0, -barGap)
+	end
+	if self.secondWindFrame and self.surgeForwardFrame then
+		self.secondWindFrame:ClearAllPoints()
+		self.secondWindFrame:SetPoint("TOP", self.surgeForwardFrame, "BOTTOM", 0, -barGap)
+	end
+	if self.whirlingSurgeBar and self.secondWindFrame then
+		self.whirlingSurgeBar:ClearAllPoints()
+		self.whirlingSurgeBar:SetPoint("TOP", self.secondWindFrame, "BOTTOM", 0, -barGap)
+	end
+
+	-- Update container size to match new layout
+	self:UpdateContainerSize()
+end
+
+--- Update font settings on speed text.
+function FlightsimView:UpdateFont()
+	if not self.db or not self.speedText then
+		return
+	end
+
+	local p = self.db.profile.speedBar or {}
+	local fontFamily = p.fontFamily or "Fonts\\ARIALN.TTF"
+	local fontSize = p.fontSize or 10
+	local fontOutline = p.fontOutline or "OUTLINE"
+
+	self.speedText:SetFont(fontFamily, fontSize, fontOutline)
+end
+
+--- Update frame background and border colors.
+function FlightsimView:UpdateFrameColors()
+	if not self.db then
+		return
+	end
+
+	local colors = self.db.profile.colors or {}
+	local frame = colors.frame or {}
+	local bg = frame.background or { r = 0, g = 0, b = 0, a = 0.3 }
+	local border = frame.border or { r = 0, g = 0, b = 0, a = 0 }
+	local borderWidth = frame.borderWidth or 0
+
+	-- Update container background
+	if self.containerBg then
+		self.containerBg:SetColorTexture(bg.r, bg.g, bg.b, bg.a)
+	end
+
+	-- Update border textures (repositioned outside frame)
+	if self.borders and self.container then
+		if self.borders.top then
+			self.borders.top:SetColorTexture(border.r, border.g, border.b, border.a)
+			self.borders.top:SetHeight(borderWidth)
+			self.borders.top:ClearAllPoints()
+			self.borders.top:SetPoint("BOTTOMLEFT", self.container, "TOPLEFT", -borderWidth, 0)
+			self.borders.top:SetPoint("BOTTOMRIGHT", self.container, "TOPRIGHT", borderWidth, 0)
+		end
+		if self.borders.bottom then
+			self.borders.bottom:SetColorTexture(border.r, border.g, border.b, border.a)
+			self.borders.bottom:SetHeight(borderWidth)
+			self.borders.bottom:ClearAllPoints()
+			self.borders.bottom:SetPoint("TOPLEFT", self.container, "BOTTOMLEFT", -borderWidth, 0)
+			self.borders.bottom:SetPoint("TOPRIGHT", self.container, "BOTTOMRIGHT", borderWidth, 0)
+		end
+		if self.borders.left then
+			self.borders.left:SetColorTexture(border.r, border.g, border.b, border.a)
+			self.borders.left:SetWidth(borderWidth)
+		end
+		if self.borders.right then
+			self.borders.right:SetColorTexture(border.r, border.g, border.b, border.a)
+			self.borders.right:SetWidth(borderWidth)
+		end
+	end
+end
+
+--- Invalidate color cache (triggers recalculation on next frame).
+--- Colors are handled in Logic layer, so just force an update.
+function FlightsimView:InvalidateColorCache()
+	lastUpdateTime = 0
+end
+
+--- Update ability background colors.
+function FlightsimView:UpdateAbilityColors()
+	if not self.db then
+		return
+	end
+
+	local colors = self.db.profile.colors or {}
+	local abilities = colors.abilities or {}
+
+	-- Surge Forward frame background
+	if self.surgeForwardFrameBg then
+		local c = abilities.surgeForwardFrameBg or { r = 0, g = 0, b = 0, a = 0 }
+		self.surgeForwardFrameBg:SetColorTexture(c.r, c.g, c.b, c.a)
+	end
+
+	-- Surge Forward individual bar backgrounds
+	local sfBarBg = abilities.surgeForwardBarBg or { r = 0.1, g = 0.15, b = 0.25, a = 0.5 }
+	for _, bg in ipairs(self.surgeForwardBarBgs or {}) do
+		bg:SetColorTexture(sfBarBg.r, sfBarBg.g, sfBarBg.b, sfBarBg.a)
+	end
+
+	-- Second Wind frame background
+	if self.secondWindFrameBg then
+		local c = abilities.secondWindFrameBg or { r = 0, g = 0, b = 0, a = 0 }
+		self.secondWindFrameBg:SetColorTexture(c.r, c.g, c.b, c.a)
+	end
+
+	-- Second Wind individual bar backgrounds
+	local swBarBg = abilities.secondWindBarBg or { r = 0.2, g = 0.1, b = 0.25, a = 0.5 }
+	for _, bg in ipairs(self.secondWindBarBgs or {}) do
+		bg:SetColorTexture(swBarBg.r, swBarBg.g, swBarBg.b, swBarBg.a)
+	end
+
+	-- Whirling Surge bar background
+	if self.whirlingSurgeBg then
+		local c = abilities.whirlingSurgeBarBg or { r = 0.1, g = 0.2, b = 0.22, a = 0.5 }
+		self.whirlingSurgeBg:SetColorTexture(c.r, c.g, c.b, c.a)
+	end
+end
+
+--- Set width for all bars.
+---@param width number Bar width in pixels
+function FlightsimView:SetWidth(width)
+	if not self.db then
+		return
+	end
+	width = tonumber(width)
+	if not width then return end
+	if width < 50 then width = 50 end
+	if width > 800 then width = 800 end
+
+	self.db.profile.ui.width = width
+	self:RebuildLayout()
+end
+
 return FlightsimView
+

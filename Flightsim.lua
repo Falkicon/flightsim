@@ -98,10 +98,18 @@ local defaults = {
 				surgeForward = { r = 0.455, g = 0.686, b = 1.0, a = 1 }, -- #74AFFF
 				secondWind = { r = 0.827, g = 0.475, b = 0.937, a = 1 }, -- #D379EF
 				whirlingSurge = { r = 0.290, g = 0.780, b = 0.831, a = 1 }, -- #4AC7D4
+				-- Frame backgrounds (area behind all charge bars in a row)
+				surgeForwardFrameBg = { r = 0, g = 0, b = 0, a = 0 }, -- Transparent by default
+				secondWindFrameBg = { r = 0, g = 0, b = 0, a = 0 }, -- Transparent by default
+				-- Individual bar backgrounds (visible when charge is empty/recharging)
+				surgeForwardBarBg = { r = 0.1, g = 0.15, b = 0.25, a = 0.5 }, -- Dim blue
+				secondWindBarBg = { r = 0.2, g = 0.1, b = 0.25, a = 0.5 }, -- Dim purple
+				whirlingSurgeBarBg = { r = 0.1, g = 0.2, b = 0.22, a = 0.5 }, -- Dim cyan
 			},
 			frame = {
-				background = { r = 0.08, g = 0.12, b = 0.18, a = 0.85 },
-				border = { r = 0, g = 0, b = 0, a = 0 }, -- Invisible by default
+				background = { r = 0, g = 0, b = 0, a = 0.3 },
+				border = { r = 0, g = 0, b = 0, a = 0 }, -- Transparent by default
+				borderWidth = 0, -- No border by default
 			},
 		},
 	},
@@ -109,14 +117,27 @@ local defaults = {
 
 -- Profile change callback
 function Flightsim:OnProfileChanged()
-	-- Rebuild UI when profile changes
-	if FlightsimUI then
-		FlightsimUI.db = self.db
-		if FlightsimUI.RebuildLayout then
-			FlightsimUI:RebuildLayout()
+	-- Update View when profile changes
+	if FlightsimView then
+		FlightsimView.db = self.db
+		-- Rebuild everything with new profile settings
+		if FlightsimView.RebuildLayout then
+			FlightsimView:RebuildLayout()
 		end
-		if FlightsimUI.ApplyVisibility then
-			FlightsimUI:ApplyVisibility()
+		if FlightsimView.UpdateFrameColors then
+			FlightsimView:UpdateFrameColors()
+		end
+		if FlightsimView.UpdateAbilityColors then
+			FlightsimView:UpdateAbilityColors()
+		end
+		if FlightsimView.UpdateFont then
+			FlightsimView:UpdateFont()
+		end
+		if FlightsimView.SetScale then
+			FlightsimView:SetScale(self.db.profile.scale)
+		end
+		if FlightsimView.ApplyVisibility then
+			FlightsimView:ApplyVisibility()
 		end
 	end
 	-- Sync debug mode
@@ -135,9 +156,9 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 		Flightsim.db.RegisterCallback(Flightsim, "OnProfileCopied", "OnProfileChanged")
 		Flightsim.db.RegisterCallback(Flightsim, "OnProfileReset", "OnProfileChanged")
 
-		-- Initialize UI with db reference
-		if FlightsimUI and FlightsimUI.Init then
-			FlightsimUI:Init(Flightsim.db)
+		-- Initialize View layer (new architecture)
+		if FlightsimView and FlightsimView.Init then
+			FlightsimView:Init(Flightsim.db)
 		end
 
 		-- Initialize settings (AceConfig)
@@ -196,26 +217,25 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 				-- Inspect Integration (Phase 8)
 				inspect = {
 					getWatchFrames = function()
-						local UI = FlightsimUI
+						local View = FlightsimView
 						local frames = {
-							{ label = "Main HUD", frame = UI.frame, property = "Visibility" },
-							{ label = "Speed Bar", frame = UI.speedBar, property = "Value" },
-							{ label = "Accel Bar", frame = UI.accelBar, property = "Width" },
+							{ label = "Main HUD", frame = View.frame, property = "Visibility" },
+							{ label = "Accel Bar", frame = View.accelBar, property = "Width" },
 						}
 						-- Add first charge of each ability for quick monitoring
-						if UI.surgeForwardBars and UI.surgeForwardBars[1] then
+						if View.surgeForwardBars and View.surgeForwardBars[1] then
 							table.insert(
 								frames,
-								{ label = "Surge 1", frame = UI.surgeForwardBars[1], property = "Value" }
+								{ label = "Surge 1", frame = View.surgeForwardBars[1], property = "Value" }
 							)
 						end
-						if UI.secondWindBars and UI.secondWindBars[1] then
-							table.insert(frames, { label = "Wind 1", frame = UI.secondWindBars[1], property = "Value" })
+						if View.secondWindBars and View.secondWindBars[1] then
+							table.insert(frames, { label = "Wind 1", frame = View.secondWindBars[1], property = "Value" })
 						end
-						if UI.whirlingSurgeBar then
+						if View.whirlingSurgeBar then
 							table.insert(
 								frames,
-								{ label = "Whirling", frame = UI.whirlingSurgeBar, property = "Value" }
+								{ label = "Whirling", frame = View.whirlingSurgeBar, property = "Value" }
 							)
 						end
 						return frames

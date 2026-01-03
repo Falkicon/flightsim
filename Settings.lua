@@ -28,11 +28,16 @@ local options = {
 						Flightsim.db.profile.locked = v
 					end,
 				},
+				appearanceHeader = {
+					name = "Appearance",
+					type = "header",
+					order = 5,
+				},
 				scale = {
 					name = L["SCALE"] or "Scale",
 					desc = L["SCALE_DESC"] or "Overall scale of the Flightsim frame.",
 					type = "range",
-					order = 2,
+					order = 6,
 					min = 0.5,
 					max = 2.0,
 					step = 0.05,
@@ -41,7 +46,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.scale = v
-						if FlightsimUI and FlightsimUI.SetScale then
+						if FlightsimView and FlightsimView.SetScale then
+							FlightsimView:SetScale(v)
+						elseif FlightsimUI and FlightsimUI.SetScale then
 							FlightsimUI:SetScale(v)
 						end
 					end,
@@ -50,7 +57,7 @@ local options = {
 					name = L["BAR_WIDTH"] or "Bar Width",
 					desc = L["BAR_WIDTH_DESC"] or "Width of all bars.",
 					type = "range",
-					order = 3,
+					order = 7,
 					min = 50,
 					max = 800,
 					step = 10,
@@ -59,8 +66,36 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.width = v
-						if FlightsimUI and FlightsimUI.SetWidth then
+						if FlightsimView and FlightsimView.SetWidth then
+							FlightsimView:SetWidth(v)
+						elseif FlightsimUI and FlightsimUI.SetWidth then
 							FlightsimUI:SetWidth(v)
+						end
+					end,
+				},
+				appearanceSpacer = {
+					name = "",
+					type = "description",
+					order = 7.5,
+					width = 0.3,
+				},
+				frameBackground = {
+					name = "Background",
+					desc = "Background color behind ability bars.",
+					type = "color",
+					hasAlpha = true,
+					order = 8,
+					get = function()
+						local c = Flightsim.db.profile.colors.frame.background
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.frame.background
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateFrameColors then
+							FlightsimView:UpdateFrameColors()
+						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
+							FlightsimUI:UpdateFrameColors()
 						end
 					end,
 				},
@@ -71,57 +106,64 @@ local options = {
 				},
 				hideWhenNotSkyriding = {
 					name = L["ONLY_SKYRIDING"] or "Only Show When Skyriding",
-					desc = L["ONLY_SKYRIDING_DESC"] or "Hides the frame when not actively skyriding.",
+					desc = L["ONLY_SKYRIDING_DESC"] or "Hides the frame when not actively skyriding (must also be flying).",
 					type = "toggle",
+					width = "full",
 					order = 11,
 					get = function()
 						return Flightsim.db.profile.visibility.hideWhenNotSkyriding
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.visibility.hideWhenNotSkyriding = v
-						if FlightsimUI and FlightsimUI.ApplyVisibility then
+						if FlightsimView and FlightsimView.ApplyVisibility then
+							FlightsimView:ApplyVisibility()
+						elseif FlightsimUI and FlightsimUI.ApplyVisibility then
 							FlightsimUI:ApplyVisibility()
 						end
 					end,
 				},
-				-- Frame colors moved here from Colors section
-				frameColorsHeader = {
-					name = "Frame Colors",
+				-- Border section
+				borderHeader = {
+					name = "Border",
 					type = "header",
-					order = 20,
+					order = 15,
 				},
-				frameBackground = {
-					name = "Background",
-					desc = "Background color behind ability bars.",
+				frameBorder = {
+					name = "Border Color",
+					desc = "Border color around the HUD frame.",
 					type = "color",
 					hasAlpha = true,
-					order = 21,
+					order = 16,
 					get = function()
-						local c = Flightsim.db.profile.colors.frame.background
+						local c = Flightsim.db.profile.colors.frame.border
 						return c.r, c.g, c.b, c.a
 					end,
 					set = function(_, r, g, b, a)
-						local c = Flightsim.db.profile.colors.frame.background
+						local c = Flightsim.db.profile.colors.frame.border
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.UpdateFrameColors then
+						if FlightsimView and FlightsimView.UpdateFrameColors then
+							FlightsimView:UpdateFrameColors()
+						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
 							FlightsimUI:UpdateFrameColors()
 						end
 					end,
 				},
-				frameBorder = {
-					name = "Border",
-					desc = "Border color around ability bars.",
-					type = "color",
-					hasAlpha = true,
-					order = 22,
+				borderWidth = {
+					name = "Border Width",
+					desc = "Width of the border around the HUD frame (0 = no border).",
+					type = "range",
+					order = 17,
+					min = 0,
+					max = 4,
+					step = 1,
 					get = function()
-						local c = Flightsim.db.profile.colors.frame.border
-						return c.r, c.g, c.b, c.a
+						return Flightsim.db.profile.colors.frame.borderWidth or 0
 					end,
-					set = function(_, r, g, b, a)
-						local c = Flightsim.db.profile.colors.frame.border
-						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.UpdateFrameColors then
+					set = function(_, v)
+						Flightsim.db.profile.colors.frame.borderWidth = v
+						if FlightsimView and FlightsimView.UpdateFrameColors then
+							FlightsimView:UpdateFrameColors()
+						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
 							FlightsimUI:UpdateFrameColors()
 						end
 					end,
@@ -146,7 +188,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.speedBarHeight = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -172,7 +216,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.speedBar.fontFamily = v
-						if FlightsimUI and FlightsimUI.UpdateFont then
+						if FlightsimView and FlightsimView.UpdateFont then
+							FlightsimView:UpdateFont()
+						elseif FlightsimUI and FlightsimUI.UpdateFont then
 							FlightsimUI:UpdateFont()
 						end
 					end,
@@ -190,7 +236,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.speedBar.fontSize = v
-						if FlightsimUI and FlightsimUI.UpdateFont then
+						if FlightsimView and FlightsimView.UpdateFont then
+							FlightsimView:UpdateFont()
+						elseif FlightsimUI and FlightsimUI.UpdateFont then
 							FlightsimUI:UpdateFont()
 						end
 					end,
@@ -210,7 +258,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.speedBar.fontOutline = v
-						if FlightsimUI and FlightsimUI.UpdateFont then
+						if FlightsimView and FlightsimView.UpdateFont then
+							FlightsimView:UpdateFont()
+						elseif FlightsimUI and FlightsimUI.UpdateFont then
 							FlightsimUI:UpdateFont()
 						end
 					end,
@@ -242,7 +292,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.showSustainMarker = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -263,7 +315,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.sustainableSpeedMarkerWidth = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -284,7 +338,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.sustainableSpeedMarkerAlpha = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -305,7 +361,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.colors.speedBar.useCustom = v
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -326,7 +384,9 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.speedBar.gradient.start
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -347,7 +407,9 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.speedBar.gradient.middle
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -368,7 +430,9 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.speedBar.gradient.finish
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -388,6 +452,14 @@ local options = {
 			type = "group",
 			order = 3,
 			args = {
+				description = {
+					name = "The acceleration bar shows whether you are speeding up or slowing down. "
+						.. "When gaining speed, the bar fills right. When losing speed, it fills left.\n\n"
+						.. "It does not show pitch, altitude, or direction - only your rate of speed change.",
+					type = "description",
+					order = 0,
+					fontSize = "medium",
+				},
 				height = {
 					name = "Height",
 					desc = L["ACCEL_BAR_HEIGHT_DESC"] or "Height of the acceleration indicator bar.",
@@ -401,7 +473,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.accelBarHeight = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -480,7 +554,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.abilityBarHeight = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -498,7 +574,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.ui.barGap = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -518,7 +596,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.abilityBars.showSurgeForward = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -533,7 +613,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.abilityBars.showSecondWind = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -548,7 +630,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.abilityBars.showWhirlingSurge = v
-						if FlightsimUI and FlightsimUI.RebuildLayout then
+						if FlightsimView and FlightsimView.RebuildLayout then
+							FlightsimView:RebuildLayout()
+						elseif FlightsimUI and FlightsimUI.RebuildLayout then
 							FlightsimUI:RebuildLayout()
 						end
 					end,
@@ -572,7 +656,9 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.abilities.surgeForward
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -590,7 +676,9 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.abilities.secondWind
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
 						end
 					end,
@@ -608,8 +696,106 @@ local options = {
 					set = function(_, r, g, b, a)
 						local c = Flightsim.db.profile.colors.abilities.whirlingSurge
 						c.r, c.g, c.b, c.a = r, g, b, a
-						if FlightsimUI and FlightsimUI.InvalidateColorCache then
+						if FlightsimView and FlightsimView.InvalidateColorCache then
+							FlightsimView:InvalidateColorCache()
+						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
 							FlightsimUI:InvalidateColorCache()
+						end
+					end,
+				},
+				-- Background colors header
+				bgColorsHeader = {
+					name = "Background Colors",
+					type = "header",
+					order = 30,
+				},
+				surgeForwardFrameBg = {
+					name = "Surge Forward Row Background",
+					desc = "Background color for the entire Surge Forward row (behind all charges). Set alpha to 0 for transparent.",
+					type = "color",
+					hasAlpha = true,
+					order = 31,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.surgeForwardFrameBg
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.surgeForwardFrameBg
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateAbilityColors then
+							FlightsimView:UpdateAbilityColors()
+						end
+					end,
+				},
+				surgeForwardBarBg = {
+					name = "Surge Forward Bar Background",
+					desc = "Background color for individual Surge Forward charge bars (visible when recharging).",
+					type = "color",
+					hasAlpha = true,
+					order = 32,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.surgeForwardBarBg
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.surgeForwardBarBg
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateAbilityColors then
+							FlightsimView:UpdateAbilityColors()
+						end
+					end,
+				},
+				secondWindFrameBg = {
+					name = "Second Wind Row Background",
+					desc = "Background color for the entire Second Wind row (behind all charges). Set alpha to 0 for transparent.",
+					type = "color",
+					hasAlpha = true,
+					order = 33,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.secondWindFrameBg
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.secondWindFrameBg
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateAbilityColors then
+							FlightsimView:UpdateAbilityColors()
+						end
+					end,
+				},
+				secondWindBarBg = {
+					name = "Second Wind Bar Background",
+					desc = "Background color for individual Second Wind charge bars (visible when recharging).",
+					type = "color",
+					hasAlpha = true,
+					order = 34,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.secondWindBarBg
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.secondWindBarBg
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateAbilityColors then
+							FlightsimView:UpdateAbilityColors()
+						end
+					end,
+				},
+				whirlingSurgeBarBg = {
+					name = "Whirling Surge Bar Background",
+					desc = "Background color for Whirling Surge bar (visible when on cooldown).",
+					type = "color",
+					hasAlpha = true,
+					order = 35,
+					get = function()
+						local c = Flightsim.db.profile.colors.abilities.whirlingSurgeBarBg
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.abilities.whirlingSurgeBarBg
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateAbilityColors then
+							FlightsimView:UpdateAbilityColors()
 						end
 					end,
 				},

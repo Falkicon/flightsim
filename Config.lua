@@ -26,29 +26,33 @@ function FlightsimConfig:CreateToolsPanel(container)
 	row1Label:SetText("Position:")
 
 	CreateToolButton(container, 80, -60, 100, "Reset", function()
-		if FlightsimDB and FlightsimDB.profile then
-			FlightsimDB.profile.x = 0
-			FlightsimDB.profile.y = 0
-			FlightsimDB.profile.scale = 1
-			if FlightsimUI and FlightsimUI.frame then
-				FlightsimUI.frame:ClearAllPoints()
-				FlightsimUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-				FlightsimUI.frame:SetScale(1)
+		local db = Flightsim.db
+		if db and db.profile then
+			db.profile.x = 0
+			db.profile.y = 0
+			db.profile.scale = 1
+			-- Update View layer
+			if FlightsimView and FlightsimView.container then
+				FlightsimView.container:ClearAllPoints()
+				FlightsimView.container:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+				FlightsimView:SetScale(1)
 			end
 			print("|cff00ff00Flightsim:|r Position reset to center.")
 		end
 	end)
 
 	CreateToolButton(container, 185, -60, 80, "Lock", function()
-		if FlightsimDB and FlightsimDB.profile then
-			FlightsimDB.profile.locked = true
+		local db = Flightsim.db
+		if db and db.profile then
+			db.profile.locked = true
 			print("|cff00ff00Flightsim:|r HUD locked.")
 		end
 	end)
 
 	CreateToolButton(container, 270, -60, 80, "Unlock", function()
-		if FlightsimDB and FlightsimDB.profile then
-			FlightsimDB.profile.locked = false
+		local db = Flightsim.db
+		if db and db.profile then
+			db.profile.locked = false
 			print("|cff00ff00Flightsim:|r HUD unlocked. Drag to reposition.")
 		end
 	end)
@@ -59,26 +63,32 @@ function FlightsimConfig:CreateToolsPanel(container)
 	row2Label:SetText("Visibility:")
 
 	CreateToolButton(container, 80, -95, 100, "Show Always", function()
-		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
-			FlightsimDB.profile.visibility.hideWhileSkyriding = false
-			FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
+		local db = Flightsim.db
+		if db and db.profile and db.profile.visibility then
+			db.profile.visibility.hideWhenNotSkyriding = false
+			if FlightsimView and FlightsimView.ApplyVisibility then
+				FlightsimView:ApplyVisibility()
+			end
 			print("|cff00ff00Flightsim:|r Always visible.")
 		end
 	end)
 
 	CreateToolButton(container, 185, -95, 100, "Sky Only", function()
-		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
-			FlightsimDB.profile.visibility.hideWhileSkyriding = false
-			FlightsimDB.profile.visibility.hideWhenNotSkyriding = true
+		local db = Flightsim.db
+		if db and db.profile and db.profile.visibility then
+			db.profile.visibility.hideWhenNotSkyriding = true
+			if FlightsimView and FlightsimView.ApplyVisibility then
+				FlightsimView:ApplyVisibility()
+			end
 			print("|cff00ff00Flightsim:|r Visible only while Skyriding.")
 		end
 	end)
 
-	CreateToolButton(container, 290, -95, 100, "Ground Only", function()
-		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.visibility then
-			FlightsimDB.profile.visibility.hideWhileSkyriding = true
-			FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
-			print("|cff00ff00Flightsim:|r Visible only when grounded (test mode).")
+	CreateToolButton(container, 290, -95, 100, "Force Show", function()
+		-- Temporarily show the HUD for testing (forces container visible)
+		if FlightsimView and FlightsimView.container then
+			FlightsimView.container:Show()
+			print("|cff00ff00Flightsim:|r HUD forced visible (until next update cycle).")
 		end
 	end)
 
@@ -88,18 +98,27 @@ function FlightsimConfig:CreateToolsPanel(container)
 	row3Label:SetText("Debug:")
 
 	CreateToolButton(container, 80, -130, 100, "Toggle Debug", function()
-		if FlightsimDB and FlightsimDB.profile then
-			FlightsimDB.profile.debugMode = not FlightsimDB.profile.debugMode
-			Flightsim.debugMode = FlightsimDB.profile.debugMode
+		local db = Flightsim.db
+		if db and db.profile then
+			db.profile.debugMode = not db.profile.debugMode
+			Flightsim.debugMode = db.profile.debugMode
 			print("|cff00ff00Flightsim:|r Debug mode " .. (Flightsim.debugMode and "ON" or "OFF"))
 		end
 	end)
 
 	CreateToolButton(container, 185, -130, 80, "Status", function()
-		if FlightsimUI and FlightsimUI.Status then
-			FlightsimUI:Status()
-		else
-			print("|cffff0000Flightsim:|r Status not available.")
+		local db = Flightsim.db
+		if db and db.profile then
+			print("|cff00ff00Flightsim Status:|r")
+			print("  Locked: " .. tostring(db.profile.locked))
+			print("  Scale: " .. tostring(db.profile.scale))
+			print("  Position: " .. tostring(db.profile.x) .. ", " .. tostring(db.profile.y))
+			print("  Hide when not skyriding: " .. tostring(db.profile.visibility.hideWhenNotSkyriding))
+			print("  Debug: " .. tostring(db.profile.debugMode))
+			if FlightsimView then
+				print("  View container: " .. (FlightsimView.container and "OK" or "nil"))
+				print("  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No"))
+			end
 		end
 	end)
 
@@ -109,10 +128,11 @@ function FlightsimConfig:CreateToolsPanel(container)
 	row4Label:SetText("Abilities:")
 
 	CreateToolButton(container, 80, -165, 100, "List All", function()
-		if FlightsimDB and FlightsimDB.profile and FlightsimDB.profile.abilities then
+		local db = Flightsim.db
+		if db and db.profile and db.profile.abilities then
 			print("|cff00ff00Flightsim:|r Ability bars:")
-			for i, token in ipairs(FlightsimDB.profile.abilities.order or {}) do
-				local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
+			for i, token in ipairs(db.profile.abilities.order or {}) do
+				local enabled = db.profile.abilities.enabled[token] ~= false
 				print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
 			end
 		end
@@ -121,7 +141,7 @@ function FlightsimConfig:CreateToolsPanel(container)
 	-- Footer
 	local footer = container:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	footer:SetPoint("BOTTOM", 0, 10)
-	footer:SetText("Use /flightsim for more options. API tests moved to Tests tab.")
+	footer:SetText("Use /flightsim for more options.")
 end
 
 --- Legacy alias for backwards compatibility
@@ -133,19 +153,20 @@ SLASH_FLIGHTSIM1 = "/flightsim"
 SLASH_FLIGHTSIM2 = "/fs"
 SlashCmdList["FLIGHTSIM"] = function(msg)
 	local L = Flightsim.L
+	local db = Flightsim.db
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
 
-	if not FlightsimDB or not FlightsimDB.profile then
+	if not db or not db.profile then
 		print(L["NOT_INITIALIZED_YET"])
 		return
 	end
 
 	if msg == "lock" then
-		FlightsimDB.profile.locked = true
+		db.profile.locked = true
 		print(L["LOCKED"])
 		return
 	elseif msg == "unlock" then
-		FlightsimDB.profile.locked = false
+		db.profile.locked = false
 		print(L["UNLOCKED"])
 		return
 	elseif msg:match("^scale%s+") then
@@ -154,8 +175,9 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_SCALE"])
 			return
 		end
-		if FlightsimUI and FlightsimUI.SetScale then
-			FlightsimUI:SetScale(val)
+		if FlightsimView and FlightsimView.SetScale then
+			FlightsimView:SetScale(val)
+			db.profile.scale = val
 		end
 		print(L["SCALE_SET"])
 		return
@@ -165,8 +187,8 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_WIDTH"])
 			return
 		end
-		if FlightsimUI and FlightsimUI.SetWidth then
-			FlightsimUI:SetWidth(val)
+		if FlightsimView and FlightsimView.SetWidth then
+			FlightsimView:SetWidth(val)
 		end
 		print(L["WIDTH_SET"])
 		return
@@ -176,9 +198,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_BARMAX"])
 			return
 		end
-		if FlightsimUI and FlightsimUI.SetSpeedBarMax then
-			FlightsimUI:SetSpeedBarMax(val)
-		end
+		db.profile.speedBar.maxSpeed = val
 		print(L["BARMAX_SET"])
 		return
 	elseif msg:match("^sustainable%s+") or msg:match("^optimal%s+") then
@@ -187,33 +207,38 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_SUSTAINABLE"])
 			return
 		end
-		if FlightsimUI and FlightsimUI.SetSustainableSpeed then
-			FlightsimUI:SetSustainableSpeed(val)
-		end
+		db.profile.speedBar.sustainableSpeed = val
 		print(L["SUSTAINABLE_SET"])
 		return
 	elseif msg == "hidenot" then
-		FlightsimDB.profile.visibility.hideWhenNotSkyriding = true
-		FlightsimDB.profile.visibility.hideWhileSkyriding = false
+		db.profile.visibility.hideWhenNotSkyriding = true
+		if FlightsimView and FlightsimView.ApplyVisibility then
+			FlightsimView:ApplyVisibility()
+		end
 		print(L["HIDE_NOT_SKYRIDING"])
 		return
 	elseif msg == "hidesky" then
-		FlightsimDB.profile.visibility.hideWhileSkyriding = true
-		FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
+		-- Note: hideWhileSkyriding is a legacy setting, keeping for backwards compatibility
+		db.profile.visibility.hideWhenNotSkyriding = false
+		if FlightsimView and FlightsimView.ApplyVisibility then
+			FlightsimView:ApplyVisibility()
+		end
 		print(L["HIDE_WHILE_SKYRIDING"])
 		return
 	elseif msg == "showalways" then
-		FlightsimDB.profile.visibility.hideWhileSkyriding = false
-		FlightsimDB.profile.visibility.hideWhenNotSkyriding = false
+		db.profile.visibility.hideWhenNotSkyriding = false
+		if FlightsimView and FlightsimView.ApplyVisibility then
+			FlightsimView:ApplyVisibility()
+		end
 		print(L["SHOW_ALWAYS"])
 		return
 	elseif msg:match("^toggle%s+") then
 		local query = msg:match("^toggle%s+(.+)$")
 		local found
-		for _, token in ipairs(FlightsimDB.profile.abilities.order or {}) do
+		for _, token in ipairs(db.profile.abilities.order or {}) do
 			if token:lower():find(query, 1, true) then
-				local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
-				FlightsimDB.profile.abilities.enabled[token] = not enabled
+				local enabled = db.profile.abilities.enabled[token] ~= false
+				db.profile.abilities.enabled[token] = not enabled
 				print(string.format(L["ABILITY_TOGGLED"], token, (not enabled) and "enabled" or "disabled"))
 				found = true
 				break
@@ -221,16 +246,12 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		end
 		if not found then
 			print(L["ABILITY_NOT_FOUND"])
-		else
-			if FlightsimUI and FlightsimUI.RebuildAbilityRows then
-				FlightsimUI:RebuildAbilityRows()
-			end
 		end
 		return
 	elseif msg == "list" then
 		print(L["ABILITIES_LIST"])
-		for i, token in ipairs(FlightsimDB.profile.abilities.order or {}) do
-			local enabled = FlightsimDB.profile.abilities.enabled[token] ~= false
+		for i, token in ipairs(db.profile.abilities.order or {}) do
+			local enabled = db.profile.abilities.enabled[token] ~= false
 			print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
 		end
 		return
@@ -241,7 +262,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_MOVE"])
 			return
 		end
-		local order = FlightsimDB.profile.abilities.order or {}
+		local order = db.profile.abilities.order or {}
 		local fromIndex
 		for i, token in ipairs(order) do
 			if token:lower():find(a, 1, true) then
@@ -256,32 +277,34 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		newIndex = math.max(1, math.min(#order, newIndex))
 		local item = table.remove(order, fromIndex)
 		table.insert(order, newIndex, item)
-		FlightsimDB.profile.abilities.order = order
-		if FlightsimUI and FlightsimUI.RebuildAbilityRows then
-			FlightsimUI:RebuildAbilityRows()
-		end
+		db.profile.abilities.order = order
 		print(L["ORDER_UPDATED"])
 		return
 	elseif msg == "debug" then
-		FlightsimDB.profile.debugMode = not FlightsimDB.profile.debugMode
-		Flightsim.debugMode = FlightsimDB.profile.debugMode
+		db.profile.debugMode = not db.profile.debugMode
+		Flightsim.debugMode = db.profile.debugMode
 		print("Flightsim debug mode:", Flightsim.debugMode and "ON" or "OFF")
 		return
 	elseif msg == "status" then
-		if FlightsimUI and FlightsimUI.Status then
-			FlightsimUI:Status()
-		else
-			print(L["STATUS_NOT_AVAILABLE"])
+		print("|cff00ff00Flightsim Status:|r")
+		print("  Locked: " .. tostring(db.profile.locked))
+		print("  Scale: " .. tostring(db.profile.scale))
+		print("  Position: " .. tostring(db.profile.x) .. ", " .. tostring(db.profile.y))
+		print("  Hide when not skyriding: " .. tostring(db.profile.visibility.hideWhenNotSkyriding))
+		print("  Debug: " .. tostring(db.profile.debugMode))
+		if FlightsimView then
+			print("  View container: " .. (FlightsimView.container and "OK" or "nil"))
+			print("  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No"))
 		end
 		return
 	elseif msg == "reset" then
-		FlightsimDB.profile.x = 0
-		FlightsimDB.profile.y = 0
-		FlightsimDB.profile.scale = 1
-		if FlightsimUI and FlightsimUI.frame then
-			FlightsimUI.frame:ClearAllPoints()
-			FlightsimUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-			FlightsimUI.frame:SetScale(1)
+		db.profile.x = 0
+		db.profile.y = 0
+		db.profile.scale = 1
+		if FlightsimView and FlightsimView.container then
+			FlightsimView.container:ClearAllPoints()
+			FlightsimView.container:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+			FlightsimView:SetScale(1)
 		end
 		print(L["RESET_DONE"])
 		return
@@ -294,7 +317,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 	print("  /flightsim width <number>")
 	print("  /flightsim barmax <number>")
 	print("  /flightsim sustainable <number>  (0 hides marker)")
-	print("  /flightsim hidenot | hidesky | showalways")
+	print("  /flightsim hidenot | showalways")
 	print("  /flightsim list")
 	print("  /flightsim toggle <ability>")
 	print("  /flightsim move <ability> <index>")

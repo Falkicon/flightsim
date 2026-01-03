@@ -1,34 +1,28 @@
 # Changelog
-## [1.3.0] - 2026-01-03
-
-### Added
-- Architecture refactor: Logic/Bridge/View layers, FenCore integration for utilities
-
-## [1.2.3] - 2026-01-02
-
-### Changed
-- Added new feature
-
-## [1.2.3] - 2026-01-02
-
-### Changed
-- Release features
-
-## [1.2.3] - 2026-01-01
-
-### Changed
-- Added new feature
-
-## [1.2.3] - 2026-01-01
-
-### Changed
-- Release features
-
 
 All notable changes to Flightsim will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-01-03
+
+### Changed
+- **Architecture Refactor**: Complete restructure to Logic/Bridge/View layers
+  - **View Layer** (`View/init.lua`): All UI frame creation and rendering
+  - **Bridge Layer** (`Bridge/`): API calls, event handling, and command execution
+  - **Logic Layer** (`Logic/`): Pure calculation functions for speed, acceleration, color, visibility
+- **FenCore Integration**: Delegate core utilities to FenCore domains
+  - `FenCore.Math.Clamp` for value clamping
+  - `FenCore.Secrets` for Midnight secret value handling (`IsSecret`, `SafeCompare`, `SafeToString`)
+  - `FenCore.Charges.CalculateAll` for charge bar state calculations
+  - `FenCore.Cooldowns.Calculate` for cooldown bar state
+  - `FenCore.Charges.AdvanceAnimation` / `FenCore.Cooldowns.AdvanceAnimation` for smooth fill animations
+- **Settings Compatibility**: Settings now support both legacy `FlightsimUI` and new `FlightsimView`
+- **Error Handling**: Improved error handling in `Executor.FullUpdate` with safe Result unwrapping
+
+### Fixed
+- Animation state properly tracks recharging index locally
+- Cooldown display correctly uses `isOnCooldown` instead of inverted `isReady`
 
 ## [1.0.4] - 2025-12-23
 
@@ -47,19 +41,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [1.0.2] - 2025-12-19
 
 ### Fixed
-
 - **Mode Transition Crash**: Fixed a crash occurring when changing flight modes via abilities.
   - Removed deprecated global `GetSpellInfo` fallback in favor of `C_Spell.GetSpellInfo`.
 - **Error Resilience**: Added `pcall` guards to visibility and update logic to ensure stability during sensitive flight mode transitions.
 
 ### Changed
-
 - **Steady Flight Support**: Flightsim now explicitly detects Steady Flight mode and disables the HUD to avoid cluttering the UI when not skyriding.
 
 ## [1.0.1] - 2025-12-13
 
 ### Fixed
-
 - **Midnight (12.0) compatibility**: Fixed "attempt to compare a secret value" errors in combat
   - Added `issecretvalue()` detection for secret API return values
   - Ability bars now hide gracefully when spell APIs return secret values in combat
@@ -67,23 +58,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Wrapped all ability bar logic to skip processing when APIs are restricted
 
 ### Changed
-
 - Updated interface version to 120001 (Midnight beta)
 
 ## [1.0.0] - 2025-12-12
 
-First official release! 🎉
+First official release!
 
 ## [0.1.1] - 2025-12-12
 
 ### Added
-
 - Druid Flight Form support: addon now displays correctly when druids use Travel Form for skyriding
 - CurseForge automatic packaging via GitHub webhook integration
 - `.pkgmeta` configuration for CurseForge packager
 
 ### Fixed
-
 - Fixed visibility detection for druids in Flight Form (`IsMounted()` returns false for shapeshifts)
 - Fixed OnUpdate quick-exit optimization to not hide frame for druids in Flight Form
 - Fixed 3-5 second delay before HUD appeared on mount
@@ -95,8 +83,7 @@ First official release! 🎉
 Initial release.
 
 ### Added
-
-- Speed bar with color gradient (red → green based on speed)
+- Speed bar with color gradient (red -> green based on speed)
 - Acceleration bar (thin bar below speed)
 - Sustainable speed marker (configurable position, width, opacity)
 - Ability cooldown bars:

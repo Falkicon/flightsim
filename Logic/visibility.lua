@@ -18,6 +18,7 @@ local Visibility = {}
 ---@field isSkyriding boolean Currently in skyriding mode
 ---@field isMounted boolean Currently mounted
 ---@field isDruidFlying boolean Druid in flight form
+---@field isFlying boolean Currently airborne (flying/gliding)
 
 ---@class VisibilityResult
 ---@field showHUD boolean Whether main HUD should be visible
@@ -42,17 +43,27 @@ function Visibility.ShouldShowHUD(settings, playerState)
 
     local hideWhenNotSkyriding = settings.hideWhenNotSkyriding
     local isSkyriding = playerState.isSkyriding or false
+    local isFlying = playerState.isFlying or false
 
-    if hideWhenNotSkyriding and not isSkyriding then
-        return Result.success({
-            shouldShow = false,
-            reason = "hideWhenNotSkyriding enabled and not skyriding",
-        })
+    if hideWhenNotSkyriding then
+        -- Must be both skyriding AND flying (not just mounted on ground)
+        if not isSkyriding then
+            return Result.success({
+                shouldShow = false,
+                reason = "hideWhenNotSkyriding enabled and not skyriding",
+            })
+        end
+        if not isFlying then
+            return Result.success({
+                shouldShow = false,
+                reason = "hideWhenNotSkyriding enabled and mounted but not flying",
+            })
+        end
     end
 
     return Result.success({
         shouldShow = true,
-        reason = "visible (skyriding or visibility not restricted)",
+        reason = "visible (skyriding and flying, or visibility not restricted)",
     })
 end
 

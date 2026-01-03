@@ -1933,6 +1933,20 @@ end
 -- ============================================================
 
 function FlightsimUI:GetPerformanceSubMetrics()
+	-- Use View layer metrics if available (new architecture)
+	if FlightsimView and FlightsimView.perf then
+		local p = FlightsimView.perf
+		return {
+			{ name = "Executor", msPerSec = p.executor, description = "Bridge logic and API calls" },
+			{ name = "Speed Bar", msPerSec = p.speed, description = "Speed percent calculation and HUD bar" },
+			{ name = "Accel Bar", msPerSec = p.accel, description = "Acceleration delta calculation and UI" },
+			{ name = "Visibility", msPerSec = p.visibility, description = "Frame visibility updates" },
+			{ name = "Surge Forward", msPerSec = p.surge, description = "Surge Forward charges and animations" },
+			{ name = "Whirling Surge", msPerSec = p.whirling, description = "Whirling Surge cooldown bar" },
+			{ name = "Second Wind", msPerSec = p.wind, description = "Second Wind charges and animations" },
+		}
+	end
+	-- Fallback to legacy UI metrics
 	local p = self.perf.blocks
 	return {
 		{ name = "State & Speed", msPerSec = p.state, description = "Skyriding detection and raw speed APIs" },
@@ -2000,17 +2014,20 @@ function FlightsimUI:GetTestResult(id)
 	elseif id == "ui_compliance" then
 		local details = {}
 
-		-- 1. Speed Bar
+		-- 1. Speed Bar (prefer View layer, fallback to legacy)
+		local speedBar = (FlightsimView and FlightsimView.frame) or self.speedBar
 		table.insert(details, {
 			label = "Speed Bar (StatusBar)",
-			value = self.speedBar and "Initialized" or "Missing",
-			status = self.speedBar and "pass" or "fail",
+			value = speedBar and "Initialized" or "Missing",
+			status = speedBar and "pass" or "fail",
 		})
 
 		-- 2. Passthrough Test
 		local speed = GetUnitSpeedSafe("player")
 		local ok = pcall(function()
-			self.speedBar:SetValue(speed)
+			if speedBar then
+				speedBar:SetValue(speed)
+			end
 		end)
 		table.insert(details, {
 			label = "Secret Passthrough",
@@ -2018,9 +2035,10 @@ function FlightsimUI:GetTestResult(id)
 			status = ok and "pass" or "fail",
 		})
 
+		local allPass = speedBar and ok
 		return {
-			passed = ok,
-			message = ok and "UI elements are Midnight compliant" or "UI elements may crash in combat",
+			passed = allPass,
+			message = allPass and "UI elements are Midnight compliant" or "UI elements may crash in combat",
 			details = details,
 		}
 	elseif id == "midnight_apis" then
