@@ -152,7 +152,7 @@ function Context.InvalidateSkyridingCache()
 	_skyridingCacheResult = nil
 end
 
---- Get spell charges safely (handles both C_Spell and legacy APIs).
+--- Get spell charges safely.
 ---@param spellID number Spell ID
 ---@return table chargeInfo {currentCharges, maxCharges, chargeStart, chargeDuration, isSecret}
 function Context.GetSpellCharges(spellID)
@@ -164,29 +164,13 @@ function Context.GetSpellCharges(spellID)
 		isSecret = false,
 	}
 
-	-- Try C_Spell first (modern API)
-	if C_Spell and C_Spell.GetSpellCharges then
-		local ok, info = pcall(C_Spell.GetSpellCharges, spellID)
-		if ok and info then
-			result.currentCharges = info.currentCharges
-			result.maxCharges = info.maxCharges
-			result.chargeStart = info.cooldownStartTime or 0
-			result.chargeDuration = info.cooldownDuration or 0
-			result.isSecret = Secrets.IsSecret(info.currentCharges) or Secrets.IsSecret(info.maxCharges)
-			return result
-		end
-	end
-
-	-- Fallback to legacy GetSpellCharges
-	if type(GetSpellCharges) == "function" then
-		local ok, cur, max, start, dur = pcall(GetSpellCharges, spellID)
-		if ok then
-			result.currentCharges = cur or 0
-			result.maxCharges = max or 0
-			result.chargeStart = start or 0
-			result.chargeDuration = dur or 0
-			result.isSecret = Secrets.IsSecret(cur) or Secrets.IsSecret(max)
-		end
+	local ok, info = pcall(C_Spell.GetSpellCharges, spellID)
+	if ok and info then
+		result.currentCharges = info.currentCharges
+		result.maxCharges = info.maxCharges
+		result.chargeStart = info.cooldownStartTime or 0
+		result.chargeDuration = info.cooldownDuration or 0
+		result.isSecret = Secrets.IsSecret(info.currentCharges) or Secrets.IsSecret(info.maxCharges)
 	end
 
 	return result
@@ -203,32 +187,17 @@ function Context.GetSpellCooldown(spellID)
 		isSecret = false,
 	}
 
-	-- Try C_Spell first
-	if C_Spell and C_Spell.GetSpellCooldown then
-		local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
-		if ok and info then
-			result.startTime = info.startTime or 0
-			result.duration = info.duration or 0
-			-- Handle potentially secret isEnabled value
-			if Secrets.IsSecret(info.isEnabled) then
-				result.enabled = true -- Assume enabled for secrets
-				result.isSecret = true
-			else
-				result.enabled = info.isEnabled ~= false
-				result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
-			end
-			return result
-		end
-	end
-
-	-- Fallback to legacy GetSpellCooldown
-	if type(GetSpellCooldown) == "function" then
-		local ok, start, dur, enabled = pcall(GetSpellCooldown, spellID)
-		if ok then
-			result.startTime = start or 0
-			result.duration = dur or 0
-			result.enabled = enabled ~= 0
-			result.isSecret = Secrets.IsSecret(start) or Secrets.IsSecret(dur)
+	local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
+	if ok and info then
+		result.startTime = info.startTime or 0
+		result.duration = info.duration or 0
+		-- Handle potentially secret isEnabled value
+		if Secrets.IsSecret(info.isEnabled) then
+			result.enabled = true -- Assume enabled for secrets
+			result.isSecret = true
+		else
+			result.enabled = info.isEnabled ~= false
+			result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
 		end
 	end
 

@@ -48,8 +48,6 @@ local options = {
 						Flightsim.db.profile.scale = v
 						if FlightsimView and FlightsimView.SetScale then
 							FlightsimView:SetScale(v)
-						elseif FlightsimUI and FlightsimUI.SetScale then
-							FlightsimUI:SetScale(v)
 						end
 					end,
 				},
@@ -68,8 +66,6 @@ local options = {
 						Flightsim.db.profile.ui.width = v
 						if FlightsimView and FlightsimView.SetWidth then
 							FlightsimView:SetWidth(v)
-						elseif FlightsimUI and FlightsimUI.SetWidth then
-							FlightsimUI:SetWidth(v)
 						end
 					end,
 				},
@@ -94,8 +90,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.UpdateFrameColors then
 							FlightsimView:UpdateFrameColors()
-						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
-							FlightsimUI:UpdateFrameColors()
 						end
 					end,
 				},
@@ -117,8 +111,6 @@ local options = {
 						Flightsim.db.profile.visibility.hideWhenNotSkyriding = v
 						if FlightsimView and FlightsimView.ApplyVisibility then
 							FlightsimView:ApplyVisibility()
-						elseif FlightsimUI and FlightsimUI.ApplyVisibility then
-							FlightsimUI:ApplyVisibility()
 						end
 					end,
 				},
@@ -143,8 +135,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.UpdateFrameColors then
 							FlightsimView:UpdateFrameColors()
-						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
-							FlightsimUI:UpdateFrameColors()
 						end
 					end,
 				},
@@ -163,8 +153,6 @@ local options = {
 						Flightsim.db.profile.colors.frame.borderWidth = v
 						if FlightsimView and FlightsimView.UpdateFrameColors then
 							FlightsimView:UpdateFrameColors()
-						elseif FlightsimUI and FlightsimUI.UpdateFrameColors then
-							FlightsimUI:UpdateFrameColors()
 						end
 					end,
 				},
@@ -190,8 +178,6 @@ local options = {
 						Flightsim.db.profile.ui.speedBarHeight = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -218,8 +204,6 @@ local options = {
 						Flightsim.db.profile.speedBar.fontFamily = v
 						if FlightsimView and FlightsimView.UpdateFont then
 							FlightsimView:UpdateFont()
-						elseif FlightsimUI and FlightsimUI.UpdateFont then
-							FlightsimUI:UpdateFont()
 						end
 					end,
 				},
@@ -238,8 +222,6 @@ local options = {
 						Flightsim.db.profile.speedBar.fontSize = v
 						if FlightsimView and FlightsimView.UpdateFont then
 							FlightsimView:UpdateFont()
-						elseif FlightsimUI and FlightsimUI.UpdateFont then
-							FlightsimUI:UpdateFont()
 						end
 					end,
 				},
@@ -260,8 +242,6 @@ local options = {
 						Flightsim.db.profile.speedBar.fontOutline = v
 						if FlightsimView and FlightsimView.UpdateFont then
 							FlightsimView:UpdateFont()
-						elseif FlightsimUI and FlightsimUI.UpdateFont then
-							FlightsimUI:UpdateFont()
 						end
 					end,
 				},
@@ -294,8 +274,6 @@ local options = {
 						Flightsim.db.profile.ui.showSustainMarker = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -317,8 +295,6 @@ local options = {
 						Flightsim.db.profile.ui.sustainableSpeedMarkerWidth = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -340,8 +316,6 @@ local options = {
 						Flightsim.db.profile.ui.sustainableSpeedMarkerAlpha = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -363,8 +337,6 @@ local options = {
 						Flightsim.db.profile.colors.speedBar.useCustom = v
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -386,8 +358,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -409,8 +379,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -432,8 +400,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -475,8 +441,6 @@ local options = {
 						Flightsim.db.profile.ui.accelBarHeight = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -556,8 +520,6 @@ local options = {
 						Flightsim.db.profile.ui.abilityBarHeight = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -576,8 +538,6 @@ local options = {
 						Flightsim.db.profile.ui.barGap = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -598,8 +558,6 @@ local options = {
 						Flightsim.db.profile.abilityBars.showSurgeForward = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -615,8 +573,6 @@ local options = {
 						Flightsim.db.profile.abilityBars.showSecondWind = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -632,8 +588,6 @@ local options = {
 						Flightsim.db.profile.abilityBars.showWhirlingSurge = v
 						if FlightsimView and FlightsimView.RebuildLayout then
 							FlightsimView:RebuildLayout()
-						elseif FlightsimUI and FlightsimUI.RebuildLayout then
-							FlightsimUI:RebuildLayout()
 						end
 					end,
 				},
@@ -658,8 +612,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -678,8 +630,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},
@@ -698,8 +648,6 @@ local options = {
 						c.r, c.g, c.b, c.a = r, g, b, a
 						if FlightsimView and FlightsimView.InvalidateColorCache then
 							FlightsimView:InvalidateColorCache()
-						elseif FlightsimUI and FlightsimUI.InvalidateColorCache then
-							FlightsimUI:InvalidateColorCache()
 						end
 					end,
 				},

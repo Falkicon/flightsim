@@ -2,7 +2,6 @@
 -- Uses FenCore.Color for color math, defines Flightsim-specific palettes
 
 local FenCore = _G.FenCore
-local FenColor = FenCore.Color
 local Math = FenCore.Math
 
 ---@class FlightsimColor

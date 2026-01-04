@@ -320,20 +320,18 @@ function FlightsimView:UpdateContainerSize()
 		return
 	end
 
-	local ui = self.db.profile.ui or {}
-	local width = ui.width or 150
-	local speedBarHeight = ui.speedBarHeight or 20
-	local accelBarHeight = ui.accelBarHeight or 2
-	local accelGap = ui.accelBarGap or 2
-	local abilityBarHeight = ui.abilityBarHeight or 10
-	local barGap = ui.barGap or 2
+	-- Use cached visibility if available, otherwise use settings
+	local visibility = self.currentVisibility
+	if not visibility then
+		local abilityBars = self.db.profile.abilityBars or {}
+		visibility = {
+			showSurgeForward = abilityBars.showSurgeForward ~= false,
+			showSecondWind = abilityBars.showSecondWind ~= false,
+			showWhirlingSurge = abilityBars.showWhirlingSurge ~= false,
+		}
+	end
 
-	local totalHeight = speedBarHeight + accelGap + accelBarHeight
-	totalHeight = totalHeight + barGap + abilityBarHeight -- Surge Forward
-	totalHeight = totalHeight + barGap + abilityBarHeight -- Second Wind
-	totalHeight = totalHeight + barGap + abilityBarHeight -- Whirling Surge
-
-	self.container:SetSize(width, totalHeight)
+	self:UpdateContainerSizeForVisibility(visibility)
 end
 
 --- Start the update loop.
@@ -346,14 +344,6 @@ function FlightsimView:StartUpdating()
 	tickerFrame:SetScript("OnUpdate", function(_, elapsed)
 		self:OnUpdate(elapsed)
 	end)
-end
-
---- Stop the update loop.
-function FlightsimView:StopUpdating()
-	if tickerFrame then
-		tickerFrame:SetScript("OnUpdate", nil)
-		tickerFrame = nil
-	end
 end
 
 --- Main update loop.
@@ -416,7 +406,7 @@ function FlightsimView:OnUpdate(elapsed)
 	end
 end
 
---- Apply visibility state to frames.
+--- Apply visibility state to frames and reposition bars to collapse gaps.
 ---@param visibility table Visibility state from Executor
 function FlightsimView:ApplyVisibilityState(visibility)
 	-- Container controls overall visibility
@@ -427,6 +417,9 @@ function FlightsimView:ApplyVisibilityState(visibility)
 			self.container:Hide()
 		end
 	end
+
+	-- Cache visibility state for layout calculations
+	self.currentVisibility = visibility
 
 	-- Individual ability visibility
 	if self.surgeForwardFrame then
@@ -452,6 +445,85 @@ function FlightsimView:ApplyVisibilityState(visibility)
 			self.whirlingSurgeBar:Hide()
 		end
 	end
+
+	-- Reposition frames to collapse gaps for hidden bars
+	self:RepositionAbilityBars(visibility)
+end
+
+--- Reposition ability bars to collapse gaps when some are hidden.
+---@param visibility table Visibility state
+function FlightsimView:RepositionAbilityBars(visibility)
+	if not self.db then
+		return
+	end
+
+	local ui = self.db.profile.ui or {}
+	local barGap = ui.barGap or 2
+	local abilityBarHeight = ui.abilityBarHeight or 10
+
+	-- The accel frame is always the anchor point for ability bars
+	local lastFrame = self.accelFrame
+
+	-- Surge Forward
+	if self.surgeForwardFrame then
+		self.surgeForwardFrame:ClearAllPoints()
+		if visibility.showSurgeForward then
+			self.surgeForwardFrame:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
+			lastFrame = self.surgeForwardFrame
+		end
+	end
+
+	-- Second Wind
+	if self.secondWindFrame then
+		self.secondWindFrame:ClearAllPoints()
+		if visibility.showSecondWind then
+			self.secondWindFrame:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
+			lastFrame = self.secondWindFrame
+		end
+	end
+
+	-- Whirling Surge
+	if self.whirlingSurgeBar then
+		self.whirlingSurgeBar:ClearAllPoints()
+		if visibility.showWhirlingSurge then
+			self.whirlingSurgeBar:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
+		end
+	end
+
+	-- Update container size to fit visible bars only
+	self:UpdateContainerSizeForVisibility(visibility)
+end
+
+--- Update container size based on which bars are visible.
+---@param visibility table Visibility state
+function FlightsimView:UpdateContainerSizeForVisibility(visibility)
+	if not self.container or not self.db then
+		return
+	end
+
+	local ui = self.db.profile.ui or {}
+	local width = ui.width or 150
+	local speedBarHeight = ui.speedBarHeight or 20
+	local accelBarHeight = ui.accelBarHeight or 2
+	local accelGap = ui.accelBarGap or 2
+	local abilityBarHeight = ui.abilityBarHeight or 10
+	local barGap = ui.barGap or 2
+
+	-- Base height: speed bar + gap + accel bar
+	local totalHeight = speedBarHeight + accelGap + accelBarHeight
+
+	-- Add height for each visible ability bar
+	if visibility.showSurgeForward then
+		totalHeight = totalHeight + barGap + abilityBarHeight
+	end
+	if visibility.showSecondWind then
+		totalHeight = totalHeight + barGap + abilityBarHeight
+	end
+	if visibility.showWhirlingSurge then
+		totalHeight = totalHeight + barGap + abilityBarHeight
+	end
+
+	self.container:SetSize(width, totalHeight)
 end
 
 --- Update speed bar display.
@@ -499,7 +571,23 @@ function FlightsimView:UpdateAcceleration(data)
 	self.accelBar:Show()
 	self.accelBar:ClearAllPoints()
 	self.accelBar:SetWidth(data.width or 4)
-	self.accelBar:SetColorTexture(1, 1, 1, 0.9)
+
+	-- Apply color based on dynamic color setting and direction
+	-- Logic layer returns: "accelerating", "decelerating", or "stable"
+	local colors = self.db.profile.colors and self.db.profile.colors.accelBar
+	if colors and colors.useDynamic and data.direction then
+		local c
+		if data.direction == "accelerating" then
+			c = colors.accel or { r = 0, g = 1, b = 0, a = 0.9 }
+		elseif data.direction == "decelerating" then
+			c = colors.decel or { r = 1, g = 0, b = 0, a = 0.9 }
+		else
+			c = { r = 1, g = 1, b = 1, a = 0.9 }
+		end
+		self.accelBar:SetColorTexture(c.r, c.g, c.b, c.a or 0.9)
+	else
+		self.accelBar:SetColorTexture(1, 1, 1, 0.9)
+	end
 
 	if data.anchorSide == "CENTER" then
 		self.accelBar:SetPoint("CENTER", self.accelFrame, "CENTER", 0, 0)
@@ -523,6 +611,11 @@ function FlightsimView:UpdateChargeBar(abilityKey, data)
 		return
 	end
 
+	-- Get custom color if configured
+	local abilities = self.db.profile.colors and self.db.profile.colors.abilities
+	local customColor = abilities and abilities[abilityKey]
+
+	-- Default color function for gradient
 	local colorFunc = abilityKey == "surgeForward" and Color.ForSurgeForward
 		or Color.ForSecondWind
 
@@ -530,7 +623,18 @@ function FlightsimView:UpdateChargeBar(abilityKey, data)
 		local bar = bars[i]
 		if bar then
 			bar:SetValue(state.displayPct or 0)
-			local r, g, b = colorFunc(state.displayPct or 0)
+			local r, g, b
+			if customColor then
+				-- Use custom color, but dim based on charge level
+				local pct = state.displayPct or 0
+				-- Lerp from dim (30% brightness) to full brightness
+				local brightness = 0.3 + (0.7 * pct)
+				r = customColor.r * brightness
+				g = customColor.g * brightness
+				b = customColor.b * brightness
+			else
+				r, g, b = colorFunc(state.displayPct or 0)
+			end
 			bar:SetStatusBarColor(r, g, b, 1)
 		end
 	end
@@ -545,8 +649,24 @@ function FlightsimView:UpdateCooldownBar(data)
 
 	self.whirlingSurgeBar:SetValue(data.displayValue or 0)
 
-	local c = data.barColor or { 0.3, 0.8, 0.8 }
-	self.whirlingSurgeBar:SetStatusBarColor(c[1], c[2], c[3], 1)
+	-- Get custom color if configured
+	local abilities = self.db.profile.colors and self.db.profile.colors.abilities
+	local customColor = abilities and abilities.whirlingSurge
+
+	local r, g, b
+	if customColor then
+		-- Use custom color, but dim based on cooldown progress
+		local pct = data.displayValue or 0
+		-- Lerp from dim (30% brightness) to full brightness
+		local brightness = 0.3 + (0.7 * pct)
+		r = customColor.r * brightness
+		g = customColor.g * brightness
+		b = customColor.b * brightness
+	else
+		local c = data.barColor or { 0.3, 0.8, 0.8 }
+		r, g, b = c[1], c[2], c[3]
+	end
+	self.whirlingSurgeBar:SetStatusBarColor(r, g, b, 1)
 end
 
 --- Apply visibility (legacy method for compatibility).
@@ -589,9 +709,13 @@ function FlightsimView:RebuildLayout()
 		self.frame:SetSize(width, ui.speedBarHeight or 20)
 	end
 
-	-- Update accel frame
+	-- Update accel frame and bar
 	if self.accelFrame then
-		self.accelFrame:SetSize(width, ui.accelBarHeight or 2)
+		local accelBarHeight = ui.accelBarHeight or 2
+		self.accelFrame:SetSize(width, accelBarHeight)
+		if self.accelBar then
+			self.accelBar:SetHeight(accelBarHeight)
+		end
 	end
 
 	-- Update ability bar heights and widths
@@ -632,26 +756,25 @@ function FlightsimView:RebuildLayout()
 		self.sustainableMarker:SetColorTexture(1, 1, 1, markerAlpha)
 	end
 
-	-- Reposition frames with new gaps
+	-- Reposition frames with new gaps (respecting visibility)
 	if self.accelFrame and self.frame then
 		self.accelFrame:ClearAllPoints()
 		self.accelFrame:SetPoint("TOP", self.frame, "BOTTOM", 0, -(ui.accelBarGap or 2))
 	end
-	if self.surgeForwardFrame and self.accelFrame then
-		self.surgeForwardFrame:ClearAllPoints()
-		self.surgeForwardFrame:SetPoint("TOP", self.accelFrame, "BOTTOM", 0, -barGap)
-	end
-	if self.secondWindFrame and self.surgeForwardFrame then
-		self.secondWindFrame:ClearAllPoints()
-		self.secondWindFrame:SetPoint("TOP", self.surgeForwardFrame, "BOTTOM", 0, -barGap)
-	end
-	if self.whirlingSurgeBar and self.secondWindFrame then
-		self.whirlingSurgeBar:ClearAllPoints()
-		self.whirlingSurgeBar:SetPoint("TOP", self.secondWindFrame, "BOTTOM", 0, -barGap)
+
+	-- Get visibility state for proper positioning
+	local visibility = self.currentVisibility
+	if not visibility then
+		local abilityBars = db.profile.abilityBars or {}
+		visibility = {
+			showSurgeForward = abilityBars.showSurgeForward ~= false,
+			showSecondWind = abilityBars.showSecondWind ~= false,
+			showWhirlingSurge = abilityBars.showWhirlingSurge ~= false,
+		}
 	end
 
-	-- Update container size to match new layout
-	self:UpdateContainerSize()
+	-- Reposition ability bars with gap collapsing
+	self:RepositionAbilityBars(visibility)
 end
 
 --- Update font settings on speed text.
@@ -771,6 +894,106 @@ function FlightsimView:SetWidth(width)
 
 	self.db.profile.ui.width = width
 	self:RebuildLayout()
+end
+
+-- ============================================================================
+-- MechanicLib Integration (Performance & Debug)
+-- ============================================================================
+
+--- Debug buffer for MechanicLib pull model
+FlightsimView.debugBuffer = {}
+
+--- Get performance sub-metrics for MechanicLib
+---@return table[] Array of performance metrics
+function FlightsimView:GetPerformanceSubMetrics()
+	local p = self.perf
+	return {
+		{ name = "Executor", msPerSec = p.executor, description = "Bridge logic and API calls" },
+		{ name = "Speed Bar", msPerSec = p.speed, description = "Speed percent calculation and HUD bar" },
+		{ name = "Accel Bar", msPerSec = p.accel, description = "Acceleration delta calculation and UI" },
+		{ name = "Visibility", msPerSec = p.visibility, description = "Frame visibility updates" },
+		{ name = "Surge Forward", msPerSec = p.surge, description = "Surge Forward charges and animations" },
+		{ name = "Whirling Surge", msPerSec = p.whirling, description = "Whirling Surge cooldown bar" },
+		{ name = "Second Wind", msPerSec = p.wind, description = "Second Wind charges and animations" },
+	}
+end
+
+--- Test definitions for MechanicLib
+FlightsimView.tests = {
+	{
+		id = "view_init",
+		name = "View Layer Init",
+		category = "UI Compliance",
+		type = "auto",
+		description = "Verifies View layer initialized correctly.",
+	},
+}
+
+--- Get all tests for MechanicLib
+---@return table[] Array of test definitions
+function FlightsimView:GetTests()
+	return self.tests
+end
+
+--- Run a specific test
+---@param id string Test ID
+---@return table Test result
+function FlightsimView:RunTest(id)
+	local startTime = debugprofilestop()
+	local result = self:GetTestResult(id)
+	if type(result) == "table" then
+		result.duration = (debugprofilestop() - startTime) / 1000
+		result.id = id
+	end
+	return result
+end
+
+--- Get test result
+---@param id string Test ID
+---@return table Test result
+function FlightsimView:GetTestResult(id)
+	if id == "view_init" then
+		local details = {}
+
+		-- Check container exists
+		local hasContainer = self.container ~= nil
+		table.insert(details, {
+			label = "Container Frame",
+			value = hasContainer and "OK" or "Missing",
+			status = hasContainer and "pass" or "fail",
+		})
+
+		-- Check speed bar exists
+		local hasSpeedBar = self.frame ~= nil
+		table.insert(details, {
+			label = "Speed Bar",
+			value = hasSpeedBar and "OK" or "Missing",
+			status = hasSpeedBar and "pass" or "fail",
+		})
+
+		-- Check accel bar exists
+		local hasAccelBar = self.accelBar ~= nil
+		table.insert(details, {
+			label = "Accel Bar",
+			value = hasAccelBar and "OK" or "Missing",
+			status = hasAccelBar and "pass" or "fail",
+		})
+
+		local allPassed = hasContainer and hasSpeedBar and hasAccelBar
+		return {
+			passed = allPassed,
+			status = allPassed and "pass" or "fail",
+			summary = allPassed and "View layer initialized" or "View layer incomplete",
+			details = details,
+		}
+	end
+
+	return {
+		passed = false,
+		status = "fail",
+		summary = "Unknown test: " .. tostring(id),
+		details = {},
+	}
 end
 
 return FlightsimView

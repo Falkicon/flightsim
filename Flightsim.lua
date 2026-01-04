@@ -13,8 +13,6 @@ local L = setmetatable({}, {
 })
 Flightsim.L = L
 
-FlightsimUI = FlightsimUI or {}
-FlightsimUI.Utils = FlightsimUI.Utils or {}
 
 local function CopyDefaults(dst, src)
 	for k, v in pairs(src) do
@@ -26,7 +24,6 @@ local function CopyDefaults(dst, src)
 		end
 	end
 end
-FlightsimUI.Utils.CopyDefaults = CopyDefaults
 
 -- AceDB defaults table
 local defaults = {
@@ -174,34 +171,34 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 			MechanicLib:Register("Flightsim", {
 				version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version"),
 				getDebugBuffer = function()
-					return FlightsimUI and FlightsimUI.debugBuffer or {}
+					return FlightsimView and FlightsimView.debugBuffer or {}
 				end,
 				clearDebugBuffer = function()
-					if FlightsimUI and FlightsimUI.debugBuffer then
-						wipe(FlightsimUI.debugBuffer)
+					if FlightsimView and FlightsimView.debugBuffer then
+						wipe(FlightsimView.debugBuffer)
 					end
 				end,
 
 				-- Testing Integration (Phase 5 Rich Details)
 				tests = {
 					getAll = function()
-						return FlightsimUI:GetTests()
+						return FlightsimView:GetTests()
 					end,
 					getCategories = function()
-						return { "API Diagnostic", "UI Compliance" }
+						return { "UI Compliance" }
 					end,
 					run = function(id)
-						return FlightsimUI:RunTest(id)
+						return FlightsimView:RunTest(id)
 					end,
 					getResult = function(id)
-						return FlightsimUI:GetTestResult(id)
+						return FlightsimView:GetTestResult(id)
 					end,
 				},
 
 				-- Performance Integration (Phase 6 Sub-metrics)
 				performance = {
 					getSubMetrics = function()
-						return FlightsimUI:GetPerformanceSubMetrics()
+						return FlightsimView:GetPerformanceSubMetrics()
 					end,
 				},
 

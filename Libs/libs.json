@@ -5,7 +5,6 @@
   "libraries": {
     "LibStub": "latest",
     "CallbackHandler-1.0": "latest",
-    "AceAddon-3.0": "latest",
     "AceDB-3.0": "latest",
     "AceDBOptions-3.0": "latest",
     "AceConfig-3.0": "latest",
@@ -17,7 +16,6 @@
   "notes": {
     "LibStub": "Required for all Ace libraries",
     "CallbackHandler-1.0": "Required by Ace libraries",
-    "AceAddon-3.0": "Addon framework",
     "AceDB-3.0": "SavedVariables management with profiles",
     "AceDBOptions-3.0": "Profile management UI",
     "AceConfig-3.0": "Settings framework with hierarchical options",

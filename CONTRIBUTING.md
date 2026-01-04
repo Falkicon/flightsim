@@ -16,8 +16,6 @@ Thanks for your interest in contributing! This addon is a lightweight skyriding 
 ### Read the Docs First
 
 - [AGENTS.md](AGENTS.md) – Project intent, conventions, and decisions log
-- [SPEC.md](SPEC.md) – Technical specification and architecture
-- [ADDON_DEVELOPMENT_GUIDE.md](ADDON_DEVELOPMENT_GUIDE.md) – WoW addon best practices
 
 ### Code Style
 

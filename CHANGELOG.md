@@ -4,6 +4,26 @@ All notable changes to Flightsim will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] - 2026-01-04
+
+### Added
+- **Full Localization**: Complete translations for 10 languages
+  - German (deDE), French (frFR), Spanish (esES/esMX), Italian (itIT)
+  - Portuguese (ptBR), Russian (ruRU), Korean (koKR)
+  - Chinese Simplified (zhCN), Chinese Traditional (zhTW)
+- **Dynamic Acceleration Colors**: Accel bar can now show green for accelerating, red for decelerating
+- **Custom Ability Colors**: User-configurable colors for all ability bars with brightness dimming
+- **Hidden Bar Gap Collapsing**: When ability bars are hidden, remaining bars reposition to eliminate gaps
+
+### Changed
+- **Removed Legacy UI.lua**: Completed migration to new View layer architecture
+- **Removed AceAddon-3.0**: Unused library removed, reducing addon size
+- **Removed Deprecated API Fallbacks**: GetSpellCharges/GetSpellCooldown fallbacks removed (12.0+ only)
+
+### Fixed
+- Ability bar colors now properly use custom colors from settings
+- Container height now dynamically adjusts based on visible bars
+
 ## [1.3.0] - 2026-01-03
 
 ### Changed
