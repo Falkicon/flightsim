@@ -1,3 +1,5 @@
+if GetLocale() ~= "ruRU" then return end
+
 local L = Flightsim.L
 
 -- Russian (Русский)

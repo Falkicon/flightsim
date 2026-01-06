@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.1] - 2026-01-05
+
+### Fixed
+- Localization files now check client locale before loading, preventing non-English strings (e.g., Chinese) from overwriting English on US/EU clients
+
 
 All notable changes to Flightsim will be documented in this file.
 

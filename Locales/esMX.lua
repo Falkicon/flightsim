@@ -1,3 +1,5 @@
+if GetLocale() ~= "esMX" then return end
+
 local L = Flightsim.L
 
 -- Spanish (Español - México/Latinoamérica)

@@ -1,3 +1,5 @@
+if GetLocale() ~= "zhCN" then return end
+
 local L = Flightsim.L
 
 -- Simplified Chinese (简体中文)

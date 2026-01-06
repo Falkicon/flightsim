@@ -1,3 +1,5 @@
+if GetLocale() ~= "esES" then return end
+
 local L = Flightsim.L
 
 -- Spanish (Español - España)

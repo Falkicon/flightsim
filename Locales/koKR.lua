@@ -1,3 +1,5 @@
+if GetLocale() ~= "koKR" then return end
+
 local L = Flightsim.L
 
 -- Korean (한국어)

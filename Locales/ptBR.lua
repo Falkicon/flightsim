@@ -1,3 +1,5 @@
+if GetLocale() ~= "ptBR" then return end
+
 local L = Flightsim.L
 
 -- Portuguese (Português - Brasil)

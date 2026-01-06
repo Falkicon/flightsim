@@ -1,3 +1,5 @@
+if GetLocale() ~= "zhTW" then return end
+
 local L = Flightsim.L
 
 -- Traditional Chinese (繁體中文)
