@@ -9,25 +9,67 @@ local Progress = FenCore.Progress
 ---@class FlightsimSpeed
 local Speed = {}
 
--- Constants (matching WA-style calculations)
+-- Constants
 Speed.BASE_SPEED_FOR_PCT = 8.24 -- Approx 100% mounted ground speed in y/s
-Speed.SLOW_SKYRIDING_RATIO = 705 / 830 -- Speed reduction in Dragon Isles
 
--- Zone IDs where skyriding is slower (Dragon Isles, Zaralek, etc.)
-Speed.FAST_FLYING_ZONES = {
-    [2444] = true, -- Dragon Isles
-    [2454] = true, -- Zaralek Cavern
-    [2548] = true, -- Emerald Dream
-    [2516] = true, -- Nokhud Offensive
-    [2522] = true, -- Vault of the Incarnates
-    [2569] = true, -- Aberrus, the Shadowed Crucible
+-- Base speed values (Dragon Isles / uncapped)
+Speed.BASE_SUSTAINABLE = 789 -- Cruise speed in Dragon Isles
+Speed.BASE_MAX = 830 -- Max tooltip speed in Dragon Isles
+Speed.BASE_THRILL = 855 -- Thrill of the Skies threshold in Dragon Isles
+
+-- Zone modifier for Old World / TWW (85% of Dragon Isles speeds)
+Speed.OLD_WORLD_MODIFIER = 0.85
+
+-- Map IDs where speed is uncapped (Dragon Isles ecosystem)
+-- Uses Map IDs from C_Map.GetBestMapForUnit("player"), NOT Instance IDs
+Speed.DRAGON_ISLES_MAPS = {
+    [1978] = true, -- Dragon Isles (Continent)
+    [2022] = true, -- The Waking Shores
+    [2023] = true, -- Ohn'ahran Plains
+    [2024] = true, -- The Azure Span
+    [2025] = true, -- Thaldraszus
+    [2151] = true, -- The Forbidden Reach
+    [2133] = true, -- Zaralek Cavern
+    [2200] = true, -- Emerald Dream
 }
 
---- Check if a zone is a slow skyriding zone.
----@param zoneID number Instance/zone ID
+--- Check if a map ID is in Dragon Isles (uncapped speed).
+---@param mapID number Map ID from C_Map.GetBestMapForUnit
 ---@return boolean
-function Speed.IsSlowSkyridingZone(zoneID)
-    return Speed.FAST_FLYING_ZONES[zoneID] == true
+function Speed.IsDragonIslesMap(mapID)
+    return Speed.DRAGON_ISLES_MAPS[mapID] == true
+end
+
+--- Get zone modifier for speed calculations.
+--- Returns 1.0 for Dragon Isles, 0.85 for Old World / TWW.
+---@param mapID number|nil Map ID (if nil, assumes Old World)
+---@return number modifier (1.0 or 0.85)
+function Speed.GetZoneModifier(mapID)
+    if mapID and Speed.DRAGON_ISLES_MAPS[mapID] then
+        return 1.0
+    end
+    return Speed.OLD_WORLD_MODIFIER
+end
+
+--- Get sustainable (cruise) speed for current zone.
+---@param zoneModifier number Zone modifier (1.0 or 0.85)
+---@return number sustainableSpeed (789 or 671)
+function Speed.GetSustainableSpeed(zoneModifier)
+    return Speed.BASE_SUSTAINABLE * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+end
+
+--- Get max speed for current zone.
+---@param zoneModifier number Zone modifier (1.0 or 0.85)
+---@return number maxSpeed (830 or 705)
+function Speed.GetMaxSpeed(zoneModifier)
+    return Speed.BASE_MAX * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+end
+
+--- Get Thrill of the Skies threshold for current zone.
+---@param zoneModifier number Zone modifier (1.0 or 0.85)
+---@return number thrillSpeed (855 or 727)
+function Speed.GetThrillThreshold(zoneModifier)
+    return Speed.BASE_THRILL * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Calculate speed percentage from raw yards/sec.
@@ -52,31 +94,8 @@ function Speed.CalculatePercentage(rawSpeed, baseSpeed)
     })
 end
 
---- Adjust speed for slow skyriding zones (Dragon Isles).
----@param rawSpeed number Raw speed in yards/second
----@param isSlowZone boolean Whether current zone has slow skyriding
----@return ActionResult<{adjustedSpeed: number, wasAdjusted: boolean}>
-function Speed.AdjustForZone(rawSpeed, isSlowZone)
-    if rawSpeed == nil then
-        return Result.error("INVALID_INPUT", "rawSpeed is required")
-    end
-
-    if isSlowZone then
-        local adjusted = rawSpeed / Speed.SLOW_SKYRIDING_RATIO
-        return Result.success({
-            adjustedSpeed = adjusted,
-            wasAdjusted = true,
-        })
-    end
-
-    return Result.success({
-        adjustedSpeed = rawSpeed,
-        wasAdjusted = false,
-    })
-end
-
 --- Full speed bar calculation.
----@param context table {rawSpeed, isSlowZone, configuredMax, sessionMax, sustainableSpeed}
+---@param context table {rawSpeed, zoneModifier, configuredMax, sessionMax}
 ---@return ActionResult<SpeedBarState>
 function Speed.Calculate(context)
     if not context then
@@ -84,18 +103,16 @@ function Speed.Calculate(context)
     end
 
     local rawSpeed = context.rawSpeed or 0
-    local isSlowZone = context.isSlowZone or false
+    local zoneModifier = context.zoneModifier or Speed.OLD_WORLD_MODIFIER
     local configuredMax = context.configuredMax or 950
     local sessionMax = context.sessionMax
-    local sustainableSpeed = context.sustainableSpeed or 0
 
-    -- Adjust for zone
-    local zoneResult = Speed.AdjustForZone(rawSpeed, isSlowZone)
-    local adjustedSpeed = Result.unwrap(zoneResult).adjustedSpeed
-
-    -- Calculate percentage
-    local pctResult = Speed.CalculatePercentage(adjustedSpeed)
+    -- Calculate percentage directly (no adjustment - GetGlidingInfo is accurate)
+    local pctResult = Speed.CalculatePercentage(rawSpeed)
     local speedPct = Result.unwrap(pctResult).percentage
+
+    -- Calculate zone-aware sustainable speed for marker
+    local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
 
     -- Use FenCore.Progress for fill calculation with session max
     local fillResult = Progress.CalculateFillWithSessionMax(speedPct, configuredMax, sessionMax)
@@ -107,13 +124,13 @@ function Speed.Calculate(context)
 
     return Result.success({
         rawSpeed = rawSpeed,
-        adjustedSpeed = adjustedSpeed,
         speedPct = speedPct,
         effectiveMax = fillData.effectiveMax,
         fillPct = fillData.fillPct,
         markerPct = markerData.markerPct,
         showMarker = markerData.shouldShow,
-        isSlowZone = isSlowZone,
+        sustainableSpeed = sustainableSpeed,
+        zoneModifier = zoneModifier,
     })
 end
 

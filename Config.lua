@@ -297,6 +297,25 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print("  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No"))
 		end
 		return
+	elseif msg == "pos" then
+		-- Detailed position debugging
+		local profile = db:GetCurrentProfile()
+		print("|cff00ff00Flightsim Position Debug:|r")
+		print("  Current profile: " .. tostring(profile))
+		print("  db.profile.x: " .. tostring(db.profile.x))
+		print("  db.profile.y: " .. tostring(db.profile.y))
+		if FlightsimDB and FlightsimDB.profiles and FlightsimDB.profiles[profile] then
+			local raw = FlightsimDB.profiles[profile]
+			print("  RAW profiles[" .. profile .. "].x: " .. tostring(raw.x))
+			print("  RAW profiles[" .. profile .. "].y: " .. tostring(raw.y))
+		else
+			print("  RAW profiles[" .. profile .. "]: NOT FOUND")
+		end
+		if FlightsimView and FlightsimView.container then
+			local _, _, _, actualX, actualY = FlightsimView.container:GetPoint(1)
+			print("  Actual frame pos: x=" .. tostring(actualX) .. ", y=" .. tostring(actualY))
+		end
+		return
 	elseif msg == "reset" then
 		db.profile.x = 0
 		db.profile.y = 0

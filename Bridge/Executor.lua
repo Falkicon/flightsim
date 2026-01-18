@@ -72,10 +72,9 @@ function Executor.Speed(ctx)
 	-- Calculate speed
 	local speedResult = Logic.Speed.Calculate({
 		rawSpeed = ctx.player.speed or 0,
-		isSlowZone = ctx.zone.isSlowSkyriding,
+		zoneModifier = ctx.zone.zoneModifier,
 		configuredMax = speedBar.maxSpeed or 950,
 		sessionMax = frameState.sessionMaxSpeed,
-		sustainableSpeed = speedBar.sustainableSpeed or speedBar.optimalSpeed or 0,
 	})
 
 	if not speedResult.success then

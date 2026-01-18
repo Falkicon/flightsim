@@ -764,12 +764,20 @@ function ns:InitializeSettings()
 	-- Add profiles tab
 	options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(Flightsim.db)
 
-	-- Register slash commands to open settings
-	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", function()
-		LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+	-- Register slash commands - only open settings if no args, call Config.lua's handler for commands
+	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", function(msg)
+		if not msg or msg == "" then
+			LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+		elseif SlashCmdList["FLIGHTSIM"] then
+			SlashCmdList["FLIGHTSIM"](msg)
+		end
 	end)
-	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", function()
-		LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", function(msg)
+		if not msg or msg == "" then
+			LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+		elseif SlashCmdList["FLIGHTSIM"] then
+			SlashCmdList["FLIGHTSIM"](msg)
+		end
 	end)
 end
 

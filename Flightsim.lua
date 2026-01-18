@@ -116,6 +116,9 @@ local defaults = {
 function Flightsim:OnProfileChanged()
 	-- Update View when profile changes
 	if FlightsimView then
+		-- Set flag to prevent OnDragStop from saving during switch
+		FlightsimView.isSwitchingProfile = true
+		
 		FlightsimView.db = self.db
 		-- Rebuild everything with new profile settings
 		if FlightsimView.RebuildLayout then
@@ -133,9 +136,15 @@ function Flightsim:OnProfileChanged()
 		if FlightsimView.SetScale then
 			FlightsimView:SetScale(self.db.profile.scale)
 		end
+		if FlightsimView.SetPosition then
+			FlightsimView:SetPosition()
+		end
 		if FlightsimView.ApplyVisibility then
 			FlightsimView:ApplyVisibility()
 		end
+		
+		-- Clear flag after all operations complete
+		FlightsimView.isSwitchingProfile = false
 	end
 	-- Sync debug mode
 	self.debugMode = self.db.profile.debugMode
@@ -147,6 +156,17 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 	if event == "ADDON_LOADED" and name == ADDON_NAME then
 		-- Initialize AceDB
 		Flightsim.db = LibStub("AceDB-3.0"):New("FlightsimDB", defaults, true)
+
+		-- MIGRATION: Clean up stale root-level x/y values from old versions
+		-- These values override profile-specific positions and break profile switching
+		-- The fix is to remove them so AceDB uses profile-specific values correctly
+		if FlightsimDB and FlightsimDB.profile then
+			if FlightsimDB.profile.x ~= nil or FlightsimDB.profile.y ~= nil then
+				FlightsimDB.profile.x = nil
+				FlightsimDB.profile.y = nil
+				print("|cff00ff00Flightsim:|r Migrated position data to fix profile switching.")
+			end
+		end
 
 		-- Register profile change callbacks
 		Flightsim.db.RegisterCallback(Flightsim, "OnProfileChanged", "OnProfileChanged")

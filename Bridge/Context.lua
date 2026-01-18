@@ -13,12 +13,12 @@ local Context = {}
 -- Spell IDs for ability tracking
 local SURGE_FORWARD_SPELL_ID = 372608
 local SECOND_WIND_SPELL_ID = 425782
-local WHIRLING_SURGE_SPELL_ID = 361584
+local WHIRLING_SURGE_SPELL_ID = 361584 -- Whitelisted for C_Spell in 12.0
 
 -- Caching
 local _skyridingCacheTime = nil
 local _skyridingCacheResult = nil
-local _isSlowSkyriding = nil
+local _zoneModifier = nil
 
 --- Get unit speed safely (handles both C_* and legacy APIs).
 ---@param unit string Unit ID (default "player")
@@ -36,28 +36,46 @@ function Context.GetUnitSpeed(unit)
 	return speed or 0
 end
 
---- Check if current zone is a slow skyriding zone.
----@return boolean isSlowZone
-function Context.IsSlowSkyridingZone()
-	local instanceID = select(8, GetInstanceInfo())
-	if instanceID then
-		return SpeedLogic.IsSlowSkyridingZone(instanceID) or false
+--- Get zone modifier for speed calculations.
+--- Uses Map IDs with parent traversal for sub-zones/delves.
+---@return number modifier (1.0 for Dragon Isles, 0.85 for Old World/TWW)
+function Context.GetZoneModifier()
+	local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+	if not mapID then
+		return SpeedLogic.OLD_WORLD_MODIFIER
 	end
-	return false
+
+	-- Check direct match
+	if SpeedLogic.IsDragonIslesMap(mapID) then
+		return 1.0
+	end
+
+	-- Check parent maps (for sub-zones/delves inside Dragon Isles)
+	if C_Map and C_Map.GetMapInfo then
+		local mapInfo = C_Map.GetMapInfo(mapID)
+		while mapInfo and mapInfo.parentMapID do
+			if SpeedLogic.IsDragonIslesMap(mapInfo.parentMapID) then
+				return 1.0
+			end
+			mapInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+		end
+	end
+
+	return SpeedLogic.OLD_WORLD_MODIFIER
 end
 
---- Update slow skyriding zone state (called on zone change).
+--- Update zone modifier state (called on zone change).
 function Context.UpdateZoneState()
-	_isSlowSkyriding = Context.IsSlowSkyridingZone()
+	_zoneModifier = Context.GetZoneModifier()
 end
 
---- Get the cached slow skyriding state.
----@return boolean isSlowZone
-function Context.GetSlowZoneState()
-	if _isSlowSkyriding == nil then
+--- Get the cached zone modifier.
+---@return number modifier (1.0 or 0.85)
+function Context.GetCachedZoneModifier()
+	if _zoneModifier == nil then
 		Context.UpdateZoneState()
 	end
-	return _isSlowSkyriding or false
+	return _zoneModifier or SpeedLogic.OLD_WORLD_MODIFIER
 end
 
 --- Check if player is in Druid flight form.
@@ -290,7 +308,7 @@ function Context.Build(db, lastFrameTime)
 		},
 
 		zone = {
-			isSlowSkyriding = Context.GetSlowZoneState(),
+			zoneModifier = Context.GetCachedZoneModifier(),
 		},
 
 		db = db,

@@ -1,4 +1,21 @@
 # Changelog
+
+## [1.4.2] - 2026-01-17
+
+### Fixed
+- **Frame Position Persistence**: Fixed frame position not saving correctly across profile switches and character logins
+  - Frame now uses `GetCenter()` for accurate position capture after drag
+  - Writes directly to SavedVariables to ensure persistence
+  - Added migration to clean up stale root-level position data
+- **Zone-Aware Speed**: Speed display now correctly accounts for zone modifiers (Dragon Isles vs Old World)
+  - Uses Map ID detection with parent traversal for sub-zones and delves
+
+### Added
+- `/fs pos` debug command for troubleshooting position issues
+
+### Known Issues
+- Whirling Surge bar may not update on 11.2.7 (works on 12.0 PTR)
+
 ## [1.4.1] - 2026-01-05
 
 ### Fixed

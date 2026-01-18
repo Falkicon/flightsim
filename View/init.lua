@@ -130,19 +130,43 @@ function FlightsimView:CreateFrames()
 	self.borders.right = rightBorder
 
 	-- Make container draggable when unlocked
+	-- IMPORTANT: Use View (self) reference, not local db, so profile changes work correctly
+	local View = self
 	container:SetMovable(true)
 	container:EnableMouse(true)
 	container:RegisterForDrag("LeftButton")
 	container:SetScript("OnDragStart", function(f)
-		if not db.profile.locked then
+		if View.db and not View.db.profile.locked and not View.isSwitchingProfile then
 			f:StartMoving()
 		end
 	end)
 	container:SetScript("OnDragStop", function(f)
 		f:StopMovingOrSizing()
-		local _, _, _, x, y = f:GetPoint(1)
-		db.profile.x = x
-		db.profile.y = y
+		-- Don't save position during profile switch
+		if View.db and not View.isSwitchingProfile then
+			-- StopMovingOrSizing() changes the anchor point, so we need to calculate
+			-- the position relative to CENTER,UIParent,CENTER (our standard anchor)
+			local centerX, centerY = UIParent:GetCenter()
+			local frameX, frameY = f:GetCenter()
+			local x = frameX - centerX
+			local y = frameY - centerY
+			
+			-- Re-anchor to our standard anchor point
+			f:ClearAllPoints()
+			f:SetPoint("CENTER", UIParent, "CENTER", x, y)
+			
+			local profileName = View.db:GetCurrentProfile()
+			
+			-- Write directly to raw SavedVariables table to ensure persistence
+			if FlightsimDB and FlightsimDB.profiles then
+				FlightsimDB.profiles[profileName] = FlightsimDB.profiles[profileName] or {}
+				FlightsimDB.profiles[profileName].x = x
+				FlightsimDB.profiles[profileName].y = y
+			end
+			-- Also update AceDB's view for immediate effect
+			View.db.profile.x = x
+			View.db.profile.y = y
+		end
 	end)
 
 	-- Main HUD frame (speed bar) - parented to container
@@ -691,6 +715,20 @@ function FlightsimView:SetScale(scale)
 	if self.container then
 		self.container:SetScale(scale)
 	end
+end
+
+--- Set position for container from profile.
+--- Called when profile changes to reposition frame based on saved x/y.
+function FlightsimView:SetPosition()
+	if not self.container or not self.db then
+		return
+	end
+
+	local x = self.db.profile.x or 0
+	local y = self.db.profile.y or 0
+
+	self.container:ClearAllPoints()
+	self.container:SetPoint("CENTER", UIParent, "CENTER", x, y)
 end
 
 --- Rebuild all frames with current settings.
