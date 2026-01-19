@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.3] - 2026-01-18
+
+### Fixed
+- **Speed Percentage Display**: Changed baseline from mounted speed (8.24 y/s) to walking speed (7.0 y/s) to match WoW's standard speed percentage convention
+  - Dragon Isles cruise now shows 929% (was 789%)
+  - Old World cruise now shows 789% (was 671%)
+  - Matches tooltips and other addons that use 100% = walking speed
+
 ## [1.4.2] - 2026-01-17
 
 ### Fixed
