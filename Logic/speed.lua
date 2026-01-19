@@ -10,12 +10,12 @@ local Progress = FenCore.Progress
 local Speed = {}
 
 -- Constants
-Speed.BASE_SPEED_FOR_PCT = 8.24 -- Approx 100% mounted ground speed in y/s
+Speed.BASE_SPEED_FOR_PCT = 7.0 -- Walking speed in y/s (100% baseline, matches WoW tooltips)
 
--- Base speed values (Dragon Isles / uncapped)
-Speed.BASE_SUSTAINABLE = 789 -- Cruise speed in Dragon Isles
-Speed.BASE_MAX = 830 -- Max tooltip speed in Dragon Isles
-Speed.BASE_THRILL = 855 -- Thrill of the Skies threshold in Dragon Isles
+-- Base speed values (Dragon Isles / uncapped) - using walking speed baseline
+Speed.BASE_SUSTAINABLE = 929 -- Cruise speed in Dragon Isles (65 y/s)
+Speed.BASE_MAX = 976 -- Max tooltip speed in Dragon Isles (~68.3 y/s)
+Speed.BASE_THRILL = 1007 -- Thrill of the Skies threshold in Dragon Isles (~70.5 y/s)
 
 -- Zone modifier for Old World / TWW (85% of Dragon Isles speeds)
 Speed.OLD_WORLD_MODIFIER = 0.85
