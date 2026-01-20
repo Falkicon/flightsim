@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.4] - 2026-01-20
+
+### Fixed
+- **Frame Drag Positioning**: Fixed frame jumping to incorrect position when dragging with scale != 1.0
+  - Correctly compensates for scaled coordinate origin in SetPoint offset calculation
+- **Settings Panel Display**: Fixed General tab controls showing blank values until edited
+  - Added NotifyChange refresh when opening settings via slash command or Blizzard options
+
+### Changed
+- **Code Formatting**: Applied StyLua formatting to all source files for consistent style
+
 ## [1.4.3] - 2026-01-18
 
 ### Fixed

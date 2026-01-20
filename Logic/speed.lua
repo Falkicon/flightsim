@@ -23,21 +23,21 @@ Speed.OLD_WORLD_MODIFIER = 0.85
 -- Map IDs where speed is uncapped (Dragon Isles ecosystem)
 -- Uses Map IDs from C_Map.GetBestMapForUnit("player"), NOT Instance IDs
 Speed.DRAGON_ISLES_MAPS = {
-    [1978] = true, -- Dragon Isles (Continent)
-    [2022] = true, -- The Waking Shores
-    [2023] = true, -- Ohn'ahran Plains
-    [2024] = true, -- The Azure Span
-    [2025] = true, -- Thaldraszus
-    [2151] = true, -- The Forbidden Reach
-    [2133] = true, -- Zaralek Cavern
-    [2200] = true, -- Emerald Dream
+	[1978] = true, -- Dragon Isles (Continent)
+	[2022] = true, -- The Waking Shores
+	[2023] = true, -- Ohn'ahran Plains
+	[2024] = true, -- The Azure Span
+	[2025] = true, -- Thaldraszus
+	[2151] = true, -- The Forbidden Reach
+	[2133] = true, -- Zaralek Cavern
+	[2200] = true, -- Emerald Dream
 }
 
 --- Check if a map ID is in Dragon Isles (uncapped speed).
 ---@param mapID number Map ID from C_Map.GetBestMapForUnit
 ---@return boolean
 function Speed.IsDragonIslesMap(mapID)
-    return Speed.DRAGON_ISLES_MAPS[mapID] == true
+	return Speed.DRAGON_ISLES_MAPS[mapID] == true
 end
 
 --- Get zone modifier for speed calculations.
@@ -45,31 +45,31 @@ end
 ---@param mapID number|nil Map ID (if nil, assumes Old World)
 ---@return number modifier (1.0 or 0.85)
 function Speed.GetZoneModifier(mapID)
-    if mapID and Speed.DRAGON_ISLES_MAPS[mapID] then
-        return 1.0
-    end
-    return Speed.OLD_WORLD_MODIFIER
+	if mapID and Speed.DRAGON_ISLES_MAPS[mapID] then
+		return 1.0
+	end
+	return Speed.OLD_WORLD_MODIFIER
 end
 
 --- Get sustainable (cruise) speed for current zone.
 ---@param zoneModifier number Zone modifier (1.0 or 0.85)
 ---@return number sustainableSpeed (789 or 671)
 function Speed.GetSustainableSpeed(zoneModifier)
-    return Speed.BASE_SUSTAINABLE * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+	return Speed.BASE_SUSTAINABLE * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Get max speed for current zone.
 ---@param zoneModifier number Zone modifier (1.0 or 0.85)
 ---@return number maxSpeed (830 or 705)
 function Speed.GetMaxSpeed(zoneModifier)
-    return Speed.BASE_MAX * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+	return Speed.BASE_MAX * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Get Thrill of the Skies threshold for current zone.
 ---@param zoneModifier number Zone modifier (1.0 or 0.85)
 ---@return number thrillSpeed (855 or 727)
 function Speed.GetThrillThreshold(zoneModifier)
-    return Speed.BASE_THRILL * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+	return Speed.BASE_THRILL * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Calculate speed percentage from raw yards/sec.
@@ -77,61 +77,61 @@ end
 ---@param baseSpeed? number Base speed for 100% (default 8.24)
 ---@return ActionResult<{percentage: number, rawSpeed: number}>
 function Speed.CalculatePercentage(rawSpeed, baseSpeed)
-    if rawSpeed == nil then
-        return Result.error("INVALID_INPUT", "rawSpeed is required")
-    end
+	if rawSpeed == nil then
+		return Result.error("INVALID_INPUT", "rawSpeed is required")
+	end
 
-    baseSpeed = baseSpeed or Speed.BASE_SPEED_FOR_PCT
-    if baseSpeed <= 0 then
-        baseSpeed = Speed.BASE_SPEED_FOR_PCT
-    end
+	baseSpeed = baseSpeed or Speed.BASE_SPEED_FOR_PCT
+	if baseSpeed <= 0 then
+		baseSpeed = Speed.BASE_SPEED_FOR_PCT
+	end
 
-    local pct = (rawSpeed / baseSpeed) * 100
+	local pct = (rawSpeed / baseSpeed) * 100
 
-    return Result.success({
-        percentage = pct,
-        rawSpeed = rawSpeed,
-    })
+	return Result.success({
+		percentage = pct,
+		rawSpeed = rawSpeed,
+	})
 end
 
 --- Full speed bar calculation.
 ---@param context table {rawSpeed, zoneModifier, configuredMax, sessionMax}
 ---@return ActionResult<SpeedBarState>
 function Speed.Calculate(context)
-    if not context then
-        return Result.error("INVALID_INPUT", "context is required")
-    end
+	if not context then
+		return Result.error("INVALID_INPUT", "context is required")
+	end
 
-    local rawSpeed = context.rawSpeed or 0
-    local zoneModifier = context.zoneModifier or Speed.OLD_WORLD_MODIFIER
-    local configuredMax = context.configuredMax or 950
-    local sessionMax = context.sessionMax
+	local rawSpeed = context.rawSpeed or 0
+	local zoneModifier = context.zoneModifier or Speed.OLD_WORLD_MODIFIER
+	local configuredMax = context.configuredMax or 950
+	local sessionMax = context.sessionMax
 
-    -- Calculate percentage directly (no adjustment - GetGlidingInfo is accurate)
-    local pctResult = Speed.CalculatePercentage(rawSpeed)
-    local speedPct = Result.unwrap(pctResult).percentage
+	-- Calculate percentage directly (no adjustment - GetGlidingInfo is accurate)
+	local pctResult = Speed.CalculatePercentage(rawSpeed)
+	local speedPct = Result.unwrap(pctResult).percentage
 
-    -- Calculate zone-aware sustainable speed for marker
-    local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
+	-- Calculate zone-aware sustainable speed for marker
+	local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
 
-    -- Use FenCore.Progress for fill calculation with session max
-    local fillResult = Progress.CalculateFillWithSessionMax(speedPct, configuredMax, sessionMax)
-    local fillData = Result.unwrap(fillResult)
+	-- Use FenCore.Progress for fill calculation with session max
+	local fillResult = Progress.CalculateFillWithSessionMax(speedPct, configuredMax, sessionMax)
+	local fillData = Result.unwrap(fillResult)
 
-    -- Use FenCore.Progress for marker calculation
-    local markerResult = Progress.CalculateMarker(sustainableSpeed, fillData.effectiveMax)
-    local markerData = Result.unwrap(markerResult)
+	-- Use FenCore.Progress for marker calculation
+	local markerResult = Progress.CalculateMarker(sustainableSpeed, fillData.effectiveMax)
+	local markerData = Result.unwrap(markerResult)
 
-    return Result.success({
-        rawSpeed = rawSpeed,
-        speedPct = speedPct,
-        effectiveMax = fillData.effectiveMax,
-        fillPct = fillData.fillPct,
-        markerPct = markerData.markerPct,
-        showMarker = markerData.shouldShow,
-        sustainableSpeed = sustainableSpeed,
-        zoneModifier = zoneModifier,
-    })
+	return Result.success({
+		rawSpeed = rawSpeed,
+		speedPct = speedPct,
+		effectiveMax = fillData.effectiveMax,
+		fillPct = fillData.fillPct,
+		markerPct = markerData.markerPct,
+		showMarker = markerData.shouldShow,
+		sustainableSpeed = sustainableSpeed,
+		zoneModifier = zoneModifier,
+	})
 end
 
 -- Export to Flightsim namespace

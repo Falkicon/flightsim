@@ -1,4 +1,6 @@
-if GetLocale() ~= "frFR" then return end
+if GetLocale() ~= "frFR" then
+	return
+end
 
 local L = Flightsim.L
 

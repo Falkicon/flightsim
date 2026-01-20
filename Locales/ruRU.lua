@@ -1,4 +1,6 @@
-if GetLocale() ~= "ruRU" then return end
+if GetLocale() ~= "ruRU" then
+	return
+end
 
 local L = Flightsim.L
 
@@ -14,7 +16,8 @@ L["USAGE_WIDTH"] = "Flightsim: использование: /flightsim width 320"
 L["WIDTH_SET"] = "Flightsim: ширина установлена"
 L["USAGE_BARMAX"] = "Flightsim: использование: /flightsim barmax 930"
 L["BARMAX_SET"] = "Flightsim: максимум полосы скорости установлен"
-L["USAGE_SUSTAINABLE"] = "Flightsim: использование: /flightsim sustainable 0   (0 скрывает маркер)"
+L["USAGE_SUSTAINABLE"] =
+	"Flightsim: использование: /flightsim sustainable 0   (0 скрывает маркер)"
 L["SUSTAINABLE_SET"] = "Flightsim: маркер устойчивой скорости установлен"
 L["HIDE_NOT_SKYRIDING"] = "Flightsim: будет скрыт, когда НЕ в полёте по небу"
 L["HIDE_WHILE_SKYRIDING"] = "Flightsim: будет скрыт во время полёта по небу"
@@ -24,8 +27,10 @@ L["ABILITY_NOT_FOUND"] = "Flightsim: способность не найдена.
 L["ABILITIES_LIST"] = "Способности Flightsim:"
 L["USAGE_MOVE"] = "Flightsim: использование: /flightsim move <способность> <индекс>"
 L["ORDER_UPDATED"] = "Flightsim: порядок способностей обновлён"
-L["DEBUG_NOT_AVAILABLE"] = "Flightsim: отладка недоступна (UI ещё не инициализирован)"
-L["STATUS_NOT_AVAILABLE"] = "Flightsim: статус недоступен (UI ещё не инициализирован)"
+L["DEBUG_NOT_AVAILABLE"] =
+	"Flightsim: отладка недоступна (UI ещё не инициализирован)"
+L["STATUS_NOT_AVAILABLE"] =
+	"Flightsim: статус недоступен (UI ещё не инициализирован)"
 L["RESET_DONE"] = "Flightsim: позиция/масштаб сброшены"
 L["COMMANDS_HELP"] = "Команды Flightsim:"
 
@@ -33,7 +38,8 @@ L["COMMANDS_HELP"] = "Команды Flightsim:"
 L["LOCK_FRAME"] = "Заблокировать рамку"
 L["LOCK_FRAME_DESC"] = "Запрещает перетаскивание рамки Flightsim."
 L["ONLY_SKYRIDING"] = "Показывать только при полёте по небу"
-L["ONLY_SKYRIDING_DESC"] = "Скрывает рамку, когда не на средстве передвижения для полёта по небу."
+L["ONLY_SKYRIDING_DESC"] =
+	"Скрывает рамку, когда не на средстве передвижения для полёта по небу."
 L["SCALE"] = "Масштаб"
 L["SCALE_DESC"] = "Общий масштаб рамки Flightsim."
 L["BAR_WIDTH"] = "Ширина полосы"
@@ -41,23 +47,29 @@ L["BAR_WIDTH_DESC"] = "Ширина всех полос."
 L["FONT_SIZE"] = "Размер шрифта"
 L["FONT_SIZE_DESC"] = "Размер шрифта для текста скорости."
 L["SHOW_PERCENT"] = "Показывать скорость в процентах"
-L["SHOW_PERCENT_DESC"] = "Показывает скорость в процентах (напр. 78%%) вместо сырого значения."
+L["SHOW_PERCENT_DESC"] =
+	"Показывает скорость в процентах (напр. 78%%) вместо сырого значения."
 L["HEIGHT"] = "Высота"
 L["SPEED_BAR_HEIGHT_DESC"] = "Высота полосы скорости."
 L["SUSTAIN_MARKER_WIDTH"] = "Ширина маркера устойчивости"
 L["SUSTAIN_MARKER_WIDTH_DESC"] = "Ширина линии маркера устойчивой скорости."
 L["SUSTAIN_MARKER_ALPHA"] = "Непрозрачность маркера устойчивости"
-L["SUSTAIN_MARKER_ALPHA_DESC"] = "Непрозрачность маркера устойчивой скорости (0.1-1.0)."
+L["SUSTAIN_MARKER_ALPHA_DESC"] =
+	"Непрозрачность маркера устойчивой скорости (0.1-1.0)."
 L["ACCEL_BAR_HEIGHT_DESC"] = "Высота полосы индикатора ускорения."
 L["ABILITY_BAR_HEIGHT_DESC"] = "Высота полос перезарядки способностей."
 L["BAR_GAP"] = "Расстояние между секциями"
-L["BAR_GAP_DESC"] = "Расстояние между секциями зарядов полос способностей."
+L["BAR_GAP_DESC"] =
+	"Расстояние между секциями зарядов полос способностей."
 L["SHOW_SURGE_FORWARD"] = "Показать Рывок вперёд"
-L["SHOW_SURGE_FORWARD_DESC"] = "Показывает полосу зарядов Рывка вперёд (6 зарядов)."
+L["SHOW_SURGE_FORWARD_DESC"] =
+	"Показывает полосу зарядов Рывка вперёд (6 зарядов)."
 L["SHOW_SECOND_WIND"] = "Показать Второе дыхание"
-L["SHOW_SECOND_WIND_DESC"] = "Показывает полосу зарядов Второго дыхания (3 заряда)."
+L["SHOW_SECOND_WIND_DESC"] =
+	"Показывает полосу зарядов Второго дыхания (3 заряда)."
 L["SHOW_WHIRLING_SURGE"] = "Показать Вихревой рывок"
-L["SHOW_WHIRLING_SURGE_DESC"] = "Показывает полосу перезарядки Вихревого рывка (30с)."
+L["SHOW_WHIRLING_SURGE_DESC"] =
+	"Показывает полосу перезарядки Вихревого рывка (30с)."
 
 -- UI / Debug
 L["VISIBILITY_ERROR"] = "Flightsim: ошибка видимости при переходе: "
@@ -66,7 +78,8 @@ L["DEBUG_KV"] = "Flightsim отладка: %s = %s"
 L["DEBUG_HEADER"] = "Flightsim отладка: ----"
 L["DEBUG_DB_NOT_INIT"] = "Flightsim отладка: БД не инициализирована"
 L["DEBUG_ABILITIES_HEADER"] = "Flightsim отладка: способности ----"
-L["DEBUG_ABILITY_FORMAT"] = "Flightsim отладка: %d) %s включено=%s spellID=%s иконка=%s заряды=%s/%s"
+L["DEBUG_ABILITY_FORMAT"] =
+	"Flightsim отладка: %d) %s включено=%s spellID=%s иконка=%s заряды=%s/%s"
 L["DEBUG_FOOTER"] = "Flightsim отладка: ---- конец"
 L["STATUS_NOT_INIT"] = "Flightsim: не инициализирован"
 L["SHOWN"] = "показан"

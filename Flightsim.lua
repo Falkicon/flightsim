@@ -13,7 +13,6 @@ local L = setmetatable({}, {
 })
 Flightsim.L = L
 
-
 local function CopyDefaults(dst, src)
 	for k, v in pairs(src) do
 		if type(v) == "table" then
@@ -118,7 +117,7 @@ function Flightsim:OnProfileChanged()
 	if FlightsimView then
 		-- Set flag to prevent OnDragStop from saving during switch
 		FlightsimView.isSwitchingProfile = true
-		
+
 		FlightsimView.db = self.db
 		-- Rebuild everything with new profile settings
 		if FlightsimView.RebuildLayout then
@@ -142,7 +141,7 @@ function Flightsim:OnProfileChanged()
 		if FlightsimView.ApplyVisibility then
 			FlightsimView:ApplyVisibility()
 		end
-		
+
 		-- Clear flag after all operations complete
 		FlightsimView.isSwitchingProfile = false
 	end
@@ -247,7 +246,10 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 							)
 						end
 						if View.secondWindBars and View.secondWindBars[1] then
-							table.insert(frames, { label = "Wind 1", frame = View.secondWindBars[1], property = "Value" })
+							table.insert(
+								frames,
+								{ label = "Wind 1", frame = View.secondWindBars[1], property = "Value" }
+							)
 						end
 						if View.whirlingSurgeBar then
 							table.insert(

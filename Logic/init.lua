@@ -5,7 +5,7 @@
 -- Ensure FenCore is available
 local FenCore = _G.FenCore
 if not FenCore then
-    error("Flightsim requires FenCore library")
+	error("Flightsim requires FenCore library")
 end
 
 ---@class FlightsimLogic

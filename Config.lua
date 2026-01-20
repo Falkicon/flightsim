@@ -117,7 +117,10 @@ function FlightsimConfig:CreateToolsPanel(container)
 			print("  Debug: " .. tostring(db.profile.debugMode))
 			if FlightsimView then
 				print("  View container: " .. (FlightsimView.container and "OK" or "nil"))
-				print("  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No"))
+				print(
+					"  View visible: "
+						.. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No")
+				)
 			end
 		end
 	end)
@@ -294,7 +297,9 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		print("  Debug: " .. tostring(db.profile.debugMode))
 		if FlightsimView then
 			print("  View container: " .. (FlightsimView.container and "OK" or "nil"))
-			print("  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No"))
+			print(
+				"  View visible: " .. (FlightsimView.container and FlightsimView.container:IsShown() and "Yes" or "No")
+			)
 		end
 		return
 	elseif msg == "pos" then

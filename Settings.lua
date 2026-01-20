@@ -100,7 +100,8 @@ local options = {
 				},
 				hideWhenNotSkyriding = {
 					name = L["ONLY_SKYRIDING"] or "Only Show When Skyriding",
-					desc = L["ONLY_SKYRIDING_DESC"] or "Hides the frame when not actively skyriding (must also be flying).",
+					desc = L["ONLY_SKYRIDING_DESC"]
+						or "Hides the frame when not actively skyriding (must also be flying).",
 					type = "toggle",
 					width = "full",
 					order = 11,
@@ -759,22 +760,40 @@ function ns:InitializeSettings()
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Flightsim", options)
 
 	-- Add to Blizzard Interface Options
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Flightsim", "Flightsim")
+	local blizPanel = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Flightsim", "Flightsim")
+
+	-- Hook OnShow to force refresh (fixes controls not showing values initially)
+	if blizPanel then
+		blizPanel:HookScript("OnShow", function()
+			C_Timer.After(0, function()
+				LibStub("AceConfigRegistry-3.0"):NotifyChange("Flightsim")
+			end)
+		end)
+	end
 
 	-- Add profiles tab
 	options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(Flightsim.db)
 
+	-- Helper to open dialog and force refresh (fixes controls not showing values initially)
+	local function OpenSettings()
+		LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+		-- Force refresh on next frame to ensure controls display their values
+		C_Timer.After(0, function()
+			LibStub("AceConfigRegistry-3.0"):NotifyChange("Flightsim")
+		end)
+	end
+
 	-- Register slash commands - only open settings if no args, call Config.lua's handler for commands
 	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", function(msg)
 		if not msg or msg == "" then
-			LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+			OpenSettings()
 		elseif SlashCmdList["FLIGHTSIM"] then
 			SlashCmdList["FLIGHTSIM"](msg)
 		end
 	end)
 	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", function(msg)
 		if not msg or msg == "" then
-			LibStub("AceConfigDialog-3.0"):Open("Flightsim")
+			OpenSettings()
 		elseif SlashCmdList["FLIGHTSIM"] then
 			SlashCmdList["FLIGHTSIM"](msg)
 		end

@@ -144,19 +144,24 @@ function FlightsimView:CreateFrames()
 		f:StopMovingOrSizing()
 		-- Don't save position during profile switch
 		if View.db and not View.isSwitchingProfile then
-			-- StopMovingOrSizing() changes the anchor point, so we need to calculate
-			-- the position relative to CENTER,UIParent,CENTER (our standard anchor)
-			local centerX, centerY = UIParent:GetCenter()
+			local scale = f:GetScale() or 1
+
+			-- Get center positions
 			local frameX, frameY = f:GetCenter()
-			local x = frameX - centerX
-			local y = frameY - centerY
-			
+			local uiCenterX, uiCenterY = UIParent:GetCenter()
+
+			-- For scaled frames, SetPoint offsets are relative to a coordinate system
+			-- where the origin (UIParent center) is scaled. To compensate:
+			-- offset = framePos - (uiCenter / scale)
+			local x = frameX - uiCenterX / scale
+			local y = frameY - uiCenterY / scale
+
 			-- Re-anchor to our standard anchor point
 			f:ClearAllPoints()
 			f:SetPoint("CENTER", UIParent, "CENTER", x, y)
-			
+
 			local profileName = View.db:GetCurrentProfile()
-			
+
 			-- Write directly to raw SavedVariables table to ensure persistence
 			if FlightsimDB and FlightsimDB.profiles then
 				FlightsimDB.profiles[profileName] = FlightsimDB.profiles[profileName] or {}
@@ -640,8 +645,7 @@ function FlightsimView:UpdateChargeBar(abilityKey, data)
 	local customColor = abilities and abilities[abilityKey]
 
 	-- Default color function for gradient
-	local colorFunc = abilityKey == "surgeForward" and Color.ForSurgeForward
-		or Color.ForSecondWind
+	local colorFunc = abilityKey == "surgeForward" and Color.ForSurgeForward or Color.ForSecondWind
 
 	for i, state in ipairs(data.states or {}) do
 		local bar = bars[i]
@@ -708,8 +712,12 @@ end
 ---@param scale number Scale factor (0.5-2.0)
 function FlightsimView:SetScale(scale)
 	scale = scale or 1
-	if scale < 0.5 then scale = 0.5 end
-	if scale > 2.0 then scale = 2.0 end
+	if scale < 0.5 then
+		scale = 0.5
+	end
+	if scale > 2.0 then
+		scale = 2.0
+	end
 
 	-- Only set scale on container - all child frames inherit it
 	if self.container then
@@ -926,9 +934,15 @@ function FlightsimView:SetWidth(width)
 		return
 	end
 	width = tonumber(width)
-	if not width then return end
-	if width < 50 then width = 50 end
-	if width > 800 then width = 800 end
+	if not width then
+		return
+	end
+	if width < 50 then
+		width = 50
+	end
+	if width > 800 then
+		width = 800
+	end
 
 	self.db.profile.ui.width = width
 	self:RebuildLayout()
@@ -1035,4 +1049,3 @@ function FlightsimView:GetTestResult(id)
 end
 
 return FlightsimView
-

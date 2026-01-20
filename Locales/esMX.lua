@@ -1,4 +1,6 @@
-if GetLocale() ~= "esMX" then return end
+if GetLocale() ~= "esMX" then
+	return
+end
 
 local L = Flightsim.L
 

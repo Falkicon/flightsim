@@ -5,7 +5,7 @@
 -- Require FenCore
 local FenCore = _G.FenCore
 if not FenCore then
-    error("Flightsim requires FenCore library")
+	error("Flightsim requires FenCore library")
 end
 
 ---@class FlightsimBridge
@@ -25,21 +25,21 @@ local logThrottle = {}
 local LOG_THROTTLE_INTERVAL = 0.1 -- seconds between identical messages
 
 function FlightsimBridge:Log(msg, category)
-    if not Flightsim or not Flightsim.debugMode then
-        return
-    end
+	if not Flightsim or not Flightsim.debugMode then
+		return
+	end
 
-    -- Throttle identical messages
-    local now = GetTime()
-    if logThrottle[msg] and (now - logThrottle[msg]) < LOG_THROTTLE_INTERVAL then
-        return
-    end
-    logThrottle[msg] = now
+	-- Throttle identical messages
+	local now = GetTime()
+	if logThrottle[msg] and (now - logThrottle[msg]) < LOG_THROTTLE_INTERVAL then
+		return
+	end
+	logThrottle[msg] = now
 
-    local MechanicLib = LibStub and LibStub("MechanicLib-1.0", true)
-    if MechanicLib then
-        MechanicLib:Log("Flightsim", msg, category or MechanicLib.Categories.CORE)
-    end
+	local MechanicLib = LibStub and LibStub("MechanicLib-1.0", true)
+	if MechanicLib then
+		MechanicLib:Log("Flightsim", msg, category or MechanicLib.Categories.CORE)
+	end
 end
 
 return FlightsimBridge

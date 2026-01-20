@@ -102,8 +102,12 @@ function Executor.Speed(ctx)
 		-- Use custom gradient colors
 		local grad = speedBarColors.gradient
 		local pct = data.fillPct or 0
-		if pct < 0 then pct = 0 end
-		if pct > 1 then pct = 1 end
+		if pct < 0 then
+			pct = 0
+		end
+		if pct > 1 then
+			pct = 1
+		end
 
 		if pct < 0.5 then
 			-- start -> middle (0% to 50%)
@@ -367,12 +371,8 @@ function Executor.Cooldown(ctx)
 	-- Advance animation
 	local displayValue = targetValue
 	if frameState.whirlAnimating then
-		local newValue = FenCore.Cooldowns.AdvanceAnimation(
-			frameState.whirlAnimValue or 0,
-			1,
-			ctx.deltaTime,
-			ANIM_SPEED
-		)
+		local newValue =
+			FenCore.Cooldowns.AdvanceAnimation(frameState.whirlAnimValue or 0, 1, ctx.deltaTime, ANIM_SPEED)
 		frameState.whirlAnimValue = newValue
 		displayValue = newValue
 		if newValue >= 0.99 then
@@ -448,7 +448,8 @@ function Executor.FullUpdate(db, barDimensions)
 	local speedResult = Executor.Speed(ctx)
 	local speedData = speedResult.success and Result.unwrap(speedResult) or nil
 
-	local accelResult = Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4)
+	local accelResult =
+		Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4)
 	local accelData = accelResult.success and Result.unwrap(accelResult) or nil
 
 	local surgeData = nil
