@@ -45,6 +45,9 @@ function FlightsimConfig:CreateToolsPanel(container)
 		local db = Flightsim.db
 		if db and db.profile then
 			db.profile.locked = true
+			if FlightsimView and FlightsimView.SetClickThrough then
+				FlightsimView:SetClickThrough(true)
+			end
 			print("|cff00ff00Flightsim:|r HUD locked.")
 		end
 	end)
@@ -53,6 +56,9 @@ function FlightsimConfig:CreateToolsPanel(container)
 		local db = Flightsim.db
 		if db and db.profile then
 			db.profile.locked = false
+			if FlightsimView and FlightsimView.SetClickThrough then
+				FlightsimView:SetClickThrough(false)
+			end
 			print("|cff00ff00Flightsim:|r HUD unlocked. Drag to reposition.")
 		end
 	end)
@@ -166,10 +172,16 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 
 	if msg == "lock" then
 		db.profile.locked = true
+		if FlightsimView and FlightsimView.SetClickThrough then
+			FlightsimView:SetClickThrough(true)
+		end
 		print(L["LOCKED"])
 		return
 	elseif msg == "unlock" then
 		db.profile.locked = false
+		if FlightsimView and FlightsimView.SetClickThrough then
+			FlightsimView:SetClickThrough(false)
+		end
 		print(L["UNLOCKED"])
 		return
 	elseif msg:match("^scale%s+") then

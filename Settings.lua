@@ -26,6 +26,9 @@ local options = {
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.locked = v
+						if FlightsimView and FlightsimView.SetClickThrough then
+							FlightsimView:SetClickThrough(v)
+						end
 					end,
 				},
 				appearanceHeader = {

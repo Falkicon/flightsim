@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.4.5] - 2026-01-22
+
+### Added
+- **HUD Click-Through**: Frame is now click-through when locked, allowing clicks to pass through to the game world
+  - Lock ON: Mouse passes through HUD to interact with game
+  - Lock OFF: HUD is interactive and draggable
+  - Works with settings toggle, Lock/Unlock buttons, and `/flightsim lock|unlock` commands
+
+### Fixed
+- **Speed Bar Scaling**: Fixed bar fill and sustain marker starting at wrong position on initial load
+  - Bar now uses zone-aware reference max (1430% Dragon Isles, 1215% Old World) for consistent scaling
+  - Sustain marker now appears at correct ~65% position immediately without needing to fly first
+  - Previously bar would show nearly full at cruise speed until session max was established
+- **Zone Detection**: Zone modifier now refreshes on mount to ensure correct speed calculations
+
 ## [1.4.4] - 2026-01-20
 
 ### Fixed

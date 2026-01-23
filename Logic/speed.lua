@@ -16,6 +16,7 @@ Speed.BASE_SPEED_FOR_PCT = 7.0 -- Walking speed in y/s (100% baseline, matches W
 Speed.BASE_SUSTAINABLE = 929 -- Cruise speed in Dragon Isles (65 y/s)
 Speed.BASE_MAX = 976 -- Max tooltip speed in Dragon Isles (~68.3 y/s)
 Speed.BASE_THRILL = 1007 -- Thrill of the Skies threshold in Dragon Isles (~70.5 y/s)
+Speed.BASE_MARKER_REF = 1430 -- Reference max for marker positioning (typical dive speed)
 
 -- Zone modifier for Old World / TWW (85% of Dragon Isles speeds)
 Speed.OLD_WORLD_MODIFIER = 0.85
@@ -72,6 +73,14 @@ function Speed.GetThrillThreshold(zoneModifier)
 	return Speed.BASE_THRILL * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
+--- Get marker reference max for current zone.
+--- This is a fixed reference for consistent marker positioning.
+---@param zoneModifier number Zone modifier (1.0 or 0.85)
+---@return number markerRefMax (1430 or 1215)
+function Speed.GetMarkerReferenceMax(zoneModifier)
+	return Speed.BASE_MARKER_REF * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
+end
+
 --- Calculate speed percentage from raw yards/sec.
 ---@param rawSpeed number Raw speed in yards/second
 ---@param baseSpeed? number Base speed for 100% (default 8.24)
@@ -114,19 +123,32 @@ function Speed.Calculate(context)
 	-- Calculate zone-aware sustainable speed for marker
 	local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
 
-	-- Use FenCore.Progress for fill calculation with session max
-	local fillResult = Progress.CalculateFillWithSessionMax(speedPct, configuredMax, sessionMax)
-	local fillData = Result.unwrap(fillResult)
+	-- Get zone-aware reference max for consistent bar scaling
+	-- This ensures the bar starts at a reasonable scale for each zone
+	local markerRefMax = Speed.GetMarkerReferenceMax(zoneModifier)
 
-	-- Use FenCore.Progress for marker calculation
-	local markerResult = Progress.CalculateMarker(sustainableSpeed, fillData.effectiveMax)
+	-- Use the higher of: zone reference, configured max, or session max
+	-- This ensures bar doesn't clip at high speeds but starts at correct scale
+	local effectiveMax = markerRefMax
+	if configuredMax and configuredMax > effectiveMax then
+		effectiveMax = configuredMax
+	end
+	if sessionMax and sessionMax > effectiveMax then
+		effectiveMax = sessionMax
+	end
+
+	-- Calculate fill percentage against effective max
+	local fillPct = Math.Clamp(speedPct / effectiveMax, 0, 1)
+
+	-- Use zone-aware marker reference for consistent marker positioning
+	local markerResult = Progress.CalculateMarker(sustainableSpeed, markerRefMax)
 	local markerData = Result.unwrap(markerResult)
 
 	return Result.success({
 		rawSpeed = rawSpeed,
 		speedPct = speedPct,
-		effectiveMax = fillData.effectiveMax,
-		fillPct = fillData.fillPct,
+		effectiveMax = effectiveMax,
+		fillPct = fillPct,
 		markerPct = markerData.markerPct,
 		showMarker = markerData.shouldShow,
 		sustainableSpeed = sustainableSpeed,

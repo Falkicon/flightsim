@@ -135,6 +135,12 @@ function FlightsimView:CreateFrames()
 	container:SetMovable(true)
 	container:EnableMouse(true)
 	container:RegisterForDrag("LeftButton")
+
+	-- Apply initial click-through state based on lock setting
+	if View.db and View.db.profile.locked then
+		container:EnableMouse(false)
+	end
+
 	container:SetScript("OnDragStart", function(f)
 		if View.db and not View.db.profile.locked and not View.isSwitchingProfile then
 			f:StartMoving()
@@ -203,6 +209,7 @@ function FlightsimView:CreateFrames()
 	sustainableMarker:SetWidth(markerWidth)
 	sustainableMarker:SetPoint("TOP", overlay, "TOP", 0, 0)
 	sustainableMarker:SetPoint("BOTTOM", overlay, "BOTTOM", 0, 0)
+	sustainableMarker:Hide() -- Hide until first valid position update
 	self.sustainableMarker = sustainableMarker
 
 	-- Speed text
@@ -574,11 +581,17 @@ function FlightsimView:UpdateSpeed(data)
 		self.frame:SetStatusBarColor(c[1], c[2], c[3], 1)
 
 		if data.showMarker and data.markerPct then
-			self.sustainableMarker:Show()
-			self.sustainableMarker:ClearAllPoints()
 			local barWidth = self.frame:GetWidth()
-			self.sustainableMarker:SetPoint("TOP", self.frame, "TOPLEFT", data.markerPct * barWidth, 0)
-			self.sustainableMarker:SetPoint("BOTTOM", self.frame, "BOTTOMLEFT", data.markerPct * barWidth, 0)
+			-- Only show marker if frame has valid width (layout complete)
+			if barWidth and barWidth > 0 then
+				self.sustainableMarker:ClearAllPoints()
+				local offset = data.markerPct * barWidth
+				self.sustainableMarker:SetPoint("TOP", self.frame, "TOPLEFT", offset, 0)
+				self.sustainableMarker:SetPoint("BOTTOM", self.frame, "BOTTOMLEFT", offset, 0)
+				self.sustainableMarker:Show()
+			else
+				self.sustainableMarker:Hide()
+			end
 		else
 			self.sustainableMarker:Hide()
 		end
@@ -737,6 +750,14 @@ function FlightsimView:SetPosition()
 
 	self.container:ClearAllPoints()
 	self.container:SetPoint("CENTER", UIParent, "CENTER", x, y)
+end
+
+--- Set click-through state based on lock setting.
+---@param locked boolean Whether the frame should be click-through
+function FlightsimView:SetClickThrough(locked)
+	if self.container then
+		self.container:EnableMouse(not locked)
+	end
 end
 
 --- Rebuild all frames with current settings.

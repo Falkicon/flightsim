@@ -141,6 +141,9 @@ function Flightsim:OnProfileChanged()
 		if FlightsimView.ApplyVisibility then
 			FlightsimView:ApplyVisibility()
 		end
+		if FlightsimView.SetClickThrough then
+			FlightsimView:SetClickThrough(self.db.profile.locked)
+		end
 
 		-- Clear flag after all operations complete
 		FlightsimView.isSwitchingProfile = false

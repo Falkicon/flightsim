@@ -54,6 +54,7 @@ end
 local function onEvent(_, event, ...)
 	if event == "PLAYER_MOUNT_DISPLAY_CHANGED" then
 		Context.InvalidateSkyridingCache()
+		Context.UpdateZoneState() -- Refresh zone on mount to ensure correct speed calculations
 		fireCallbacks("onMount", event)
 	elseif event == "UNIT_AURA" then
 		local unit = ...

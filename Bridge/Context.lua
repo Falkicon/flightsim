@@ -70,12 +70,11 @@ function Context.UpdateZoneState()
 end
 
 --- Get the cached zone modifier.
+--- Note: Always calculates fresh to avoid stale cache issues on login/reload.
 ---@return number modifier (1.0 or 0.85)
 function Context.GetCachedZoneModifier()
-	if _zoneModifier == nil then
-		Context.UpdateZoneState()
-	end
-	return _zoneModifier or SpeedLogic.OLD_WORLD_MODIFIER
+	-- Always calculate fresh - the API call is cheap and avoids stale cache issues
+	return Context.GetZoneModifier()
 end
 
 --- Check if player is in Druid flight form.
