@@ -41,6 +41,39 @@ FlightsimView.perf = {
 local UPDATE_INTERVAL_ACTIVE = 0.05 -- 20Hz when visible
 local UPDATE_INTERVAL_IDLE = 0.5 -- 2Hz when hidden
 
+--- Create a circle indicator using a FontString bullet character.
+--- Guaranteed to work in any WoW version, scales and colors perfectly.
+---@param parent Frame Parent frame
+---@param size number Font size (controls circle diameter)
+---@param r number Red (0-1)
+---@param g number Green (0-1)
+---@param b number Blue (0-1)
+---@param a number Alpha (0-1)
+---@return Frame frame Container with :SetIndicatorColor(r,g,b,a) and :SetIndicatorSize(size) methods
+local function CreateCircleIndicator(parent, size, r, g, b, a)
+	local frame = CreateFrame("Frame", nil, parent)
+	frame:SetSize(size, size)
+	frame:SetFrameLevel(parent:GetFrameLevel() + 15)
+
+	local text = frame:CreateFontString(nil, "OVERLAY")
+	text:SetFont("Fonts\\ARIALN.TTF", size, "")
+	text:SetText("\226\151\143") -- UTF-8 for ● (U+25CF BLACK CIRCLE)
+	text:SetTextColor(r, g, b, a)
+	text:SetPoint("CENTER", frame, "CENTER", 0, 0)
+	frame._text = text
+
+	function frame:SetIndicatorColor(nr, ng, nb, na)
+		self._text:SetTextColor(nr, ng, nb, na or 1)
+	end
+
+	function frame:SetIndicatorSize(newSize)
+		self:SetSize(newSize, newSize)
+		self._text:SetFont("Fonts\\ARIALN.TTF", newSize, "")
+	end
+
+	return frame
+end
+
 --- Initialize the View layer.
 --- Called after all modules are loaded.
 ---@param db table SavedVariables database
@@ -243,6 +276,32 @@ function FlightsimView:CreateFrames()
 	accelBar:SetHeight(accelBarHeight)
 	self.accelBar = accelBar
 
+	-- Pitch bar (below accel bar, default OFF)
+	local pitchBarHeight = ui.pitchBarHeight or 2
+	local pitchGap = ui.pitchBarGap or 1
+
+	local pitchFrame = CreateFrame("Frame", nil, container)
+	pitchFrame:SetSize(width, pitchBarHeight)
+	pitchFrame:SetPoint("TOP", accelFrame, "BOTTOM", 0, -pitchGap)
+	self.pitchFrame = pitchFrame
+
+	local pitchBg = pitchFrame:CreateTexture(nil, "BACKGROUND")
+	pitchBg:SetAllPoints(pitchFrame)
+	pitchBg:SetColorTexture(0, 0, 0, 0)
+	self.pitchBarBg = pitchBg
+
+	local pitchBar = pitchFrame:CreateTexture(nil, "ARTWORK")
+	pitchBar:SetColorTexture(0.3, 0.6, 1.0, 0.9)
+	pitchBar:SetHeight(pitchBarHeight)
+	self.pitchBar = pitchBar
+
+	-- Hide pitch frame (feature shelved - estimation needs refinement)
+	-- local pitchEnabled = db.profile.pitchBar and db.profile.pitchBar.enabled
+	local pitchEnabled = false
+	if not pitchEnabled then
+		pitchFrame:Hide()
+	end
+
 	-- Ability bars configuration
 	local abilityBarHeight = ui.abilityBarHeight or 10
 	local barGap = ui.barGap or 2
@@ -346,6 +405,9 @@ function FlightsimView:CreateFrames()
 	whirlingSurgeBg:SetColorTexture(wsBarBgColor.r, wsBarBgColor.g, wsBarBgColor.b, wsBarBgColor.a)
 	self.whirlingSurgeBg = whirlingSurgeBg
 
+	-- Buff recovery indicators (arrows flanking speed bar)
+	self:CreateBuffIndicators()
+
 	-- Update container size based on visible bars
 	self:UpdateContainerSize()
 end
@@ -398,6 +460,8 @@ function FlightsimView:OnUpdate(elapsed)
 	local result = Executor.FullUpdate(self.db, {
 		accelBarWidth = self.accelFrame and self.accelFrame:GetWidth() or 200,
 		accelBarHeight = self.accelFrame and self.accelFrame:GetHeight() or 4,
+		pitchBarWidth = self.pitchFrame and self.pitchFrame:GetWidth() or 200,
+		pitchBarHeight = self.pitchFrame and self.pitchFrame:GetHeight() or 2,
 	})
 	self.perf.executor = debugprofilestop() - execStart
 
@@ -424,6 +488,10 @@ function FlightsimView:OnUpdate(elapsed)
 		self:UpdateAcceleration(data.acceleration)
 		self.perf.accel = debugprofilestop() - accelStart
 
+		if data.pitch then
+			self:UpdatePitch(data.pitch)
+		end
+
 		if data.surgeForward then
 			local surgeStart = debugprofilestop()
 			self:UpdateChargeBar("surgeForward", data.surgeForward)
@@ -439,6 +507,8 @@ function FlightsimView:OnUpdate(elapsed)
 			self:UpdateCooldownBar(data.whirlingSurge)
 			self.perf.whirling = debugprofilestop() - whirlStart
 		end
+
+		self:UpdateBuffIndicators(data.buffs)
 	end
 end
 
@@ -456,6 +526,17 @@ function FlightsimView:ApplyVisibilityState(visibility)
 
 	-- Cache visibility state for layout calculations
 	self.currentVisibility = visibility
+
+	-- Pitch bar visibility (shelved - hardcoded off)
+	if self.pitchFrame then
+		-- local pitchEnabled = self.db and self.db.profile.pitchBar and self.db.profile.pitchBar.enabled
+		local pitchEnabled = false
+		if pitchEnabled then
+			self.pitchFrame:Show()
+		else
+			self.pitchFrame:Hide()
+		end
+	end
 
 	-- Individual ability visibility
 	if self.surgeForwardFrame then
@@ -497,8 +578,10 @@ function FlightsimView:RepositionAbilityBars(visibility)
 	local barGap = ui.barGap or 2
 	local abilityBarHeight = ui.abilityBarHeight or 10
 
-	-- The accel frame is always the anchor point for ability bars
-	local lastFrame = self.accelFrame
+	-- Pitch frame is the anchor when pitch is enabled, otherwise accel frame
+	-- local pitchEnabled = self.db.profile.pitchBar and self.db.profile.pitchBar.enabled
+	local pitchEnabled = false
+	local lastFrame = (pitchEnabled and self.pitchFrame) or self.accelFrame
 
 	-- Surge Forward
 	if self.surgeForwardFrame then
@@ -545,8 +628,18 @@ function FlightsimView:UpdateContainerSizeForVisibility(visibility)
 	local abilityBarHeight = ui.abilityBarHeight or 10
 	local barGap = ui.barGap or 2
 
+	local pitchBarHeight = ui.pitchBarHeight or 2
+	local pitchGap = ui.pitchBarGap or 1
+
 	-- Base height: speed bar + gap + accel bar
 	local totalHeight = speedBarHeight + accelGap + accelBarHeight
+
+	-- Add pitch bar if enabled
+	-- local pitchEnabled = self.db and self.db.profile.pitchBar and self.db.profile.pitchBar.enabled
+	local pitchEnabled = false
+	if pitchEnabled then
+		totalHeight = totalHeight + pitchGap + pitchBarHeight
+	end
 
 	-- Add height for each visible ability bar
 	if visibility.showSurgeForward then
@@ -640,6 +733,47 @@ function FlightsimView:UpdateAcceleration(data)
 	end
 end
 
+--- Update pitch bar display.
+---@param data table Pitch data from Executor
+function FlightsimView:UpdatePitch(data)
+	if not data or not self.pitchBar then
+		return
+	end
+
+	if data.shouldHide then
+		self.pitchBar:Hide()
+		return
+	end
+
+	self.pitchBar:Show()
+	self.pitchBar:ClearAllPoints()
+	self.pitchBar:SetWidth(data.width or 4)
+
+	-- Apply color based on dynamic color setting and direction
+	local colors = self.db.profile.colors and self.db.profile.colors.pitchBar
+	if colors and colors.useDynamic and data.direction then
+		local c
+		if data.direction == "diving" then
+			c = colors.diving or { r = 0.3, g = 0.6, b = 1.0, a = 0.9 }
+		elseif data.direction == "climbing" then
+			c = colors.climbing or { r = 1.0, g = 0.5, b = 0.2, a = 0.9 }
+		else
+			c = { r = 1, g = 1, b = 1, a = 0.9 }
+		end
+		self.pitchBar:SetColorTexture(c.r, c.g, c.b, c.a or 0.9)
+	else
+		self.pitchBar:SetColorTexture(1, 1, 1, 0.9)
+	end
+
+	if data.anchorSide == "CENTER" then
+		self.pitchBar:SetPoint("CENTER", self.pitchFrame, "CENTER", 0, 0)
+	elseif data.anchorSide == "LEFT" then
+		self.pitchBar:SetPoint("LEFT", self.pitchFrame, "LEFT", data.offsetX or 0, 0)
+	else
+		self.pitchBar:SetPoint("RIGHT", self.pitchFrame, "LEFT", data.offsetX or 0, 0)
+	end
+end
+
 --- Update charge bar display (Surge Forward or Second Wind).
 ---@param abilityKey string "surgeForward" or "secondWind"
 ---@param data table Charge data from Executor
@@ -708,6 +842,97 @@ function FlightsimView:UpdateCooldownBar(data)
 		r, g, b = c[1], c[2], c[3]
 	end
 	self.whirlingSurgeBar:SetStatusBarColor(r, g, b, 1)
+end
+
+--- Update buff recovery indicators (Thrill of the Skies, Ground Skimming).
+--- Shows/hides arrow indicators flanking the speed bar based on active buffs.
+---@param data table|nil Buff data from Executor {thrillOfTheSkies, groundSkimming}
+function FlightsimView:UpdateBuffIndicators(data)
+	if not data then
+		if self.thrillArrow then
+			self.thrillArrow:Hide()
+		end
+		if self.skimArrow then
+			self.skimArrow:Hide()
+		end
+		return
+	end
+
+	local indicators = self.db and self.db.profile.buffIndicators or {}
+
+	if self.thrillArrow then
+		if indicators.showThrillOfTheSkies ~= false and data.thrillOfTheSkies then
+			self.thrillArrow:Show()
+		else
+			self.thrillArrow:Hide()
+		end
+	end
+
+	if self.skimArrow then
+		if indicators.showGroundSkimming ~= false and data.groundSkimming then
+			self.skimArrow:Show()
+		else
+			self.skimArrow:Hide()
+		end
+	end
+end
+
+--- Update buff indicator colors from settings.
+function FlightsimView:UpdateBuffIndicatorColors()
+	if not self.db then
+		return
+	end
+
+	local colors = self.db.profile.colors and self.db.profile.colors.buffIndicators or {}
+
+	if self.thrillArrow then
+		local c = colors.thrillOfTheSkies or { r = 1.0, g = 0.82, b = 0.0, a = 0.9 }
+		self.thrillArrow:SetIndicatorColor(c.r, c.g, c.b, c.a)
+	end
+
+	if self.skimArrow then
+		local c = colors.groundSkimming or { r = 0.3, g = 0.9, b = 0.3, a = 0.9 }
+		self.skimArrow:SetIndicatorColor(c.r, c.g, c.b, c.a)
+	end
+end
+
+--- Create or recreate buff indicator circles.
+--- Called from CreateFrames and when indicator size settings change.
+function FlightsimView:CreateBuffIndicators()
+	if not self.db or not self.container or not self.frame then
+		return
+	end
+
+	-- Destroy existing indicators
+	if self.thrillArrow then
+		self.thrillArrow:Hide()
+		self.thrillArrow:SetParent(nil)
+		self.thrillArrow = nil
+	end
+	if self.skimArrow then
+		self.skimArrow:Hide()
+		self.skimArrow:SetParent(nil)
+		self.skimArrow = nil
+	end
+
+	local indicators = self.db.profile.buffIndicators or {}
+	local size = indicators.indicatorSize or 8
+
+	local buffColors = self.db.profile.colors and self.db.profile.colors.buffIndicators or {}
+
+	local thrillColor = buffColors.thrillOfTheSkies or { r = 1.0, g = 0.82, b = 0.0, a = 0.9 }
+	local thrillCircle = CreateCircleIndicator(self.speedBarOverlay, size,
+		thrillColor.r, thrillColor.g, thrillColor.b, thrillColor.a)
+	thrillCircle:SetPoint("RIGHT", self.speedBarOverlay, "RIGHT", -(size + 5), 0)
+	thrillCircle:Hide()
+	self.thrillArrow = thrillCircle
+
+	local skimColor = buffColors.groundSkimming or { r = 0.3, g = 0.9, b = 0.3, a = 0.9 }
+	local skimCircle = CreateCircleIndicator(self.speedBarOverlay, size,
+		skimColor.r, skimColor.g, skimColor.b, skimColor.a)
+	skimCircle:SetPoint("RIGHT", self.speedBarOverlay, "RIGHT", -4, 0)
+	skimCircle:Hide()
+	self.skimArrow = skimCircle
 end
 
 --- Apply visibility (legacy method for compatibility).

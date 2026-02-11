@@ -15,6 +15,11 @@ local SURGE_FORWARD_SPELL_ID = 372608
 local SECOND_WIND_SPELL_ID = 425782
 local WHIRLING_SURGE_SPELL_ID = 361584 -- Whitelisted for C_Spell in 12.0
 
+-- Buff aura names for charge recovery indicators
+-- (Using names instead of spell IDs since IDs were recycled/changed in 12.0)
+local THRILL_OF_THE_SKIES_NAME = "Thrill of the Skies"
+local GROUND_SKIMMING_NAME = "Ground Skimming"
+
 -- Caching
 local _skyridingCacheTime = nil
 local _skyridingCacheResult = nil
@@ -234,6 +239,28 @@ function Context.IsSpellUsable(spellID)
 	return false
 end
 
+--- Check if the player has charge recovery buffs active.
+--- Uses index-based aura iteration with name matching for reliability.
+---@return boolean hasThrillOfTheSkies, boolean hasGroundSkimming
+function Context.GetChargeRecoveryBuffs()
+	local thrill = false
+	local skim = false
+	pcall(function()
+		for i = 1, 40 do
+			local auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+			if not auraData then break end
+			local name = auraData.name
+			if name == THRILL_OF_THE_SKIES_NAME then
+				thrill = true
+			elseif name == GROUND_SKIMMING_NAME then
+				skim = true
+			end
+			if thrill and skim then break end
+		end
+	end)
+	return thrill, skim
+end
+
 ---@class FlightsimContext
 ---@field now number Current GetTime()
 ---@field deltaTime number Time since last frame
@@ -276,6 +303,16 @@ function Context.Build(db, lastFrameTime)
 	local secondWindUsable = Context.IsSpellUsable(SECOND_WIND_SPELL_ID)
 	local whirlingSurgeUsable = Context.IsSpellUsable(WHIRLING_SURGE_SPELL_ID)
 
+	-- Charge recovery buff detection
+	local hasThrillBuff, hasSkimBuff = Context.GetChargeRecoveryBuffs()
+
+	-- Player world position (UnitPosition works unprotected while flying in open world)
+	local posX, posY
+	local posOk, px, py = pcall(UnitPosition, "player")
+	if posOk and px then
+		posX, posY = px, py
+	end
+
 	return {
 		now = now,
 		deltaTime = deltaTime,
@@ -289,6 +326,8 @@ function Context.Build(db, lastFrameTime)
 			isSkyriding = isSkyriding,
 			isDruidFlying = isDruidFlying,
 			isFlying = isFlying,
+			posX = posX,
+			posY = posY,
 		},
 
 		abilities = {
@@ -308,6 +347,11 @@ function Context.Build(db, lastFrameTime)
 
 		zone = {
 			zoneModifier = Context.GetCachedZoneModifier(),
+		},
+
+		buffs = {
+			thrillOfTheSkies = hasThrillBuff,
+			groundSkimming = hasSkimBuff,
 		},
 
 		db = db,

@@ -106,13 +106,33 @@ local options = {
 					desc = L["ONLY_SKYRIDING_DESC"]
 						or "Hides the frame when not actively skyriding (must also be flying).",
 					type = "toggle",
-					width = "full",
+					width = 1.2,
 					order = 11,
 					get = function()
 						return Flightsim.db.profile.visibility.hideWhenNotSkyriding
 					end,
 					set = function(_, v)
 						Flightsim.db.profile.visibility.hideWhenNotSkyriding = v
+						if FlightsimView and FlightsimView.ApplyVisibility then
+							FlightsimView:ApplyVisibility()
+						end
+					end,
+				},
+				showWhenGroundMounted = {
+					name = L["SHOW_GROUND_MOUNTED"] or "Show on Ground",
+					desc = L["SHOW_GROUND_MOUNTED_DESC"]
+						or "Also show the HUD when on a skyriding mount but still on the ground.",
+					type = "toggle",
+					width = 1.2,
+					order = 12,
+					disabled = function()
+						return not Flightsim.db.profile.visibility.hideWhenNotSkyriding
+					end,
+					get = function()
+						return Flightsim.db.profile.visibility.showWhenGroundMounted
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.visibility.showWhenGroundMounted = v
 						if FlightsimView and FlightsimView.ApplyVisibility then
 							FlightsimView:ApplyVisibility()
 						end
@@ -749,6 +769,225 @@ local options = {
 						if FlightsimView and FlightsimView.UpdateAbilityColors then
 							FlightsimView:UpdateAbilityColors()
 						end
+					end,
+				},
+			},
+		},
+		buffIndicators = {
+			name = "Buff Indicators",
+			type = "group",
+			order = 5,
+			args = {
+				description = {
+					name = "Small arrow indicators appear on the sides of the speed bar when "
+						.. "charge recovery buffs are active.\n\n"
+						.. "|cffffd100Thrill of the Skies|r - triggered by fast diving\n"
+						.. "|cff4de64dGround Skimming|r - triggered by flying near the ground",
+					type = "description",
+					order = 0,
+					fontSize = "medium",
+				},
+				visibilityHeader = {
+					name = "Visibility",
+					type = "header",
+					order = 1,
+				},
+				showThrillOfTheSkies = {
+					name = L["SHOW_THRILL_OF_THE_SKIES"] or "Thrill of the Skies",
+					desc = L["SHOW_THRILL_OF_THE_SKIES_DESC"]
+						or "Show arrow indicator when Thrill of the Skies is active (fast diving recovers charges faster).",
+					type = "toggle",
+					order = 2,
+					get = function()
+						return Flightsim.db.profile.buffIndicators.showThrillOfTheSkies
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.buffIndicators.showThrillOfTheSkies = v
+					end,
+				},
+				showGroundSkimming = {
+					name = L["SHOW_GROUND_SKIMMING"] or "Ground Skimming",
+					desc = L["SHOW_GROUND_SKIMMING_DESC"]
+						or "Show arrow indicator when Ground Skimming is active (near-ground flight recovers charges faster).",
+					type = "toggle",
+					order = 3,
+					get = function()
+						return Flightsim.db.profile.buffIndicators.showGroundSkimming
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.buffIndicators.showGroundSkimming = v
+					end,
+				},
+				sizeHeader = {
+					name = "Size",
+					type = "header",
+					order = 5,
+				},
+				indicatorSize = {
+					name = "Indicator Size",
+					desc = "Diameter of the buff indicator circles in pixels.",
+					type = "range",
+					order = 6,
+					min = 4,
+					max = 24,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.buffIndicators.indicatorSize or 8
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.buffIndicators.indicatorSize = v
+						if FlightsimView and FlightsimView.CreateBuffIndicators then
+							FlightsimView:CreateBuffIndicators()
+						end
+					end,
+				},
+				colorsHeader = {
+					name = "Colors",
+					type = "header",
+					order = 10,
+				},
+				thrillColor = {
+					name = "Thrill of the Skies",
+					desc = "Arrow color for Thrill of the Skies indicator.",
+					type = "color",
+					hasAlpha = true,
+					order = 11,
+					get = function()
+						local c = Flightsim.db.profile.colors.buffIndicators.thrillOfTheSkies
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.buffIndicators.thrillOfTheSkies
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateBuffIndicatorColors then
+							FlightsimView:UpdateBuffIndicatorColors()
+						end
+					end,
+				},
+				skimColor = {
+					name = "Ground Skimming",
+					desc = "Arrow color for Ground Skimming indicator.",
+					type = "color",
+					hasAlpha = true,
+					order = 12,
+					get = function()
+						local c = Flightsim.db.profile.colors.buffIndicators.groundSkimming
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.buffIndicators.groundSkimming
+						c.r, c.g, c.b, c.a = r, g, b, a
+						if FlightsimView and FlightsimView.UpdateBuffIndicatorColors then
+							FlightsimView:UpdateBuffIndicatorColors()
+						end
+					end,
+				},
+			},
+		},
+		pitchBar = {
+			name = L["PITCH_BAR"] or "Pitch Bar",
+			type = "group",
+			order = 6,
+			hidden = true, -- Hidden until pitch estimation is refined
+			args = {
+				description = {
+					name = "Shows a bidirectional bar below the acceleration bar indicating sustained pitch direction.\n\n"
+						.. "|cffffd100Center|r = level flight\n"
+						.. "|cff74afffRight|r = diving\n"
+						.. "|cffff8033Left|r = climbing\n\n"
+						.. "Uses heavily smoothed speed trends as a proxy (no direct pitch API exists).",
+					type = "description",
+					order = 0,
+					fontSize = "medium",
+				},
+				enabled = {
+					name = L["PITCH_BAR_ENABLED"] or "Enable Pitch Bar",
+					desc = L["PITCH_BAR_ENABLED_DESC"] or "Show a pitch direction bar below the acceleration bar.",
+					type = "toggle",
+					order = 1,
+					width = "full",
+					get = function()
+						return Flightsim.db.profile.pitchBar.enabled
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.pitchBar.enabled = v
+						if FlightsimView and FlightsimView.UpdateContainerSize then
+							FlightsimView:UpdateContainerSize()
+						end
+					end,
+				},
+				sizeHeader = {
+					name = "Size",
+					type = "header",
+					order = 5,
+				},
+				height = {
+					name = L["PITCH_BAR_HEIGHT"] or "Bar Height",
+					desc = "Height of the pitch bar in pixels.",
+					type = "range",
+					order = 6,
+					min = 1,
+					max = 8,
+					step = 1,
+					get = function()
+						return Flightsim.db.profile.ui.pitchBarHeight or 2
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.ui.pitchBarHeight = v
+						if FlightsimView and FlightsimView.pitchFrame then
+							FlightsimView.pitchFrame:SetHeight(v)
+							if FlightsimView.pitchBar then
+								FlightsimView.pitchBar:SetHeight(v)
+							end
+							FlightsimView:UpdateContainerSize()
+						end
+					end,
+				},
+				colorsHeader = {
+					name = "Colors",
+					type = "header",
+					order = 10,
+				},
+				useDynamic = {
+					name = L["PITCH_DYNAMIC_COLOR"] or "Dynamic Color",
+					desc = "Color the pitch bar based on direction (diving vs climbing).",
+					type = "toggle",
+					order = 11,
+					get = function()
+						return Flightsim.db.profile.colors.pitchBar.useDynamic
+					end,
+					set = function(_, v)
+						Flightsim.db.profile.colors.pitchBar.useDynamic = v
+					end,
+				},
+				divingColor = {
+					name = L["PITCH_COLOR_DIVING"] or "Diving",
+					desc = "Color when diving (nose down).",
+					type = "color",
+					hasAlpha = true,
+					order = 12,
+					get = function()
+						local c = Flightsim.db.profile.colors.pitchBar.diving
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.pitchBar.diving
+						c.r, c.g, c.b, c.a = r, g, b, a
+					end,
+				},
+				climbingColor = {
+					name = L["PITCH_COLOR_CLIMBING"] or "Climbing",
+					desc = "Color when climbing (nose up).",
+					type = "color",
+					hasAlpha = true,
+					order = 13,
+					get = function()
+						local c = Flightsim.db.profile.colors.pitchBar.climbing
+						return c.r, c.g, c.b, c.a
+					end,
+					set = function(_, r, g, b, a)
+						local c = Flightsim.db.profile.colors.pitchBar.climbing
+						c.r, c.g, c.b, c.a = r, g, b, a
 					end,
 				},
 			},

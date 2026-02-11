@@ -2,7 +2,7 @@
 ## Title: Flightsim
 ## Notes: Flight speed + Skyriding charge tracker.
 ## Author: jasfalk
-## Version: 1.4.4
+## Version: 1.5.0
 ## X-Curse-Project-ID: 1403044
 ## X-License: GPL-3.0
 ## SavedVariables: FlightsimDB
@@ -25,6 +25,7 @@ Libs/AceConfig-3.0/AceConfig-3.0.xml
 Logic/init.lua
 Logic/speed.lua
 Logic/acceleration.lua
+Logic/pitch.lua
 Logic/visibility.lua
 Logic/color.lua
 

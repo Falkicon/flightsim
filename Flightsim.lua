@@ -43,6 +43,8 @@ local defaults = {
 			sustainableSpeedMarkerAlpha = 0.2,
 			accelBarHeight = 1,
 			accelBarGap = 0,
+			pitchBarHeight = 2,
+			pitchBarGap = 1,
 			abilityBarHeight = 5,
 			barGap = 2,
 		},
@@ -56,11 +58,20 @@ local defaults = {
 		},
 		visibility = {
 			hideWhenNotSkyriding = true,
+			showWhenGroundMounted = false,
+		},
+		pitchBar = {
+			enabled = false,
 		},
 		abilityBars = {
 			showWhirlingSurge = true,
 			showSecondWind = true,
 			showSurgeForward = true,
+		},
+		buffIndicators = {
+			showThrillOfTheSkies = true,
+			showGroundSkimming = true,
+			indicatorSize = 8,
 		},
 		abilities = {
 			-- Stored as stable tokens (English names for now); resolved to spellIDs at runtime.
@@ -90,6 +101,11 @@ local defaults = {
 				decel = { r = 1, g = 0, b = 0, a = 0.9 },
 				accel = { r = 0, g = 1, b = 0, a = 0.9 },
 			},
+			pitchBar = {
+				useDynamic = false,
+				diving = { r = 0.3, g = 0.6, b = 1.0, a = 0.9 },
+				climbing = { r = 1.0, g = 0.5, b = 0.2, a = 0.9 },
+			},
 			abilities = {
 				surgeForward = { r = 0.455, g = 0.686, b = 1.0, a = 1 }, -- #74AFFF
 				secondWind = { r = 0.827, g = 0.475, b = 0.937, a = 1 }, -- #D379EF
@@ -101,6 +117,10 @@ local defaults = {
 				surgeForwardBarBg = { r = 0.1, g = 0.15, b = 0.25, a = 0.5 }, -- Dim blue
 				secondWindBarBg = { r = 0.2, g = 0.1, b = 0.25, a = 0.5 }, -- Dim purple
 				whirlingSurgeBarBg = { r = 0.1, g = 0.2, b = 0.22, a = 0.5 }, -- Dim cyan
+			},
+			buffIndicators = {
+				thrillOfTheSkies = { r = 1.0, g = 0.82, b = 0.0, a = 0.9 }, -- Gold
+				groundSkimming = { r = 0.3, g = 0.9, b = 0.3, a = 0.9 }, -- Green
 			},
 			frame = {
 				background = { r = 0, g = 0, b = 0, a = 0.3 },
@@ -128,6 +148,9 @@ function Flightsim:OnProfileChanged()
 		end
 		if FlightsimView.UpdateAbilityColors then
 			FlightsimView:UpdateAbilityColors()
+		end
+		if FlightsimView.UpdateBuffIndicatorColors then
+			FlightsimView:UpdateBuffIndicatorColors()
 		end
 		if FlightsimView.UpdateFont then
 			FlightsimView:UpdateFont()

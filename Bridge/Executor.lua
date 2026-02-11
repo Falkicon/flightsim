@@ -19,6 +19,15 @@ local frameState = {
 	smoothDelta = 0,
 	sessionMaxSpeed = nil,
 
+	-- Pitch state: continuous position tracking
+	pitchLastX = nil,       -- last UnitPosition X where position actually changed
+	pitchLastY = nil,
+	pitchLastTime = nil,
+	pitchHorizSpeed = 0,    -- exponentially smoothed horizontal speed
+	pitchSmoothRatio = 0,
+	pitchSmoothTrend = 0,
+	pitchPrevSpeed = nil,
+
 	-- Surge Forward animation state
 	surgeTargets = {},
 	surgeAnimating = {},
@@ -41,6 +50,13 @@ function Executor.ResetState()
 	frameState.lastSpeedPct = nil
 	frameState.smoothDelta = 0
 	frameState.sessionMaxSpeed = nil
+	frameState.pitchLastX = nil
+	frameState.pitchLastY = nil
+	frameState.pitchLastTime = nil
+	frameState.pitchHorizSpeed = 0
+	frameState.pitchSmoothRatio = 0
+	frameState.pitchSmoothTrend = 0
+	frameState.pitchPrevSpeed = nil
 	frameState.surgeTargets = {}
 	frameState.surgeAnimating = {}
 	frameState.surgeAnimValues = {}
@@ -200,6 +216,88 @@ function Executor.Acceleration(ctx, barWidth, barHeight)
 		isSecret = false,
 		shouldHide = false,
 		width = data.barWidth,
+		anchorSide = data.anchorSide,
+		offsetX = data.offsetX,
+		isStable = data.isStable,
+		direction = data.direction,
+	})
+end
+
+--- Execute pitch bar calculation via position-based triangulation.
+--- Detects each UnitPosition server tick and computes instant horizontal speed,
+--- then applies exponential smoothing for a continuous, jitter-free signal.
+---@param ctx FlightsimContext Current context
+---@param barWidth number Bar width in pixels
+---@param barHeight number Bar height in pixels
+---@return ActionResult<PitchBarData>
+function Executor.Pitch(ctx, barWidth, barHeight)
+	if ctx.player.isSpeedSecret then
+		return Result.success({ shouldHide = true, smoothRatio = 0, smoothTrend = 0 })
+	end
+
+	local totalSpeed = ctx.player.speed or 0
+	local posX = ctx.player.posX
+	local posY = ctx.player.posY
+	local now = ctx.now
+
+	-- Horizontal speed: use raw instant speed from each UnitPosition server tick.
+	-- Between ticks, hold the last computed value.
+	-- Ratio smoothing in Logic handles frame-to-frame stability.
+
+	if posX and posY then
+		if frameState.pitchLastX and frameState.pitchLastTime then
+			-- Check if position actually changed (new server tick)
+			local dx = posX - frameState.pitchLastX
+			local dy = posY - frameState.pitchLastY
+			local moved = (dx ~= 0 or dy ~= 0)
+			if moved then
+				local dt = now - frameState.pitchLastTime
+				if dt > 0.001 then
+					frameState.pitchHorizSpeed = math.sqrt(dx * dx + dy * dy) / dt
+				end
+				frameState.pitchLastX = posX
+				frameState.pitchLastY = posY
+				frameState.pitchLastTime = now
+			end
+		else
+			-- First frame with position: seed it
+			frameState.pitchLastX = posX
+			frameState.pitchLastY = posY
+			frameState.pitchLastTime = now
+		end
+	end
+
+	local horizontalSpeed = frameState.pitchHorizSpeed
+
+	-- Speed trend for direction inference
+	local speedTrend = 0
+	if frameState.pitchPrevSpeed then
+		speedTrend = totalSpeed - frameState.pitchPrevSpeed
+	end
+	frameState.pitchPrevSpeed = totalSpeed
+
+	-- Call triangulation logic
+	local pitchResult = Logic.Pitch.Calculate({
+		totalSpeed = totalSpeed,
+		horizontalSpeed = horizontalSpeed,
+		previousSmooth = frameState.pitchSmoothRatio,
+		previousTrend = frameState.pitchSmoothTrend,
+		speedTrend = speedTrend,
+		barWidth = barWidth or 200,
+		barHeight = barHeight or 2,
+	})
+
+	if not pitchResult.success then
+		return Result.success({ shouldHide = true, smoothRatio = 0, smoothTrend = 0 })
+	end
+
+	local data = Result.unwrap(pitchResult)
+	frameState.pitchSmoothRatio = data.smoothRatio or 0
+	frameState.pitchSmoothTrend = data.smoothTrend or 0
+
+	return Result.success({
+		shouldHide = data.shouldHide or false,
+		width = data.width,
 		anchorSide = data.anchorSide,
 		offsetX = data.offsetX,
 		isStable = data.isStable,
@@ -452,6 +550,16 @@ function Executor.FullUpdate(db, barDimensions)
 		Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4)
 	local accelData = accelResult.success and Result.unwrap(accelResult) or nil
 
+	local pitchData = nil
+	-- Pitch bar shelved: skip computation until estimation is refined
+	-- local pitchEnabled = db and db.profile and db.profile.pitchBar and db.profile.pitchBar.enabled
+	local pitchEnabled = false
+	if pitchEnabled then
+		local pitchResult =
+			Executor.Pitch(ctx, barDimensions.pitchBarWidth or 200, barDimensions.pitchBarHeight or 2)
+		pitchData = pitchResult.success and Result.unwrap(pitchResult) or nil
+	end
+
 	local surgeData = nil
 	if visibility.showSurgeForward then
 		local surgeResult = Executor.Charges(ctx, "surgeForward", 6)
@@ -475,9 +583,11 @@ function Executor.FullUpdate(db, barDimensions)
 		shouldUpdate = true,
 		speed = speedData,
 		acceleration = accelData,
+		pitch = pitchData,
 		surgeForward = surgeData,
 		secondWind = windData,
 		whirlingSurge = whirlData,
+		buffs = ctx.buffs,
 		context = ctx,
 	})
 end

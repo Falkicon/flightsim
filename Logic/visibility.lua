@@ -42,18 +42,27 @@ function Visibility.ShouldShowHUD(settings, playerState)
 	end
 
 	local hideWhenNotSkyriding = settings.hideWhenNotSkyriding
+	local showWhenGroundMounted = settings.showWhenGroundMounted or false
 	local isSkyriding = playerState.isSkyriding or false
+	local isMounted = playerState.isMounted or false
 	local isFlying = playerState.isFlying or false
 
 	if hideWhenNotSkyriding then
-		-- Must be both skyriding AND flying (not just mounted on ground)
+		-- Must be skyriding
 		if not isSkyriding then
 			return Result.success({
 				shouldShow = false,
 				reason = "hideWhenNotSkyriding enabled and not skyriding",
 			})
 		end
+		-- Must be flying, unless showWhenGroundMounted is enabled and mounted
 		if not isFlying then
+			if showWhenGroundMounted and isMounted then
+				return Result.success({
+					shouldShow = true,
+					reason = "skyriding mount on ground, showWhenGroundMounted enabled",
+				})
+			end
 			return Result.success({
 				shouldShow = false,
 				reason = "hideWhenNotSkyriding enabled and mounted but not flying",

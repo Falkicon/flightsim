@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0] - 2026-02-10
+
+### Added
+- **Buff Recovery Indicators**: Circle indicators for Thrill of the Skies and Ground Skimming charge recovery buffs
+  - Colored dots appear next to the speed bar when buffs are active
+  - Configurable visibility, size (4-24px), and colors per buff
+  - New "Buff Indicators" settings tab
+- **Show on Ground Option**: New visibility toggle to show the HUD when on a skyriding mount but still on the ground
+  - Appears next to "Only Show When Skyriding" in settings
+  - Grayed out when skyriding-only mode is disabled
+- **Pitch Bar (Experimental, Hidden)**: Position-based pitch estimation using UnitPosition triangulation
+  - Shelved for refinement — code preserved but hidden from settings and HUD
+
 ## [1.4.5] - 2026-01-22
 
 ### Added
