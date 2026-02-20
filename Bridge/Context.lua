@@ -78,23 +78,26 @@ end
 --- Note: Always calculates fresh to avoid stale cache issues on login/reload.
 ---@return number modifier (1.0 or 0.85)
 function Context.GetCachedZoneModifier()
-	-- Always calculate fresh - the API call is cheap and avoids stale cache issues
-	return Context.GetZoneModifier()
+	if _zoneModifier == nil then
+		_zoneModifier = Context.GetZoneModifier()
+	end
+	return _zoneModifier
 end
 
+local _, playerClass = UnitClass("player")
+
 --- Check if player is in Druid flight form.
+---@param isFlying boolean
+---@param isGliding boolean
 ---@return boolean isDruidFlying
-function Context.IsInDruidFlightForm()
-	local _, class = UnitClass("player")
-	if class ~= "DRUID" then
+function Context.IsInDruidFlightForm(isFlying, isGliding)
+	if playerClass ~= "DRUID" then
 		return false
 	end
 
 	local form = GetShapeshiftForm()
 	-- Form 3 is Travel Form (includes Flight Form)
-	if
-		form == 3 and (IsFlying() or (C_PlayerInfo and C_PlayerInfo.GetGlidingInfo and C_PlayerInfo.GetGlidingInfo()))
-	then
+	if form == 3 and (isFlying or isGliding) then
 		return true
 	end
 
@@ -116,8 +119,11 @@ end
 --- Check if skyriding is currently active.
 --- Caches result per frame to avoid repeated API calls.
 ---@param forceRefresh? boolean Force cache refresh
+---@param isMounted? boolean Player mounted state
+---@param isDruidFlying? boolean Player druid flight state
+---@param canGlide? boolean Player glide state
 ---@return boolean isActive
-function Context.IsSkyridingActive(forceRefresh)
+function Context.IsSkyridingActive(forceRefresh, isMounted, isDruidFlying, canGlide)
 	local now = GetTime()
 
 	-- Use cache if valid (same frame)
@@ -127,40 +133,38 @@ function Context.IsSkyridingActive(forceRefresh)
 
 	local result = false
 
-	local ok = pcall(function()
-		-- Check mount or druid form first
-		local isMounted = IsMounted()
-		local isDruidFlying = Context.IsInDruidFlightForm()
+	if isMounted == nil then isMounted = IsMounted() end
+	if isDruidFlying == nil then isDruidFlying = Context.IsInDruidFlightForm(IsFlying(), false) end
 
-		if not isMounted and not isDruidFlying then
-			result = false
-			return
-		end
-
-		-- Check gliding state
-		if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
-			local isGliding, canGlide = C_PlayerInfo.GetGlidingInfo()
-			if canGlide then
-				result = true
-				return
-			end
-		end
-
-		-- Fallback: check Surge Forward charges (reliable for skyriding detection)
-		if C_Spell and C_Spell.GetSpellCharges then
-			local chargeInfo = C_Spell.GetSpellCharges(SURGE_FORWARD_SPELL_ID)
-			if chargeInfo and chargeInfo.maxCharges then
-				local max = chargeInfo.maxCharges
-				if not Secrets.IsSecret(max) and max > 0 then
-					result = true
-					return
+	-- Check mount or druid form first
+	if not isMounted and not isDruidFlying then
+		result = false
+	else
+		if canGlide == nil then
+			if C_PlayerInfo and C_PlayerInfo.GetGlidingInfo then
+				local ok, _, _, cg = pcall(C_PlayerInfo.GetGlidingInfo)
+				if ok then
+					canGlide = cg
 				end
 			end
 		end
-	end)
 
-	if not ok then
-		result = false
+		-- Check gliding state
+		if canGlide then
+			result = true
+		else
+			-- Fallback: check Surge Forward charges (reliable for skyriding detection)
+			if C_Spell and C_Spell.GetSpellCharges then
+				-- We must use the cached Context wrapper here to avoid C-API allocation loop
+				local chargeInfo = Context.GetSpellCharges(SURGE_FORWARD_SPELL_ID)
+				if chargeInfo and chargeInfo.maxCharges then
+					local max = chargeInfo.maxCharges
+					if not chargeInfo.isSecret and max > 0 then
+						result = true
+					end
+				end
+			end
+		end
 	end
 
 	_skyridingCacheTime = now
@@ -174,52 +178,104 @@ function Context.InvalidateSkyridingCache()
 	_skyridingCacheResult = nil
 end
 
---- Get spell charges safely.
----@param spellID number Spell ID
----@return table chargeInfo {currentCharges, maxCharges, chargeStart, chargeDuration, isSecret}
-function Context.GetSpellCharges(spellID)
-	local result = {
-		currentCharges = 0,
-		maxCharges = 0,
-		chargeStart = 0,
-		chargeDuration = 0,
-		isSecret = false,
-	}
+-- Cache payload tables for spell charges and cooldowns
+local _spellChargesCache = {}
+local _spellCooldownCache = {}
 
-	local ok, info = pcall(C_Spell.GetSpellCharges, spellID)
-	if ok and info then
-		result.currentCharges = info.currentCharges
-		result.maxCharges = info.maxCharges
-		result.chargeStart = info.cooldownStartTime or 0
-		result.chargeDuration = info.cooldownDuration or 0
-		result.isSecret = Secrets.IsSecret(info.currentCharges) or Secrets.IsSecret(info.maxCharges)
+--- Event hook to invalidate spell caches when cooldowns update.
+function Context.InvalidateSpellCache()
+	wipe(_spellChargesCache)
+	wipe(_spellCooldownCache)
+end
+
+--- Get spell charges safely (cached).
+---@param spellID number Spell ID
+---@param outData table Pre-allocated data block
+---@return table chargeInfo {currentCharges, maxCharges, chargeStart, chargeDuration, isSecret}
+function Context.GetSpellCharges(spellID, outData)
+	local result = outData or {}
+	
+	if _spellChargesCache[spellID] then
+		local c = _spellChargesCache[spellID]
+		result.currentCharges = c.currentCharges
+		result.maxCharges = c.maxCharges
+		result.chargeStart = c.cooldownStartTime or 0
+		result.chargeDuration = c.cooldownDuration or 0
+		result.isSecret = c.isSecret
+		return result
+	end
+
+	result.currentCharges = 0
+	result.maxCharges = 0
+	result.chargeStart = 0
+	result.chargeDuration = 0
+	result.isSecret = false
+
+	if C_Spell and C_Spell.GetSpellCharges then
+		local ok, info = pcall(C_Spell.GetSpellCharges, spellID)
+		if ok and info then
+			result.currentCharges = info.currentCharges
+			result.maxCharges = info.maxCharges
+			result.chargeStart = info.cooldownStartTime or 0
+			result.chargeDuration = info.cooldownDuration or 0
+			result.isSecret = Secrets.IsSecret(info.currentCharges) or Secrets.IsSecret(info.maxCharges)
+			
+			-- Cache the raw results
+			_spellChargesCache[spellID] = {
+				currentCharges = info.currentCharges,
+				maxCharges = info.maxCharges,
+				cooldownStartTime = info.cooldownStartTime,
+				cooldownDuration = info.cooldownDuration,
+				isSecret = result.isSecret
+			}
+		end
 	end
 
 	return result
 end
 
---- Get spell cooldown safely.
+--- Get spell cooldown safely (cached).
 ---@param spellID number Spell ID
+---@param outData table Pre-allocated data block
 ---@return table cooldownInfo {startTime, duration, enabled, isSecret}
-function Context.GetSpellCooldown(spellID)
-	local result = {
-		startTime = 0,
-		duration = 0,
-		enabled = true,
-		isSecret = false,
-	}
+function Context.GetSpellCooldown(spellID, outData)
+	local result = outData or {}
+	
+	if _spellCooldownCache[spellID] then
+		local c = _spellCooldownCache[spellID]
+		result.startTime = c.startTime
+		result.duration = c.duration
+		result.enabled = c.enabled
+		result.isSecret = c.isSecret
+		return result
+	end
 
-	local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
-	if ok and info then
-		result.startTime = info.startTime or 0
-		result.duration = info.duration or 0
-		-- Handle potentially secret isEnabled value
-		if Secrets.IsSecret(info.isEnabled) then
-			result.enabled = true -- Assume enabled for secrets
-			result.isSecret = true
-		else
-			result.enabled = info.isEnabled ~= false
-			result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
+	result.startTime = 0
+	result.duration = 0
+	result.enabled = true
+	result.isSecret = false
+
+	if C_Spell and C_Spell.GetSpellCooldown then
+		local ok, info = pcall(C_Spell.GetSpellCooldown, spellID)
+		if ok and info then
+			result.startTime = info.startTime or 0
+			result.duration = info.duration or 0
+			-- Handle potentially secret isEnabled value
+			if Secrets.IsSecret(info.isEnabled) then
+				result.enabled = true -- Assume enabled for secrets
+				result.isSecret = true
+			else
+				result.enabled = info.isEnabled ~= false
+				result.isSecret = Secrets.IsSecret(info.startTime) or Secrets.IsSecret(info.duration)
+			end
+			
+			-- Cache the raw results
+			_spellCooldownCache[spellID] = {
+				startTime = result.startTime,
+				duration = result.duration,
+				enabled = result.enabled,
+				isSecret = result.isSecret
+			}
 		end
 	end
 
@@ -242,23 +298,32 @@ end
 --- Check if the player has charge recovery buffs active.
 --- Uses index-based aura iteration with name matching for reliability.
 ---@return boolean hasThrillOfTheSkies, boolean hasGroundSkimming
-function Context.GetChargeRecoveryBuffs()
-	local thrill = false
-	local skim = false
+local _hasThrillBuff = false
+local _hasSkimBuff = false
+
+--- Update the buff cache, designed to be called only on UNIT_AURA.
+function Context.UpdateBuffs()
+	_hasThrillBuff = false
+	_hasSkimBuff = false
 	pcall(function()
 		for i = 1, 40 do
 			local auraData = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
 			if not auraData then break end
 			local name = auraData.name
 			if name == THRILL_OF_THE_SKIES_NAME then
-				thrill = true
+				_hasThrillBuff = true
 			elseif name == GROUND_SKIMMING_NAME then
-				skim = true
+				_hasSkimBuff = true
 			end
-			if thrill and skim then break end
+			if _hasThrillBuff and _hasSkimBuff then break end
 		end
 	end)
-	return thrill, skim
+end
+
+--- Get cached skyriding charge recovery buffs.
+---@return boolean hasThrillBuff, boolean hasSkimBuff
+function Context.GetChargeRecoveryBuffs()
+	return _hasThrillBuff, _hasSkimBuff
 end
 
 ---@class FlightsimContext
@@ -268,6 +333,24 @@ end
 ---@field abilities AbilityContext
 ---@field zone ZoneContext
 ---@field db table SavedVariables reference
+
+-- Pre-allocated static buffers to eliminate GC churn on frame updates
+local _surgeCharges = {}
+local _windCharges = {}
+local _whirlCooldown = {}
+local _surgeAbility = { charges = _surgeCharges }
+local _windAbility = { charges = _windCharges }
+local _whirlAbility = { cooldown = _whirlCooldown }
+local _flightSimContext = {
+	player = {},
+	abilities = {
+		surgeForward = _surgeAbility,
+		secondWind = _windAbility,
+		whirlingSurge = _whirlAbility,
+	},
+	zone = {},
+	buffs = {},
+}
 
 --- Build complete context for a frame update.
 ---@param db table SavedVariables database
@@ -288,20 +371,21 @@ function Context.Build(db, lastFrameTime)
 	end
 
 	-- Player state
-	local isSkyriding = Context.IsSkyridingActive()
 	local isMounted = IsMounted()
-	local isDruidFlying = Context.IsInDruidFlightForm()
-	local isFlying = IsFlying() or isGliding or isDruidFlying
+	local isFlying = IsFlying()
+	local isDruidFlying = Context.IsInDruidFlightForm(isFlying, isGliding)
+	local isActuallyFlying = isFlying or isGliding or isDruidFlying
+	local isSkyriding = Context.IsSkyridingActive(false, isMounted, isDruidFlying, canGlide)
 
-	-- Abilities
-	local surgeCharges = Context.GetSpellCharges(SURGE_FORWARD_SPELL_ID)
-	local secondWindCharges = Context.GetSpellCharges(SECOND_WIND_SPELL_ID)
-	local whirlingSurgeCooldown = Context.GetSpellCooldown(WHIRLING_SURGE_SPELL_ID)
+	-- Abilities (using pre-allocated outData buffers)
+	Context.GetSpellCharges(SURGE_FORWARD_SPELL_ID, _surgeCharges)
+	Context.GetSpellCharges(SECOND_WIND_SPELL_ID, _windCharges)
+	Context.GetSpellCooldown(WHIRLING_SURGE_SPELL_ID, _whirlCooldown)
 
 	-- Usability fallbacks for secret values
-	local surgeUsable = Context.IsSpellUsable(SURGE_FORWARD_SPELL_ID)
-	local secondWindUsable = Context.IsSpellUsable(SECOND_WIND_SPELL_ID)
-	local whirlingSurgeUsable = Context.IsSpellUsable(WHIRLING_SURGE_SPELL_ID)
+	_surgeAbility.isUsable = Context.IsSpellUsable(SURGE_FORWARD_SPELL_ID)
+	_windAbility.isUsable = Context.IsSpellUsable(SECOND_WIND_SPELL_ID)
+	_whirlAbility.isUsable = Context.IsSpellUsable(WHIRLING_SURGE_SPELL_ID)
 
 	-- Charge recovery buff detection
 	local hasThrillBuff, hasSkimBuff = Context.GetChargeRecoveryBuffs()
@@ -313,49 +397,31 @@ function Context.Build(db, lastFrameTime)
 		posX, posY = px, py
 	end
 
-	return {
-		now = now,
-		deltaTime = deltaTime,
+	-- Update static context table
+	_flightSimContext.now = now
+	_flightSimContext.deltaTime = deltaTime
+	_flightSimContext.db = db
 
-		player = {
-			speed = speed,
-			isSpeedSecret = Secrets.IsSecret(speed),
-			isGliding = isGliding,
-			canGlide = canGlide,
-			isMounted = isMounted,
-			isSkyriding = isSkyriding,
-			isDruidFlying = isDruidFlying,
-			isFlying = isFlying,
-			posX = posX,
-			posY = posY,
-		},
+	local p = _flightSimContext.player
+	p.speed = speed
+	p.isSpeedSecret = Secrets.IsSecret(speed)
+	p.isGliding = isGliding
+	p.canGlide = canGlide
+	p.isMounted = isMounted
+	p.isSkyriding = isSkyriding
+	p.isDruidFlying = isDruidFlying
+	p.isFlying = isActuallyFlying
+	p.posX = posX
+	p.posY = posY
 
-		abilities = {
-			surgeForward = {
-				charges = surgeCharges,
-				isUsable = surgeUsable,
-			},
-			secondWind = {
-				charges = secondWindCharges,
-				isUsable = secondWindUsable,
-			},
-			whirlingSurge = {
-				cooldown = whirlingSurgeCooldown,
-				isUsable = whirlingSurgeUsable,
-			},
-		},
+	local z = _flightSimContext.zone
+	z.zoneModifier = Context.GetCachedZoneModifier()
 
-		zone = {
-			zoneModifier = Context.GetCachedZoneModifier(),
-		},
+	local b = _flightSimContext.buffs
+	b.thrillOfTheSkies = hasThrillBuff
+	b.groundSkimming = hasSkimBuff
 
-		buffs = {
-			thrillOfTheSkies = hasThrillBuff,
-			groundSkimming = hasSkimBuff,
-		},
-
-		db = db,
-	}
+	return _flightSimContext
 end
 
 Bridge.Context = Context

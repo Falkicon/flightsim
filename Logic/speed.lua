@@ -4,7 +4,8 @@
 local FenCore = _G.FenCore
 local Result = FenCore.ActionResult
 local Math = FenCore.Math
-local Progress = FenCore.Progress
+
+local _staticSpeedResult = { success = true, data = nil }
 
 ---@class FlightsimSpeed
 local Speed = {}
@@ -84,29 +85,22 @@ end
 --- Calculate speed percentage from raw yards/sec.
 ---@param rawSpeed number Raw speed in yards/second
 ---@param baseSpeed? number Base speed for 100% (default 8.24)
----@return ActionResult<{percentage: number, rawSpeed: number}>
+---@return number percentage
 function Speed.CalculatePercentage(rawSpeed, baseSpeed)
-	if rawSpeed == nil then
-		return Result.error("INVALID_INPUT", "rawSpeed is required")
-	end
+	if rawSpeed == nil then return 0 end
 
 	baseSpeed = baseSpeed or Speed.BASE_SPEED_FOR_PCT
 	if baseSpeed <= 0 then
 		baseSpeed = Speed.BASE_SPEED_FOR_PCT
 	end
 
-	local pct = (rawSpeed / baseSpeed) * 100
-
-	return Result.success({
-		percentage = pct,
-		rawSpeed = rawSpeed,
-	})
+	return (rawSpeed / baseSpeed) * 100
 end
 
 --- Full speed bar calculation.
 ---@param context table {rawSpeed, zoneModifier, configuredMax, sessionMax}
 ---@return ActionResult<SpeedBarState>
-function Speed.Calculate(context)
+function Speed.Calculate(context, outData)
 	if not context then
 		return Result.error("INVALID_INPUT", "context is required")
 	end
@@ -116,19 +110,16 @@ function Speed.Calculate(context)
 	local configuredMax = context.configuredMax or 950
 	local sessionMax = context.sessionMax
 
-	-- Calculate percentage directly (no adjustment - GetGlidingInfo is accurate)
-	local pctResult = Speed.CalculatePercentage(rawSpeed)
-	local speedPct = Result.unwrap(pctResult).percentage
+	-- Calculate percentage directly
+	local speedPct = Speed.CalculatePercentage(rawSpeed)
 
 	-- Calculate zone-aware sustainable speed for marker
 	local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
 
 	-- Get zone-aware reference max for consistent bar scaling
-	-- This ensures the bar starts at a reasonable scale for each zone
 	local markerRefMax = Speed.GetMarkerReferenceMax(zoneModifier)
 
 	-- Use the higher of: zone reference, configured max, or session max
-	-- This ensures bar doesn't clip at high speeds but starts at correct scale
 	local effectiveMax = markerRefMax
 	if configuredMax and configuredMax > effectiveMax then
 		effectiveMax = configuredMax
@@ -140,20 +131,22 @@ function Speed.Calculate(context)
 	-- Calculate fill percentage against effective max
 	local fillPct = Math.Clamp(speedPct / effectiveMax, 0, 1)
 
-	-- Use zone-aware marker reference for consistent marker positioning
-	local markerResult = Progress.CalculateMarker(sustainableSpeed, markerRefMax)
-	local markerData = Result.unwrap(markerResult)
+	-- Calculate marker directly without Progress.lua allocating
+	local markerPct = markerRefMax > 0 and Math.Clamp(sustainableSpeed / markerRefMax, 0, 1) or 0
+	local showMarker = sustainableSpeed > 0
 
-	return Result.success({
-		rawSpeed = rawSpeed,
-		speedPct = speedPct,
-		effectiveMax = effectiveMax,
-		fillPct = fillPct,
-		markerPct = markerData.markerPct,
-		showMarker = markerData.shouldShow,
-		sustainableSpeed = sustainableSpeed,
-		zoneModifier = zoneModifier,
-	})
+	local resultData = outData or {}
+	resultData.rawSpeed = rawSpeed
+	resultData.speedPct = speedPct
+	resultData.effectiveMax = effectiveMax
+	resultData.fillPct = fillPct
+	resultData.markerPct = markerPct
+	resultData.showMarker = showMarker
+	resultData.sustainableSpeed = sustainableSpeed
+	resultData.zoneModifier = zoneModifier
+
+	_staticSpeedResult.data = resultData
+	return _staticSpeedResult
 end
 
 -- Export to Flightsim namespace

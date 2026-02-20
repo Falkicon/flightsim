@@ -60,6 +60,7 @@ local function onEvent(_, event, ...)
 		local unit = ...
 		if unit == "player" then
 			Context.InvalidateSkyridingCache()
+			Context.UpdateBuffs()
 			fireCallbacks("onAura", event, unit)
 		end
 	elseif event == "UPDATE_SHAPESHIFT_FORMS" then
@@ -73,6 +74,8 @@ local function onEvent(_, event, ...)
 	elseif event == "ZONE_CHANGED_NEW_AREA" then
 		Context.UpdateZoneState()
 		fireCallbacks("onZoneChange", event)
+	elseif event == "SPELL_UPDATE_COOLDOWN" then
+		Context.InvalidateSpellCache()
 	end
 end
 
@@ -88,12 +91,15 @@ function Events.Init()
 
 	-- Mount/form events
 	eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
-	eventFrame:RegisterEvent("UNIT_AURA")
+	eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
 	eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
 
 	-- Zone events
 	eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+	
+	-- Spell cooldown events (for charge/cooldown cache invalidation)
+	eventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 
 	Bridge:Log("Events initialized")
 end

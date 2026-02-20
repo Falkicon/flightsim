@@ -5,6 +5,8 @@ local FenCore = _G.FenCore
 local Result = FenCore.ActionResult
 local Math = FenCore.Math
 
+local _staticAccelResult = { success = true, data = nil }
+
 ---@class FlightsimAcceleration
 local Acceleration = {}
 
@@ -17,32 +19,29 @@ Acceleration.STABLE_THRESHOLD = 0.05
 --- Calculate raw delta between speed values.
 ---@param currentSpeed number Current speed (percentage)
 ---@param lastSpeed number Previous speed (percentage)
----@return ActionResult<{delta: number}>
+---@return number delta
 function Acceleration.CalculateDelta(currentSpeed, lastSpeed)
-	if currentSpeed == nil then
-		return Result.error("INVALID_INPUT", "currentSpeed is required")
-	end
+	if currentSpeed == nil then return 0 end
 	lastSpeed = lastSpeed or currentSpeed
-	return Result.success({ delta = currentSpeed - lastSpeed })
+	return currentSpeed - lastSpeed
 end
 
 --- Smooth a delta value to reduce jitter.
 ---@param previousSmooth number Previous smoothed value
 ---@param newDelta number New raw delta
 ---@param oldWeight? number Weight for old value (default 0.7)
----@return ActionResult<{smoothDelta: number}>
+---@return number smoothDelta
 function Acceleration.SmoothDelta(previousSmooth, newDelta, oldWeight)
 	previousSmooth = previousSmooth or 0
 	newDelta = newDelta or 0
 	oldWeight = oldWeight or Acceleration.SMOOTH_OLD_WEIGHT
-	local smoothed = Math.SmoothDelta(previousSmooth, newDelta, oldWeight)
-	return Result.success({ smoothDelta = smoothed })
+	return Math.SmoothDelta(previousSmooth, newDelta, oldWeight)
 end
 
 --- Normalize delta and apply curve.
 ---@param smoothDelta number Smoothed delta value
 ---@param maxDelta? number Maximum expected delta (default 30)
----@return ActionResult<{normalized: number, curved: number, direction: string}>
+---@return number normalized, number curved, string direction
 function Acceleration.NormalizeAndCurve(smoothDelta, maxDelta)
 	smoothDelta = smoothDelta or 0
 	maxDelta = maxDelta or Acceleration.MAX_DELTA
@@ -59,64 +58,58 @@ function Acceleration.NormalizeAndCurve(smoothDelta, maxDelta)
 		direction = "decelerating"
 	end
 
-	return Result.success({
-		normalized = normalized,
-		curved = curved,
-		direction = direction,
-	})
+	return normalized, curved, direction
 end
 
 --- Calculate bar extent for rendering.
 ---@param curved number Curved acceleration value (-1 to 1)
 ---@param barWidth number Total bar width in pixels
 ---@param barHeight number Bar height in pixels
----@return ActionResult<{width: number, anchorSide: string, offsetX: number, isStable: boolean}>
+---@return number width, string anchorSide, number offsetX, boolean isStable
 function Acceleration.CalculateBarExtent(curved, barWidth, barHeight)
 	if barWidth == nil or barHeight == nil then
-		return Result.error("INVALID_INPUT", "barWidth and barHeight are required")
+		return 2, "CENTER", 0, true
 	end
 
 	curved = curved or 0
 	local centerX = barWidth / 2
 	local minSize = math.max(barHeight, 2)
 
-	local result = {
-		isStable = false,
-		width = minSize,
-		anchorSide = "CENTER",
-		offsetX = 0,
-	}
+	local isStable = false
+	local width = minSize
+	local anchorSide = "CENTER"
+	local offsetX = 0
 
 	if math.abs(curved) < Acceleration.STABLE_THRESHOLD then
-		result.isStable = true
-		result.width = minSize
-		result.anchorSide = "CENTER"
-		result.offsetX = 0
+		isStable = true
+		width = minSize
+		anchorSide = "CENTER"
+		offsetX = 0
 	elseif curved >= 0 then
 		local extentWidth = curved * centerX
 		if extentWidth < minSize then
 			extentWidth = minSize
 		end
-		result.width = extentWidth
-		result.anchorSide = "LEFT"
-		result.offsetX = centerX
+		width = extentWidth
+		anchorSide = "LEFT"
+		offsetX = centerX
 	else
 		local extentWidth = -curved * centerX
 		if extentWidth < minSize then
 			extentWidth = minSize
 		end
-		result.width = extentWidth
-		result.anchorSide = "RIGHT"
-		result.offsetX = centerX
+		width = extentWidth
+		anchorSide = "RIGHT"
+		offsetX = centerX
 	end
 
-	return Result.success(result)
+	return width, anchorSide, offsetX, isStable
 end
 
 --- Full acceleration calculation.
 ---@param context table {currentSpeed, lastSpeed, previousSmooth, barWidth, barHeight}
 ---@return ActionResult<AccelBarState>
-function Acceleration.Calculate(context)
+function Acceleration.Calculate(context, outData)
 	if not context then
 		return Result.error("INVALID_INPUT", "context is required")
 	end
@@ -127,29 +120,24 @@ function Acceleration.Calculate(context)
 	local barWidth = context.barWidth or 200
 	local barHeight = context.barHeight or 4
 
-	local deltaResult = Acceleration.CalculateDelta(currentSpeed, lastSpeed)
-	local delta = Result.unwrap(deltaResult).delta
+	local delta = Acceleration.CalculateDelta(currentSpeed, lastSpeed)
+	local smoothDelta = Acceleration.SmoothDelta(previousSmooth, delta)
+	local normalized, curved, direction = Acceleration.NormalizeAndCurve(smoothDelta)
+	local extentWidth, anchorSide, offsetX, isStable = Acceleration.CalculateBarExtent(curved, barWidth, barHeight)
 
-	local smoothResult = Acceleration.SmoothDelta(previousSmooth, delta)
-	local smoothDelta = Result.unwrap(smoothResult).smoothDelta
+	local resultData = outData or {}
+	resultData.delta = delta
+	resultData.smoothDelta = smoothDelta
+	resultData.normalized = normalized
+	resultData.curved = curved
+	resultData.direction = direction
+	resultData.barWidth = extentWidth
+	resultData.anchorSide = anchorSide
+	resultData.offsetX = offsetX
+	resultData.isStable = isStable
 
-	local curveResult = Acceleration.NormalizeAndCurve(smoothDelta)
-	local curveData = Result.unwrap(curveResult)
-
-	local extentResult = Acceleration.CalculateBarExtent(curveData.curved, barWidth, barHeight)
-	local extentData = Result.unwrap(extentResult)
-
-	return Result.success({
-		delta = delta,
-		smoothDelta = smoothDelta,
-		normalized = curveData.normalized,
-		curved = curveData.curved,
-		direction = curveData.direction,
-		barWidth = extentData.width,
-		anchorSide = extentData.anchorSide,
-		offsetX = extentData.offsetX,
-		isStable = extentData.isStable,
-	})
+	_staticAccelResult.data = resultData
+	return _staticAccelResult
 end
 
 FlightsimLogic = FlightsimLogic or {}

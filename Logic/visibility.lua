@@ -1,12 +1,16 @@
 -- Flightsim Visibility Logic
--- Uses FenCore for ActionResult pattern
--- Flightsim-specific visibility decisions for HUD and components
-
-local FenCore = _G.FenCore
-local Result = FenCore.ActionResult
+-- Zero-allocation visibility calculation
+-- All results use pre-allocated static buffers
 
 ---@class FlightsimVisibility
 local Visibility = {}
+
+-- Pre-allocated result buffers (reused every frame)
+local _hudResult = { success = true, data = { shouldShow = false, reason = "" } }
+local _surgeAbilityResult = { success = true, data = { shouldShow = false } }
+local _windAbilityResult = { success = true, data = { shouldShow = false } }
+local _whirlAbilityResult = { success = true, data = { shouldShow = false } }
+local _visResult = { success = true, data = nil }
 
 ---@class VisibilitySettings
 ---@field hideWhenNotSkyriding boolean Hide HUD when not on a skyriding mount
@@ -32,13 +36,12 @@ local Visibility = {}
 --- Determine if the main HUD should be visible.
 ---@param settings VisibilitySettings Visibility settings from SavedVariables
 ---@param playerState PlayerState Current player state
----@return ActionResult<{shouldShow: boolean, reason: string}>
+---@return table result Static result with .data.shouldShow and .data.reason
 function Visibility.ShouldShowHUD(settings, playerState)
-	if not settings then
-		return Result.error("INVALID_INPUT", "settings is required")
-	end
-	if not playerState then
-		return Result.error("INVALID_INPUT", "playerState is required")
+	if not settings or not playerState then
+		_hudResult.data.shouldShow = false
+		_hudResult.data.reason = "invalid input"
+		return _hudResult
 	end
 
 	local hideWhenNotSkyriding = settings.hideWhenNotSkyriding
@@ -48,68 +51,73 @@ function Visibility.ShouldShowHUD(settings, playerState)
 	local isFlying = playerState.isFlying or false
 
 	if hideWhenNotSkyriding then
-		-- Must be skyriding
 		if not isSkyriding then
-			return Result.success({
-				shouldShow = false,
-				reason = "hideWhenNotSkyriding enabled and not skyriding",
-			})
+			_hudResult.data.shouldShow = false
+			_hudResult.data.reason = "hideWhenNotSkyriding enabled and not skyriding"
+			return _hudResult
 		end
-		-- Must be flying, unless showWhenGroundMounted is enabled and mounted
 		if not isFlying then
 			if showWhenGroundMounted and isMounted then
-				return Result.success({
-					shouldShow = true,
-					reason = "skyriding mount on ground, showWhenGroundMounted enabled",
-				})
+				_hudResult.data.shouldShow = true
+				_hudResult.data.reason = "skyriding mount on ground, showWhenGroundMounted enabled"
+				return _hudResult
 			end
-			return Result.success({
-				shouldShow = false,
-				reason = "hideWhenNotSkyriding enabled and mounted but not flying",
-			})
+			_hudResult.data.shouldShow = false
+			_hudResult.data.reason = "hideWhenNotSkyriding enabled and mounted but not flying"
+			return _hudResult
 		end
 	end
 
-	return Result.success({
-		shouldShow = true,
-		reason = "visible (skyriding and flying, or visibility not restricted)",
-	})
+	_hudResult.data.shouldShow = true
+	_hudResult.data.reason = "visible (skyriding and flying, or visibility not restricted)"
+	return _hudResult
 end
 
---- Determine individual ability bar visibility.
+--- Determine individual ability bar visibility (zero-alloc).
 ---@param settings table Ability bar settings
 ---@param abilityName string "surgeForward" | "secondWind" | "whirlingSurge"
 ---@param hudVisible boolean Whether the main HUD is visible
----@return ActionResult<{shouldShow: boolean}>
+---@return table result Static result with .data.shouldShow
 function Visibility.ShouldShowAbility(settings, abilityName, hudVisible)
+	local resultBuf
+	if abilityName == "surgeForward" then
+		resultBuf = _surgeAbilityResult
+	elseif abilityName == "secondWind" then
+		resultBuf = _windAbilityResult
+	else
+		resultBuf = _whirlAbilityResult
+	end
+
 	if not hudVisible then
-		return Result.success({ shouldShow = false })
+		resultBuf.data.shouldShow = false
+		return resultBuf
 	end
 
 	settings = settings or {}
 
 	local shouldShow = false
 	if abilityName == "surgeForward" then
-		-- Defaults to true if not explicitly set to false
 		shouldShow = settings.showSurgeForward ~= false
 	elseif abilityName == "secondWind" then
-		-- Defaults to false unless explicitly enabled
 		shouldShow = settings.showSecondWind == true
 	elseif abilityName == "whirlingSurge" then
-		-- Defaults to false unless explicitly enabled
 		shouldShow = settings.showWhirlingSurge == true
 	end
 
-	return Result.success({ shouldShow = shouldShow })
+	resultBuf.data.shouldShow = shouldShow
+	return resultBuf
 end
 
 --- Calculate full visibility state for all components.
 ---@param context table {visibility: VisibilitySettings, abilityBars: table, playerState: PlayerState}
----@return ActionResult<VisibilityResult>
-function Visibility.Calculate(context)
+---@param outData table Pre-allocated output buffer
+---@return table result Static result with .data containing visibility state
+function Visibility.Calculate(context, outData)
 	if not context then
-		return Result.error("INVALID_INPUT", "context is required")
+		_visResult.success = false
+		return _visResult
 	end
+	_visResult.success = true
 
 	local visibility = context.visibility or {}
 	local abilityBars = context.abilityBars or {}
@@ -117,23 +125,22 @@ function Visibility.Calculate(context)
 
 	-- Check main HUD visibility
 	local hudResult = Visibility.ShouldShowHUD(visibility, playerState)
-	if not hudResult.success then
-		return hudResult
-	end
-	local hudVisible = Result.unwrap(hudResult).shouldShow
-	local reason = Result.unwrap(hudResult).reason
+	local hudVisible = hudResult.data.shouldShow
+	local reason = hudResult.data.reason
+
+	local resultData = outData or {}
 
 	-- If HUD is hidden, everything is hidden
 	if not hudVisible then
-		return Result.success({
-			showHUD = false,
-			showSpeedBar = false,
-			showAccelBar = false,
-			showSurgeForward = false,
-			showSecondWind = false,
-			showWhirlingSurge = false,
-			reason = reason,
-		})
+		resultData.showHUD = false
+		resultData.showSpeedBar = false
+		resultData.showAccelBar = false
+		resultData.showSurgeForward = false
+		resultData.showSecondWind = false
+		resultData.showWhirlingSurge = false
+		resultData.reason = reason
+		_visResult.data = resultData
+		return _visResult
 	end
 
 	-- Calculate individual ability visibility
@@ -141,28 +148,29 @@ function Visibility.Calculate(context)
 	local windResult = Visibility.ShouldShowAbility(abilityBars, "secondWind", hudVisible)
 	local whirlResult = Visibility.ShouldShowAbility(abilityBars, "whirlingSurge", hudVisible)
 
-	return Result.success({
-		showHUD = true,
-		showSpeedBar = true,
-		showAccelBar = true,
-		showSurgeForward = Result.unwrap(surgeResult).shouldShow,
-		showSecondWind = Result.unwrap(windResult).shouldShow,
-		showWhirlingSurge = Result.unwrap(whirlResult).shouldShow,
-		reason = reason,
-	})
+	resultData.showHUD = true
+	resultData.showSpeedBar = true
+	resultData.showAccelBar = true
+	resultData.showSurgeForward = surgeResult.data.shouldShow
+	resultData.showSecondWind = windResult.data.shouldShow
+	resultData.showWhirlingSurge = whirlResult.data.shouldShow
+	resultData.reason = reason
+
+	_visResult.data = resultData
+	return _visResult
 end
 
 --- Determine visibility transition (for animation purposes).
 ---@param wasVisible boolean Previous visibility state
 ---@param isVisible boolean Current visibility state
----@return ActionResult<{action: string}>
+---@return string action "hide", "show", or "none"
 function Visibility.GetTransition(wasVisible, isVisible)
 	if wasVisible and not isVisible then
-		return Result.success({ action = "hide" })
+		return "hide"
 	elseif not wasVisible and isVisible then
-		return Result.success({ action = "show" })
+		return "show"
 	else
-		return Result.success({ action = "none" })
+		return "none"
 	end
 end
 

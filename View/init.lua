@@ -455,21 +455,41 @@ function FlightsimView:OnUpdate(elapsed)
 	end
 	lastUpdateTime = now
 
+	self.layoutDimensions = self.layoutDimensions or {}
+	self.layoutDimensions.accelBarWidth = self.accelFrame and self.accelFrame:GetWidth() or 200
+	self.layoutDimensions.accelBarHeight = self.accelFrame and self.accelFrame:GetHeight() or 4
+	self.layoutDimensions.pitchBarWidth = self.pitchFrame and self.pitchFrame:GetWidth() or 200
+	self.layoutDimensions.pitchBarHeight = self.pitchFrame and self.pitchFrame:GetHeight() or 2
+	local isDebug = Flightsim.debugMode or _G.Mechanic ~= nil
+
+	if not isDebug then
+		-- Fast path (no profiling)
+		local result = Executor.FullUpdate(self.db, self.layoutDimensions)
+		if not result.success then return end
+		local data = ActionResult.unwrap(result)
+		if data.visibility then self:ApplyVisibilityState(data.visibility) end
+		if data.shouldUpdate then
+			self:UpdateSpeed(data.speed)
+			self:UpdateAcceleration(data.acceleration)
+			if data.pitch then self:UpdatePitch(data.pitch) end
+			if data.surgeForward then self:UpdateChargeBar("surgeForward", data.surgeForward) end
+			if data.secondWind then self:UpdateChargeBar("secondWind", data.secondWind) end
+			if data.whirlingSurge then self:UpdateCooldownBar(data.whirlingSurge) end
+			self:UpdateBuffIndicators(data.buffs)
+		end
+		return
+	end
+
 	-- Execute full update through Bridge (with timing)
 	local execStart = debugprofilestop()
-	local result = Executor.FullUpdate(self.db, {
-		accelBarWidth = self.accelFrame and self.accelFrame:GetWidth() or 200,
-		accelBarHeight = self.accelFrame and self.accelFrame:GetHeight() or 4,
-		pitchBarWidth = self.pitchFrame and self.pitchFrame:GetWidth() or 200,
-		pitchBarHeight = self.pitchFrame and self.pitchFrame:GetHeight() or 2,
-	})
+	local result = Executor.FullUpdate(self.db, self.layoutDimensions)
 	self.perf.executor = debugprofilestop() - execStart
 
 	if not result.success then
 		return
 	end
 
-	local data = ActionResult.unwrap(result)
+	local data = result.data
 
 	-- Apply visibility (with timing)
 	if data.visibility then
@@ -515,6 +535,30 @@ end
 --- Apply visibility state to frames and reposition bars to collapse gaps.
 ---@param visibility table Visibility state from Executor
 function FlightsimView:ApplyVisibilityState(visibility)
+	if not self.lastVisibility then
+		self.lastVisibility = {}
+	end
+	
+	local lv = self.lastVisibility
+	if lv.showHUD == visibility.showHUD and
+	   lv.showSpeedBar == visibility.showSpeedBar and
+	   lv.showPitchBar == visibility.showPitchBar and
+	   lv.showSurgeForward == visibility.showSurgeForward and
+	   lv.showSecondWind == visibility.showSecondWind and
+	   lv.showWhirlingSurge == visibility.showWhirlingSurge and
+	   lv.showAbilities == visibility.showAbilities then
+		return -- Layout hasn't changed, skip expensive UI frame redraws
+	end
+
+	-- Update cache
+	lv.showHUD = visibility.showHUD
+	lv.showSpeedBar = visibility.showSpeedBar
+	lv.showPitchBar = visibility.showPitchBar
+	lv.showSurgeForward = visibility.showSurgeForward
+	lv.showSecondWind = visibility.showSecondWind
+	lv.showWhirlingSurge = visibility.showWhirlingSurge
+	lv.showAbilities = visibility.showAbilities
+
 	-- Container controls overall visibility
 	if self.container then
 		if visibility.showHUD then
@@ -794,9 +838,13 @@ function FlightsimView:UpdateChargeBar(abilityKey, data)
 	-- Default color function for gradient
 	local colorFunc = abilityKey == "surgeForward" and Color.ForSurgeForward or Color.ForSecondWind
 
-	for i, state in ipairs(data.states or {}) do
+	local numStates = data.numStates or #(data.states or {})
+	local states = data.states or {}
+
+	for i = 1, numStates do
+		local state = states[i]
 		local bar = bars[i]
-		if bar then
+		if state and bar then
 			bar:SetValue(state.displayPct or 0)
 			local r, g, b
 			if customColor then

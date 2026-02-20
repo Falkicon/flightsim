@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.5.1] - 2026-02-20
+
+### Fixed
+- **Critical Performance: Zero-Allocation Pipeline** — Eliminated all per-frame table and string allocations from the 20Hz update loop
+  - Memory reduced from 5.4 MB (and climbing) to ~500 KB stable after 5 minutes of flying
+  - Eradicated compounding GC freezes (previously ~650 ms/s CPU spikes every few minutes)
+- **C-API Table Leak** — `C_Spell.GetSpellCharges` and `C_Spell.GetSpellCooldown` were allocating new tables from the C-client on every call (~10,800 tables/min). Replaced with event-driven cache invalidated by `SPELL_UPDATE_COOLDOWN`
+- **Secret Value Fallback Leak** — When spell data was flagged as secret, charge/cooldown/pitch handlers allocated fresh tables every frame (~46,800 tables/min). All secret branches now mutate pre-allocated static buffers
+- **Visibility Logic Leak** — `Logic/visibility.lua` called `Result.success({...})` 5+ times per frame. Rewrote to use pre-allocated static result buffers
+- **Speed Display String Leak** — `string.format` generated a new string every frame. Now caches the formatted text and only regenerates when the rounded display value changes
+- **IsSkyridingActive Closure Leak** — Removed anonymous `pcall(function() ... end)` that created a new closure 20 times per second. Unwrapped to flat control flow with direct `pcall(C_PlayerInfo.GetGlidingInfo)`
+- **UI Layout Thrashing** — `ApplyVisibilityState` recalculated frame positions every tick. Added state caching to skip redundant `SetPoint`/`SetSize`/`Show`/`Hide` calls
+
+### Changed
+- Bridge Executor now bypasses `FenCore.ActionResult.unwrap()` in hot paths, reading `.data` directly from static result buffers
+- Logic layers (Speed, Acceleration, Visibility) all use pre-allocated output buffers instead of ActionResult wrappers
+
 ## [1.5.0] - 2026-02-10
 
 ### Added

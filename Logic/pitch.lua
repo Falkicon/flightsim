@@ -7,7 +7,8 @@
 
 local FenCore = _G.FenCore
 local Math = FenCore.Math
-local Result = FenCore.ActionResult
+
+local _staticPitchResult = { success = true, data = nil }
 
 ---@class FlightsimPitch
 local Pitch = {}
@@ -50,11 +51,13 @@ function Pitch.Calculate(input)
 
 	-- Too slow to estimate pitch (on ground, hovering, mounting up)
 	if totalSpeed < Pitch.MIN_SPEED then
-		return Result.success({
-			shouldHide = true,
-			smoothRatio = previousSmooth * 0.95, -- gentle decay toward zero
-			smoothTrend = previousTrend * 0.95,
-		})
+		local resultData = outData or {}
+		resultData.shouldHide = true
+		resultData.smoothRatio = previousSmooth * 0.95 -- gentle decay toward zero
+		resultData.smoothTrend = previousTrend * 0.95
+		
+		_staticPitchResult.data = resultData
+		return _staticPitchResult
 	end
 
 	-- Clamp horizontal to total (floating-point overshoot / timing jitter safety)
@@ -92,18 +95,20 @@ function Pitch.Calculate(input)
 	end
 
 	-- Bar geometry (bidirectional from center)
-	local barResult = Pitch.CalculateBarExtent(smoothRatio, direction, barWidth)
+	local width, anchorSide, offsetX = Pitch.CalculateBarExtent(smoothRatio, direction, barWidth)
 
-	return Result.success({
-		shouldHide = false,
-		smoothRatio = smoothRatio,
-		smoothTrend = smoothTrend,
-		isStable = isStable,
-		direction = direction,
-		width = barResult.width,
-		anchorSide = barResult.anchorSide,
-		offsetX = barResult.offsetX,
-	})
+	local resultData = outData or {}
+	resultData.shouldHide = false
+	resultData.smoothRatio = smoothRatio
+	resultData.smoothTrend = smoothTrend
+	resultData.isStable = isStable
+	resultData.direction = direction
+	resultData.width = width
+	resultData.anchorSide = anchorSide
+	resultData.offsetX = offsetX
+
+	_staticPitchResult.data = resultData
+	return _staticPitchResult
 end
 
 --- Calculate the bar rendering geometry for a bidirectional pitch bar.
@@ -126,13 +131,13 @@ function Pitch.CalculateBarExtent(smoothRatio, direction, barWidth)
 	local centerX = halfWidth
 	if direction == "diving" then
 		-- Bar extends RIGHT from center
-		return { width = barW, anchorSide = "LEFT", offsetX = centerX }
+		return barW, "LEFT", centerX
 	elseif direction == "climbing" then
 		-- Bar extends LEFT from center
-		return { width = barW, anchorSide = "RIGHT", offsetX = centerX }
+		return barW, "RIGHT", centerX
 	else
 		-- Level: small centered bar
-		return { width = Pitch.MIN_BAR_WIDTH, anchorSide = "CENTER", offsetX = 0 }
+		return Pitch.MIN_BAR_WIDTH, "CENTER", 0
 	end
 end
 

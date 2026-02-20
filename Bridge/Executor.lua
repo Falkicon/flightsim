@@ -12,6 +12,33 @@ local Result = FenCore.ActionResult
 ---@class ExecutorModule
 local Executor = {}
 
+-- Reusable buffers to eliminate GC churn in the hot path
+local _speedInput = {}
+local _speedOutput = {}
+local _accelInput = {}
+local _accelOutput = {}
+local _visInput = {
+	visibility = {},
+	abilityBars = {},
+	playerState = {},
+}
+local _visOutput = {}
+local _pitchInput = {}
+local _pitchOutput = {}
+local _surgeStates = { {}, {}, {}, {}, {}, {}, {}, {} }
+local _windStates = { {}, {}, {}, {}, {}, {}, {}, {} }
+local _fullUpdateData = {
+	visibility = {},
+	speed = {},
+	acceleration = {},
+	pitch = {},
+	surgeForward = { states = _surgeStates },
+	secondWind = { states = _windStates },
+	whirlingSurge = {},
+	buffs = {}
+}
+local _fullUpdateResult = { success = true, data = _fullUpdateData }
+
 -- Frame state cache (persists between updates)
 local frameState = {
 	lastFrameTime = nil,
@@ -73,12 +100,17 @@ end
 ---@param ctx FlightsimContext Current context
 ---@return ActionResult<SpeedBarData>
 function Executor.Speed(ctx)
+	local out = _fullUpdateData.speed
+
 	if ctx.player.isSpeedSecret then
-		return Result.success({
-			isSecret = true,
-			displayText = "???",
-			barColor = { 0.5, 0.5, 0.5 },
-		})
+		out.isSecret = true
+		out.displayText = "???"
+		out.barColor = out.barColor or {}
+		out.barColor[1], out.barColor[2], out.barColor[3] = 0.5, 0.5, 0.5
+		out.speedPct = 0
+		out.fillPct = 0
+		out.showMarker = false
+		return out
 	end
 
 	local db = ctx.db or {}
@@ -86,18 +118,18 @@ function Executor.Speed(ctx)
 	local speedBar = profile.speedBar or {}
 
 	-- Calculate speed
-	local speedResult = Logic.Speed.Calculate({
-		rawSpeed = ctx.player.speed or 0,
-		zoneModifier = ctx.zone.zoneModifier,
-		configuredMax = speedBar.maxSpeed or 950,
-		sessionMax = frameState.sessionMaxSpeed,
-	})
+	_speedInput.rawSpeed = ctx.player.speed or 0
+	_speedInput.zoneModifier = ctx.zone.zoneModifier
+	_speedInput.configuredMax = speedBar.maxSpeed or 950
+	_speedInput.sessionMax = frameState.sessionMaxSpeed
+
+	local speedResult = Logic.Speed.Calculate(_speedInput, _speedOutput)
 
 	if not speedResult.success then
 		return speedResult
 	end
 
-	local data = Result.unwrap(speedResult)
+	local data = speedResult.data
 
 	-- Update session max if skyriding
 	if ctx.player.isSkyriding then
@@ -147,13 +179,24 @@ function Executor.Speed(ctx)
 		r, g, b = Logic.Color.ForSpeed(data.fillPct)
 	end
 
-	-- Format display text
+	-- Format display text (only reformat when value changes to avoid string allocation)
 	local showPercent = speedBar.showPercent ~= false
 	local displayText
 	if showPercent then
-		displayText = string.format("%.0f%%", data.speedPct)
+		local intSpeed = math.floor(data.speedPct + 0.5)
+		if intSpeed ~= frameState.lastDisplayInt then
+			frameState.lastDisplayInt = intSpeed
+			frameState.lastDisplayText = intSpeed .. "%"
+		end
+		displayText = frameState.lastDisplayText or "0%"
 	else
-		displayText = string.format("%.1f", data.rawSpeed)
+		-- Raw speed changes less frequently, cache similarly
+		local intRaw = math.floor(data.rawSpeed * 10 + 0.5)
+		if intRaw ~= frameState.lastRawInt then
+			frameState.lastRawInt = intRaw
+			frameState.lastRawText = string.format("%.1f", data.rawSpeed)
+		end
+		displayText = frameState.lastRawText or "0.0"
 	end
 
 	-- Check if sustain marker should be shown (setting + has valid marker data)
@@ -161,15 +204,17 @@ function Executor.Speed(ctx)
 	local showSustainMarker = ui.showSustainMarker ~= false
 	local shouldShowMarker = showSustainMarker and data.showMarker
 
-	return Result.success({
-		isSecret = false,
-		speedPct = data.speedPct,
-		fillPct = data.fillPct,
-		displayText = displayText,
-		barColor = { r, g, b },
-		markerPct = data.markerPct,
-		showMarker = shouldShowMarker,
-	})
+	-- out already declared at top of function
+	out.isSecret = false
+	out.speedPct = data.speedPct
+	out.fillPct = data.fillPct
+	out.displayText = displayText
+	out.barColor = out.barColor or {}
+	out.barColor[1], out.barColor[2], out.barColor[3] = r, g, b
+	out.markerPct = data.markerPct
+	out.showMarker = shouldShowMarker
+
+	return out
 end
 
 --- Execute acceleration bar calculation.
@@ -177,50 +222,47 @@ end
 ---@param barWidth number Bar width in pixels
 ---@param barHeight number Bar height in pixels
 ---@return ActionResult<AccelBarData>
-function Executor.Acceleration(ctx, barWidth, barHeight)
+function Executor.Acceleration(ctx, barWidth, barHeight, speedPct)
+	local out = _fullUpdateData.acceleration
+
 	if ctx.player.isSpeedSecret then
-		return Result.success({
-			isSecret = true,
-			shouldHide = true,
-		})
+		out.isSecret = true
+		out.shouldHide = true
+		return out
 	end
 
-	-- Get current speed percentage
-	local speedResult = Executor.Speed(ctx)
-	if not speedResult.success then
-		return Result.success({ shouldHide = true })
-	end
-
-	local speedPct = Result.unwrap(speedResult).speedPct or 0
+	speedPct = speedPct or 0
 
 	-- Calculate acceleration
-	local accelResult = Logic.Acceleration.Calculate({
-		currentSpeed = speedPct,
-		lastSpeed = frameState.lastSpeedPct,
-		previousSmooth = frameState.smoothDelta,
-		barWidth = barWidth or 200,
-		barHeight = barHeight or 4,
-	})
+	_accelInput.currentSpeed = speedPct
+	_accelInput.lastSpeed = frameState.lastSpeedPct
+	_accelInput.previousSmooth = frameState.smoothDelta
+	_accelInput.barWidth = barWidth or 200
+	_accelInput.barHeight = barHeight or 4
+
+	local accelResult = Logic.Acceleration.Calculate(_accelInput, _accelOutput)
 
 	if not accelResult.success then
-		return Result.success({ shouldHide = true })
+		out.shouldHide = true
+		return out
 	end
 
-	local data = Result.unwrap(accelResult)
+	local data = accelResult.data
 
 	-- Update state
 	frameState.lastSpeedPct = speedPct
 	frameState.smoothDelta = data.smoothDelta
 
-	return Result.success({
-		isSecret = false,
-		shouldHide = false,
-		width = data.barWidth,
-		anchorSide = data.anchorSide,
-		offsetX = data.offsetX,
-		isStable = data.isStable,
-		direction = data.direction,
-	})
+	local out = _fullUpdateData.acceleration
+	out.isSecret = false
+	out.shouldHide = false
+	out.width = data.barWidth
+	out.anchorSide = data.anchorSide
+	out.offsetX = data.offsetX
+	out.isStable = data.isStable
+	out.direction = data.direction
+
+	return out
 end
 
 --- Execute pitch bar calculation via position-based triangulation.
@@ -231,8 +273,13 @@ end
 ---@param barHeight number Bar height in pixels
 ---@return ActionResult<PitchBarData>
 function Executor.Pitch(ctx, barWidth, barHeight)
+	local out = _fullUpdateData.pitch
+
 	if ctx.player.isSpeedSecret then
-		return Result.success({ shouldHide = true, smoothRatio = 0, smoothTrend = 0 })
+		out.shouldHide = true
+		out.smoothRatio = 0
+		out.smoothTrend = 0
+		return out
 	end
 
 	local totalSpeed = ctx.player.speed or 0
@@ -277,32 +324,35 @@ function Executor.Pitch(ctx, barWidth, barHeight)
 	frameState.pitchPrevSpeed = totalSpeed
 
 	-- Call triangulation logic
-	local pitchResult = Logic.Pitch.Calculate({
-		totalSpeed = totalSpeed,
-		horizontalSpeed = horizontalSpeed,
-		previousSmooth = frameState.pitchSmoothRatio,
-		previousTrend = frameState.pitchSmoothTrend,
-		speedTrend = speedTrend,
-		barWidth = barWidth or 200,
-		barHeight = barHeight or 2,
-	})
+	_pitchInput.totalSpeed = totalSpeed
+	_pitchInput.horizontalSpeed = horizontalSpeed
+	_pitchInput.previousSmooth = frameState.pitchSmoothRatio
+	_pitchInput.previousTrend = frameState.pitchSmoothTrend
+	_pitchInput.speedTrend = speedTrend
+	_pitchInput.barWidth = barWidth or 200
+	_pitchInput.barHeight = barHeight or 2
+
+	local pitchResult = Logic.Pitch.Calculate(_pitchInput, _pitchOutput)
 
 	if not pitchResult.success then
-		return Result.success({ shouldHide = true, smoothRatio = 0, smoothTrend = 0 })
+		out.shouldHide = true
+		out.smoothRatio = 0
+		out.smoothTrend = 0
+		return out
 	end
 
 	local data = Result.unwrap(pitchResult)
 	frameState.pitchSmoothRatio = data.smoothRatio or 0
 	frameState.pitchSmoothTrend = data.smoothTrend or 0
 
-	return Result.success({
-		shouldHide = data.shouldHide or false,
-		width = data.width,
-		anchorSide = data.anchorSide,
-		offsetX = data.offsetX,
-		isStable = data.isStable,
-		direction = data.direction,
-	})
+	out.shouldHide = data.shouldHide or false
+	out.width = data.width
+	out.anchorSide = data.anchorSide
+	out.offsetX = data.offsetX
+	out.isStable = data.isStable
+	out.direction = data.direction
+
+	return out
 end
 
 --- Execute charge bar calculation (Surge Forward or Second Wind).
@@ -319,51 +369,71 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 	local charges = abilityData.charges
 	local isUsable = abilityData.isUsable
 
-	-- Handle secret values
-	if charges.isSecret then
-		local secretResult = FenCore.Charges.HandleSecretFallback(isUsable, maxCharges)
-		return secretResult
-	end
-
-	-- Get animation state tables for this ability
-	local targets, animating, animValues
+	local out, listOut, targets, animating, animValues
 	if abilityKey == "surgeForward" then
 		targets = frameState.surgeTargets
 		animating = frameState.surgeAnimating
 		animValues = frameState.surgeAnimValues
+		out = _fullUpdateData.surgeForward
+		listOut = _surgeStates
 	else
 		targets = frameState.windTargets
 		animating = frameState.windAnimating
 		animValues = frameState.windAnimValues
+		out = _fullUpdateData.secondWind
+		listOut = _windStates
 	end
 
-	-- Calculate charge states using FenCore
-	local chargeResult = FenCore.Charges.CalculateAll({
-		currentCharges = charges.currentCharges,
-		maxCharges = maxCharges,
-		chargeStart = charges.chargeStart,
-		chargeDuration = charges.chargeDuration,
-		now = ctx.now,
-	})
-
-	if not chargeResult.success then
-		return chargeResult
+	-- Handle secret values
+	if charges.isSecret then
+		local fill = isUsable and 1 or 0
+		for i = 1, maxCharges do
+			local stateOut = listOut[i] or {}
+			listOut[i] = stateOut
+			stateOut.index = i
+			stateOut.displayPct = fill
+			stateOut.targetPct = fill
+			stateOut.isRecharging = false
+			stateOut.isFull = fill == 1
+		end
+		out.isSecret = true
+		out.states = listOut
+		out.numStates = maxCharges
+		out.allFull = fill == 1
+		out.rechargingIndex = nil
+		return out
 	end
 
-	local data = Result.unwrap(chargeResult)
+	-- Calculate charge states directly to avoid FenCore allocations
+	local currentCharges = charges.currentCharges or 0
+	local maxCharges = maxCharges or 1
+	local chargeStart = charges.chargeStart or 0
+	local chargeDuration = charges.chargeDuration or 0
+	local now = ctx.now or 0
+
 	local ANIM_SPEED = 3.0
+	local rechargingIndex = nil
+	local allFull = currentCharges >= maxCharges
 
 	-- Update animation state and calculate display values
-	local displayStates = {}
-	local rechargingIndex = nil
-	for i, chargeState in ipairs(data.charges) do
-		local targetPct = chargeState.fill
+	for i = 1, maxCharges do
+		-- Inline ChargeFill logic
+		local targetPct = 0
+		local isRecharging = false
+
+		if i <= currentCharges then
+			targetPct = 1
+		elseif i == currentCharges + 1 and chargeDuration > 0 and chargeStart > 0 then
+			local elapsed = now - chargeStart
+			targetPct = math.max(0, math.min(1, elapsed / chargeDuration))
+			isRecharging = true
+		end
 		local displayPct = targetPct
 		local prevTarget = targets[i]
 		local isFirstFrame = prevTarget == nil
 
 		-- Track recharging index
-		if chargeState.isRecharging then
+		if isRecharging then
 			rechargingIndex = i
 		end
 
@@ -395,21 +465,23 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 		-- Update targets for next frame
 		targets[i] = targetPct
 
-		displayStates[i] = {
-			index = i,
-			displayPct = displayPct,
-			targetPct = targetPct,
-			isRecharging = chargeState.isRecharging,
-			isFull = targetPct >= 1,
-		}
+		-- Mutate pre-allocated state table
+		local stateOut = listOut[i] or {}
+		listOut[i] = stateOut
+		stateOut.index = i
+		stateOut.displayPct = displayPct
+		stateOut.targetPct = targetPct
+		stateOut.isRecharging = isRecharging
+		stateOut.isFull = targetPct >= 1
 	end
 
-	return Result.success({
-		isSecret = false,
-		states = displayStates,
-		allFull = data.allFull,
-		rechargingIndex = rechargingIndex,
-	})
+	out.isSecret = false
+	out.states = listOut
+	out.numStates = maxCharges
+	out.allFull = allFull
+	out.rechargingIndex = rechargingIndex
+
+	return out
 end
 
 --- Execute cooldown bar calculation (Whirling Surge).
@@ -428,33 +500,38 @@ function Executor.Cooldown(ctx)
 	if cooldown.isSecret then
 		-- Return full bar when secret
 		local r, g, b = Logic.Color.ForWhirlingSurge(1)
-		return Result.success({
-			isSecret = true,
-			displayValue = 1,
-			isReady = true,
-			onCooldown = false,
-			remaining = 0,
-			barColor = { r, g, b },
-		})
+		local out = _fullUpdateData.whirlingSurge
+		out.isSecret = true
+		out.displayValue = 1
+		out.isReady = true
+		out.onCooldown = false
+		out.remaining = 0
+		out.barColor = out.barColor or {}
+		out.barColor[1], out.barColor[2], out.barColor[3] = r, g, b
+		return out
 	end
 
-	-- Calculate cooldown state using FenCore
-	local cdResult = FenCore.Cooldowns.Calculate({
-		startTime = cooldown.startTime,
-		duration = cooldown.duration,
-		now = ctx.now,
-		enabled = cooldown.enabled,
-	})
-
-	if not cdResult.success then
-		return cdResult
+	-- Calculate cooldown state directly to avoid FenCore allocations
+	local startTime = cooldown.startTime or 0
+	local duration = cooldown.duration or 0
+	local now = ctx.now or 0
+	
+	local targetValue = 1
+	local remaining = 0
+	local isOnCooldown = false
+	
+	if duration > 0 and startTime > 0 then
+		local elapsed = now - startTime
+		remaining = duration - elapsed
+		if remaining > 0 then
+			targetValue = math.max(0, math.min(1, elapsed / duration))
+			isOnCooldown = true
+		else
+			remaining = 0
+		end
 	end
 
-	local data = Result.unwrap(cdResult)
-
-	-- Calculate display value and animation
-	local targetValue = data.progress
-	local isReady = not data.isOnCooldown
+	local isReady = not isOnCooldown
 	local ANIM_SPEED = 8.0
 
 	-- Check if cooldown just became ready (for fill animation)
@@ -486,14 +563,16 @@ function Executor.Cooldown(ctx)
 	-- Get color
 	local r, g, b = Logic.Color.ForWhirlingSurge(displayValue)
 
-	return Result.success({
-		isSecret = false,
-		displayValue = displayValue,
-		isReady = isReady,
-		onCooldown = data.isOnCooldown,
-		remaining = data.remaining,
-		barColor = { r, g, b },
-	})
+	local out = _fullUpdateData.whirlingSurge
+	out.isSecret = false
+	out.displayValue = displayValue
+	out.isReady = isReady
+	out.onCooldown = isOnCooldown
+	out.remaining = remaining
+	out.barColor = out.barColor or {}
+	out.barColor[1], out.barColor[2], out.barColor[3] = r, g, b
+
+	return out
 end
 
 --- Execute visibility calculation.
@@ -503,16 +582,16 @@ function Executor.Visibility(ctx)
 	local db = ctx.db or {}
 	local profile = db.profile or {}
 
-	return Logic.Visibility.Calculate({
-		visibility = profile.visibility or {},
-		abilityBars = profile.abilityBars or {},
-		playerState = {
-			isSkyriding = ctx.player.isSkyriding,
-			isMounted = ctx.player.isMounted,
-			isDruidFlying = ctx.player.isDruidFlying,
-			isFlying = ctx.player.isFlying,
-		},
-	})
+	_visInput.visibility = profile.visibility or {}
+	_visInput.abilityBars = profile.abilityBars or {}
+	_visInput.playerState.isSkyriding = ctx.player.isSkyriding
+	_visInput.playerState.isMounted = ctx.player.isMounted
+	_visInput.playerState.isDruidFlying = ctx.player.isDruidFlying
+	_visInput.playerState.isFlying = ctx.player.isFlying
+
+	-- Calculate visibility
+	local visResult = Logic.Visibility.Calculate(_visInput, _visOutput)
+	return visResult
 end
 
 --- Execute full frame update.
@@ -523,6 +602,8 @@ end
 function Executor.FullUpdate(db, barDimensions)
 	barDimensions = barDimensions or {}
 
+
+
 	-- Build context
 	local ctx = Context.Build(db, frameState.lastFrameTime)
 	frameState.lastFrameTime = ctx.now
@@ -532,64 +613,55 @@ function Executor.FullUpdate(db, barDimensions)
 	if not visResult.success then
 		return visResult
 	end
-	local visibility = Result.unwrap(visResult)
+	local visibility = visResult.data
 
 	-- If HUD is hidden, return early
+	local visOut = _fullUpdateData.visibility
 	if not visibility.showHUD then
-		return Result.success({
-			visibility = visibility,
-			shouldUpdate = false,
-		})
+		visOut.showHUD = false
+		visOut.reason = visibility.reason
+		_fullUpdateData.shouldUpdate = false
+		return _fullUpdateResult
 	end
+	
+	visOut.showHUD = true
+	visOut.showSpeedBar = visibility.showSpeedBar
+	visOut.showPitchBar = visibility.showPitchBar
+	visOut.showSurgeForward = visibility.showSurgeForward
+	visOut.showSecondWind = visibility.showSecondWind
+	visOut.showWhirlingSurge = visibility.showWhirlingSurge
+	visOut.showAbilities = visibility.showAbilities
 
-	-- Calculate all components (safely unwrap to avoid crashes on errors)
-	local speedResult = Executor.Speed(ctx)
-	local speedData = speedResult.success and Result.unwrap(speedResult) or nil
+	-- Calculate all components (safely bypass if nil returned)
+	local speedData = Executor.Speed(ctx)
+	local speedPct = speedData and speedData.speedPct or 0
 
-	local accelResult =
-		Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4)
-	local accelData = accelResult.success and Result.unwrap(accelResult) or nil
+	Executor.Acceleration(ctx, barDimensions.accelBarWidth or 200, barDimensions.accelBarHeight or 4, speedPct)
 
-	local pitchData = nil
 	-- Pitch bar shelved: skip computation until estimation is refined
-	-- local pitchEnabled = db and db.profile and db.profile.pitchBar and db.profile.pitchBar.enabled
 	local pitchEnabled = false
 	if pitchEnabled then
-		local pitchResult =
-			Executor.Pitch(ctx, barDimensions.pitchBarWidth or 200, barDimensions.pitchBarHeight or 2)
-		pitchData = pitchResult.success and Result.unwrap(pitchResult) or nil
+		Executor.Pitch(ctx, barDimensions.pitchBarWidth or 200, barDimensions.pitchBarHeight or 2)
+	else
+		_fullUpdateData.pitch = nil
 	end
 
-	local surgeData = nil
 	if visibility.showSurgeForward then
-		local surgeResult = Executor.Charges(ctx, "surgeForward", 6)
-		surgeData = surgeResult.success and Result.unwrap(surgeResult) or nil
+		Executor.Charges(ctx, "surgeForward", 6)
 	end
 
-	local windData = nil
 	if visibility.showSecondWind then
-		local windResult = Executor.Charges(ctx, "secondWind", 3)
-		windData = windResult.success and Result.unwrap(windResult) or nil
+		Executor.Charges(ctx, "secondWind", 3)
 	end
 
-	local whirlData = nil
 	if visibility.showWhirlingSurge then
-		local whirlResult = Executor.Cooldown(ctx)
-		whirlData = whirlResult.success and Result.unwrap(whirlResult) or nil
+		Executor.Cooldown(ctx)
 	end
 
-	return Result.success({
-		visibility = visibility,
-		shouldUpdate = true,
-		speed = speedData,
-		acceleration = accelData,
-		pitch = pitchData,
-		surgeForward = surgeData,
-		secondWind = windData,
-		whirlingSurge = whirlData,
-		buffs = ctx.buffs,
-		context = ctx,
-	})
+	_fullUpdateData.shouldUpdate = true
+	_fullUpdateData.buffs = ctx.buffs
+
+	return _fullUpdateResult
 end
 
 Bridge.Executor = Executor
