@@ -365,8 +365,11 @@ function Context.Build(db, lastFrameTime)
 	local skySpeed, isGliding, canGlide = Context.GetSkyridingSpeed()
 
 	-- Prefer gliding speed if available and higher
+	-- 12.0.5: GetUnitSpeed returns a secret value during combat, so we must
+	-- guard the comparison via Secrets.SafeCompare (returns nil if either
+	-- operand is secret, which falls through and keeps rawSpeed).
 	local speed = rawSpeed
-	if skySpeed and type(skySpeed) == "number" and skySpeed > (rawSpeed or 0) then
+	if type(skySpeed) == "number" and Secrets.SafeCompare(skySpeed, rawSpeed or 0, ">") then
 		speed = skySpeed
 	end
 
