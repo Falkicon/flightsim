@@ -5,7 +5,6 @@
 local Bridge = FlightsimBridge
 local Context = Bridge.Context
 local FenCore = _G.FenCore
-local Secrets = FenCore.Secrets
 local Logic = FlightsimLogic
 local Result = FenCore.ActionResult
 
@@ -25,6 +24,11 @@ local _visInput = {
 local _visOutput = {}
 local _pitchInput = {}
 local _pitchOutput = {}
+-- Borrowed FenCore scratch data is copied into each rendered ability below.
+local _chargeInput = {}
+local _surgeChargeOutput = { charges = { {}, {}, {}, {}, {}, {} } }
+local _windChargeOutput = { charges = { {}, {}, {} } }
+local _cooldownOutput = {}
 local _surgeStates = { {}, {}, {}, {}, {}, {}, {}, {} }
 local _windStates = { {}, {}, {}, {}, {}, {}, {}, {} }
 local _fullUpdateData = {
@@ -35,7 +39,7 @@ local _fullUpdateData = {
 	surgeForward = { states = _surgeStates },
 	secondWind = { states = _windStates },
 	whirlingSurge = {},
-	buffs = {}
+	buffs = {},
 }
 local _fullUpdateResult = { success = true, data = _fullUpdateData }
 
@@ -47,10 +51,10 @@ local frameState = {
 	sessionMaxSpeed = nil,
 
 	-- Pitch state: continuous position tracking
-	pitchLastX = nil,       -- last UnitPosition X where position actually changed
+	pitchLastX = nil, -- last UnitPosition X where position actually changed
 	pitchLastY = nil,
 	pitchLastTime = nil,
-	pitchHorizSpeed = 0,    -- exponentially smoothed horizontal speed
+	pitchHorizSpeed = 0, -- exponentially smoothed horizontal speed
 	pitchSmoothRatio = 0,
 	pitchSmoothTrend = 0,
 	pitchPrevSpeed = nil,
@@ -74,6 +78,7 @@ local frameState = {
 
 --- Reset frame state (on mount/dismount).
 function Executor.ResetState()
+	frameState.lastFrameTime = nil
 	frameState.lastSpeedPct = nil
 	frameState.smoothDelta = 0
 	frameState.sessionMaxSpeed = nil
@@ -121,6 +126,7 @@ function Executor.Speed(ctx)
 	_speedInput.rawSpeed = ctx.player.speed or 0
 	_speedInput.zoneModifier = ctx.zone.zoneModifier
 	_speedInput.configuredMax = speedBar.maxSpeed or 950
+	_speedInput.sustainableSpeed = speedBar.useCustomSustainableSpeed and speedBar.sustainableSpeed or nil
 	_speedInput.sessionMax = frameState.sessionMaxSpeed
 
 	local speedResult = Logic.Speed.Calculate(_speedInput, _speedOutput)
@@ -228,6 +234,8 @@ function Executor.Acceleration(ctx, barWidth, barHeight, speedPct)
 	if ctx.player.isSpeedSecret then
 		out.isSecret = true
 		out.shouldHide = true
+		frameState.lastSpeedPct = nil
+		frameState.smoothDelta = 0
 		return out
 	end
 
@@ -237,6 +245,7 @@ function Executor.Acceleration(ctx, barWidth, barHeight, speedPct)
 	_accelInput.currentSpeed = speedPct
 	_accelInput.lastSpeed = frameState.lastSpeedPct
 	_accelInput.previousSmooth = frameState.smoothDelta
+	_accelInput.deltaTime = ctx.deltaTime
 	_accelInput.barWidth = barWidth or 200
 	_accelInput.barHeight = barHeight or 4
 
@@ -253,7 +262,6 @@ function Executor.Acceleration(ctx, barWidth, barHeight, speedPct)
 	frameState.lastSpeedPct = speedPct
 	frameState.smoothDelta = data.smoothDelta
 
-	local out = _fullUpdateData.acceleration
 	out.isSecret = false
 	out.shouldHide = false
 	out.width = data.barWidth
@@ -361,6 +369,7 @@ end
 ---@param maxCharges number Maximum charges
 ---@return ActionResult<ChargeBarData>
 function Executor.Charges(ctx, abilityKey, maxCharges)
+	maxCharges = maxCharges or 1
 	local abilityData = ctx.abilities[abilityKey]
 	if not abilityData then
 		return Result.error("INVALID_ABILITY", "Unknown ability: " .. tostring(abilityKey))
@@ -388,6 +397,9 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 	if charges.isSecret then
 		local fill = isUsable and 1 or 0
 		for i = 1, maxCharges do
+			targets[i] = nil
+			animating[i] = nil
+			animValues[i] = nil
 			local stateOut = listOut[i] or {}
 			listOut[i] = stateOut
 			stateOut.index = i
@@ -404,30 +416,24 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 		return out
 	end
 
-	-- Calculate charge states directly to avoid FenCore allocations
-	local currentCharges = charges.currentCharges or 0
-	local maxCharges = maxCharges or 1
-	local chargeStart = charges.chargeStart or 0
-	local chargeDuration = charges.chargeDuration or 0
-	local now = ctx.now or 0
+	-- Resolve ordinary adapter values through the shared allocation-free API.
+	_chargeInput.currentCharges = charges.currentCharges or 0
+	_chargeInput.maxCharges = maxCharges
+	_chargeInput.chargeStart = math.max(0, charges.chargeStart or 0)
+	_chargeInput.chargeDuration = charges.chargeDuration or 0
+	_chargeInput.now = ctx.now or 0
+	local domainOutput = abilityKey == "surgeForward" and _surgeChargeOutput or _windChargeOutput
+	local chargeState = FenCore.Charges.CalculateAllInto(_chargeInput, domainOutput)
 
 	local ANIM_SPEED = 3.0
 	local rechargingIndex = nil
-	local allFull = currentCharges >= maxCharges
+	local allFull = chargeState.allFull
 
 	-- Update animation state and calculate display values
 	for i = 1, maxCharges do
-		-- Inline ChargeFill logic
-		local targetPct = 0
-		local isRecharging = false
-
-		if i <= currentCharges then
-			targetPct = 1
-		elseif i == currentCharges + 1 and chargeDuration > 0 and chargeStart > 0 then
-			local elapsed = now - chargeStart
-			targetPct = math.max(0, math.min(1, elapsed / chargeDuration))
-			isRecharging = true
-		end
+		local charge = chargeState.charges[i]
+		local targetPct = charge.fill
+		local isRecharging = charge.isRecharging
 		local displayPct = targetPct
 		local prevTarget = targets[i]
 		local isFirstFrame = prevTarget == nil
@@ -440,6 +446,10 @@ function Executor.Charges(ctx, abilityKey, maxCharges)
 		-- Check if animation should trigger (charge just became full)
 		-- Skip animation on first frame (after mount) - start at current state
 		local shouldAnimate = not isFirstFrame and targetPct >= 1 and (prevTarget or 0) < 1
+		-- Spending a charge must cancel a completion animation immediately.
+		if targetPct < 1 then
+			animating[i] = false
+		end
 		if shouldAnimate and not animating[i] then
 			animating[i] = true
 			animValues[i] = prevTarget or 0
@@ -494,10 +504,10 @@ function Executor.Cooldown(ctx)
 	end
 
 	local cooldown = abilityData.cooldown
-	local isUsable = abilityData.isUsable
-
 	-- Handle secret values
 	if cooldown.isSecret then
+		frameState.whirlFirstFrame = true
+		frameState.whirlAnimating = false
 		-- Return full bar when secret
 		local r, g, b = Logic.Color.ForWhirlingSurge(1)
 		local out = _fullUpdateData.whirlingSurge
@@ -511,28 +521,21 @@ function Executor.Cooldown(ctx)
 		return out
 	end
 
-	-- Calculate cooldown state directly to avoid FenCore allocations
-	local startTime = cooldown.startTime or 0
-	local duration = cooldown.duration or 0
-	local now = ctx.now or 0
-	
-	local targetValue = 1
-	local remaining = 0
-	local isOnCooldown = false
-	
-	if duration > 0 and startTime > 0 then
-		local elapsed = now - startTime
-		remaining = duration - elapsed
-		if remaining > 0 then
-			targetValue = math.max(0, math.min(1, elapsed / duration))
-			isOnCooldown = true
-		else
-			remaining = 0
-		end
-	end
+	local cooldownState = FenCore.Cooldowns.CalculateProgressInto(
+		math.max(0, cooldown.startTime or 0),
+		cooldown.duration or 0,
+		ctx.now or 0,
+		_cooldownOutput
+	)
+	local targetValue = cooldownState.progress
+	local remaining = cooldownState.remaining
+	local isOnCooldown = cooldownState.isOnCooldown
 
 	local isReady = not isOnCooldown
 	local ANIM_SPEED = 8.0
+	if isOnCooldown then
+		frameState.whirlAnimating = false
+	end
 
 	-- Check if cooldown just became ready (for fill animation)
 	-- Skip animation on first frame (after mount) - start at current state
@@ -559,6 +562,7 @@ function Executor.Cooldown(ctx)
 
 	-- Update state for next frame
 	frameState.whirlWasReady = isReady
+	frameState.whirlAnimValue = displayValue
 
 	-- Get color
 	local r, g, b = Logic.Color.ForWhirlingSurge(displayValue)
@@ -602,8 +606,6 @@ end
 function Executor.FullUpdate(db, barDimensions)
 	barDimensions = barDimensions or {}
 
-
-
 	-- Build context
 	local ctx = Context.Build(db, frameState.lastFrameTime)
 	frameState.lastFrameTime = ctx.now
@@ -618,12 +620,14 @@ function Executor.FullUpdate(db, barDimensions)
 	-- If HUD is hidden, return early
 	local visOut = _fullUpdateData.visibility
 	if not visibility.showHUD then
+		frameState.lastSpeedPct = nil
+		frameState.smoothDelta = 0
 		visOut.showHUD = false
 		visOut.reason = visibility.reason
 		_fullUpdateData.shouldUpdate = false
 		return _fullUpdateResult
 	end
-	
+
 	visOut.showHUD = true
 	visOut.showSpeedBar = visibility.showSpeedBar
 	visOut.showPitchBar = visibility.showPitchBar

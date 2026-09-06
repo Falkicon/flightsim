@@ -21,6 +21,14 @@ local ActionResult = FenCore.ActionResult
 local Logic = FlightsimLogic
 local Color = Logic.Color
 
+local ABILITY_LAYOUT = {
+	["Surge Forward"] = { frameKey = "surgeForwardFrame", visibilityKey = "showSurgeForward" },
+	["Second Wind"] = { frameKey = "secondWindFrame", visibilityKey = "showSecondWind" },
+	["Whirling Surge"] = { frameKey = "whirlingSurgeBar", visibilityKey = "showWhirlingSurge" },
+}
+
+local normalizedAbilityOrder = {}
+
 -- Internal state
 local isInitialized = false
 local tickerFrame = nil
@@ -36,6 +44,41 @@ FlightsimView.perf = {
 	wind = 0,
 	whirling = 0,
 }
+
+local PERF_KEYS = { "executor", "visibility", "speed", "accel", "surge", "wind", "whirling" }
+local perfAccumulator = {
+	executor = 0,
+	visibility = 0,
+	speed = 0,
+	accel = 0,
+	surge = 0,
+	wind = 0,
+	whirling = 0,
+}
+local perfWindowElapsed = 0
+local wasProfiling = false
+
+local function ResetPerformance(target)
+	for _, key in ipairs(PERF_KEYS) do
+		target[key] = 0
+	end
+end
+
+local function RecordPerformance(key, startTime)
+	perfAccumulator[key] = perfAccumulator[key] + (debugprofilestop() - startTime)
+end
+
+local function PublishPerformance()
+	if perfWindowElapsed < 1 then
+		return
+	end
+
+	for _, key in ipairs(PERF_KEYS) do
+		FlightsimView.perf[key] = perfAccumulator[key] / perfWindowElapsed
+	end
+	ResetPerformance(perfAccumulator)
+	perfWindowElapsed = 0
+end
 
 -- Throttling
 local UPDATE_INTERVAL_ACTIVE = 0.05 -- 20Hz when visible
@@ -447,8 +490,23 @@ end
 --- Main update loop.
 ---@param elapsed number Time since last frame
 function FlightsimView:OnUpdate(elapsed)
+	local isProfiling = Flightsim.debugMode or _G.Mechanic ~= nil
+	if isProfiling then
+		if not wasProfiling then
+			ResetPerformance(perfAccumulator)
+			perfWindowElapsed = 0
+		end
+		perfWindowElapsed = perfWindowElapsed + (elapsed or 0)
+	elseif wasProfiling then
+		ResetPerformance(self.perf)
+		ResetPerformance(perfAccumulator)
+		perfWindowElapsed = 0
+	end
+	wasProfiling = isProfiling
+
 	local now = GetTime()
-	local interval = self.frame:IsShown() and UPDATE_INTERVAL_ACTIVE or UPDATE_INTERVAL_IDLE
+	local isHUDVisible = self.container and self.container:IsShown()
+	local interval = isHUDVisible and UPDATE_INTERVAL_ACTIVE or UPDATE_INTERVAL_IDLE
 
 	if (now - lastUpdateTime) < interval then
 		return
@@ -460,21 +518,31 @@ function FlightsimView:OnUpdate(elapsed)
 	self.layoutDimensions.accelBarHeight = self.accelFrame and self.accelFrame:GetHeight() or 4
 	self.layoutDimensions.pitchBarWidth = self.pitchFrame and self.pitchFrame:GetWidth() or 200
 	self.layoutDimensions.pitchBarHeight = self.pitchFrame and self.pitchFrame:GetHeight() or 2
-	local isDebug = Flightsim.debugMode or _G.Mechanic ~= nil
-
-	if not isDebug then
+	if not isProfiling then
 		-- Fast path (no profiling)
 		local result = Executor.FullUpdate(self.db, self.layoutDimensions)
-		if not result.success then return end
+		if not result.success then
+			return
+		end
 		local data = ActionResult.unwrap(result)
-		if data.visibility then self:ApplyVisibilityState(data.visibility) end
+		if data.visibility then
+			self:ApplyVisibilityState(data.visibility)
+		end
 		if data.shouldUpdate then
 			self:UpdateSpeed(data.speed)
 			self:UpdateAcceleration(data.acceleration)
-			if data.pitch then self:UpdatePitch(data.pitch) end
-			if data.surgeForward then self:UpdateChargeBar("surgeForward", data.surgeForward) end
-			if data.secondWind then self:UpdateChargeBar("secondWind", data.secondWind) end
-			if data.whirlingSurge then self:UpdateCooldownBar(data.whirlingSurge) end
+			if data.pitch then
+				self:UpdatePitch(data.pitch)
+			end
+			if data.surgeForward then
+				self:UpdateChargeBar("surgeForward", data.surgeForward)
+			end
+			if data.secondWind then
+				self:UpdateChargeBar("secondWind", data.secondWind)
+			end
+			if data.whirlingSurge then
+				self:UpdateCooldownBar(data.whirlingSurge)
+			end
 			self:UpdateBuffIndicators(data.buffs)
 		end
 		return
@@ -483,9 +551,10 @@ function FlightsimView:OnUpdate(elapsed)
 	-- Execute full update through Bridge (with timing)
 	local execStart = debugprofilestop()
 	local result = Executor.FullUpdate(self.db, self.layoutDimensions)
-	self.perf.executor = debugprofilestop() - execStart
+	RecordPerformance("executor", execStart)
 
 	if not result.success then
+		PublishPerformance()
 		return
 	end
 
@@ -495,18 +564,18 @@ function FlightsimView:OnUpdate(elapsed)
 	if data.visibility then
 		local visStart = debugprofilestop()
 		self:ApplyVisibilityState(data.visibility)
-		self.perf.visibility = debugprofilestop() - visStart
+		RecordPerformance("visibility", visStart)
 	end
 
 	-- Update components if visible (with timing)
 	if data.shouldUpdate then
 		local speedStart = debugprofilestop()
 		self:UpdateSpeed(data.speed)
-		self.perf.speed = debugprofilestop() - speedStart
+		RecordPerformance("speed", speedStart)
 
 		local accelStart = debugprofilestop()
 		self:UpdateAcceleration(data.acceleration)
-		self.perf.accel = debugprofilestop() - accelStart
+		RecordPerformance("accel", accelStart)
 
 		if data.pitch then
 			self:UpdatePitch(data.pitch)
@@ -515,21 +584,23 @@ function FlightsimView:OnUpdate(elapsed)
 		if data.surgeForward then
 			local surgeStart = debugprofilestop()
 			self:UpdateChargeBar("surgeForward", data.surgeForward)
-			self.perf.surge = debugprofilestop() - surgeStart
+			RecordPerformance("surge", surgeStart)
 		end
 		if data.secondWind then
 			local windStart = debugprofilestop()
 			self:UpdateChargeBar("secondWind", data.secondWind)
-			self.perf.wind = debugprofilestop() - windStart
+			RecordPerformance("wind", windStart)
 		end
 		if data.whirlingSurge then
 			local whirlStart = debugprofilestop()
 			self:UpdateCooldownBar(data.whirlingSurge)
-			self.perf.whirling = debugprofilestop() - whirlStart
+			RecordPerformance("whirling", whirlStart)
 		end
 
 		self:UpdateBuffIndicators(data.buffs)
 	end
+
+	PublishPerformance()
 end
 
 --- Apply visibility state to frames and reposition bars to collapse gaps.
@@ -538,16 +609,18 @@ function FlightsimView:ApplyVisibilityState(visibility)
 	if not self.lastVisibility then
 		self.lastVisibility = {}
 	end
-	
+
 	local lv = self.lastVisibility
-	if lv.showHUD == visibility.showHUD and
-	   lv.showSpeedBar == visibility.showSpeedBar and
-	   lv.showPitchBar == visibility.showPitchBar and
-	   lv.showSurgeForward == visibility.showSurgeForward and
-	   lv.showSecondWind == visibility.showSecondWind and
-	   lv.showWhirlingSurge == visibility.showWhirlingSurge and
-	   lv.showAbilities == visibility.showAbilities then
-		return -- Layout hasn't changed, skip expensive UI frame redraws
+	if
+		lv.showHUD == visibility.showHUD
+		and lv.showSpeedBar == visibility.showSpeedBar
+		and lv.showPitchBar == visibility.showPitchBar
+		and lv.showSurgeForward == visibility.showSurgeForward
+		and lv.showSecondWind == visibility.showSecondWind
+		and lv.showWhirlingSurge == visibility.showWhirlingSurge
+		and lv.showAbilities == visibility.showAbilities
+	then
+		return -- Layout hasn't changed; skip expensive UI frame redraws
 	end
 
 	-- Update cache
@@ -620,36 +693,22 @@ function FlightsimView:RepositionAbilityBars(visibility)
 
 	local ui = self.db.profile.ui or {}
 	local barGap = ui.barGap or 2
-	local abilityBarHeight = ui.abilityBarHeight or 10
-
 	-- Pitch frame is the anchor when pitch is enabled, otherwise accel frame
 	-- local pitchEnabled = self.db.profile.pitchBar and self.db.profile.pitchBar.enabled
 	local pitchEnabled = false
 	local lastFrame = (pitchEnabled and self.pitchFrame) or self.accelFrame
 
-	-- Surge Forward
-	if self.surgeForwardFrame then
-		self.surgeForwardFrame:ClearAllPoints()
-		if visibility.showSurgeForward then
-			self.surgeForwardFrame:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
-			lastFrame = self.surgeForwardFrame
-		end
-	end
-
-	-- Second Wind
-	if self.secondWindFrame then
-		self.secondWindFrame:ClearAllPoints()
-		if visibility.showSecondWind then
-			self.secondWindFrame:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
-			lastFrame = self.secondWindFrame
-		end
-	end
-
-	-- Whirling Surge
-	if self.whirlingSurgeBar then
-		self.whirlingSurgeBar:ClearAllPoints()
-		if visibility.showWhirlingSurge then
-			self.whirlingSurgeBar:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
+	local abilities = self.db.profile.abilities or {}
+	local order = Logic.Visibility.GetAbilityOrder(abilities.order, normalizedAbilityOrder)
+	for _, token in ipairs(order) do
+		local layout = ABILITY_LAYOUT[token]
+		local frame = self[layout.frameKey]
+		if frame then
+			frame:ClearAllPoints()
+			if visibility[layout.visibilityKey] then
+				frame:SetPoint("TOP", lastFrame, "BOTTOM", 0, -barGap)
+				lastFrame = frame
+			end
 		end
 	end
 
@@ -969,15 +1028,15 @@ function FlightsimView:CreateBuffIndicators()
 	local buffColors = self.db.profile.colors and self.db.profile.colors.buffIndicators or {}
 
 	local thrillColor = buffColors.thrillOfTheSkies or { r = 1.0, g = 0.82, b = 0.0, a = 0.9 }
-	local thrillCircle = CreateCircleIndicator(self.speedBarOverlay, size,
-		thrillColor.r, thrillColor.g, thrillColor.b, thrillColor.a)
+	local thrillCircle =
+		CreateCircleIndicator(self.speedBarOverlay, size, thrillColor.r, thrillColor.g, thrillColor.b, thrillColor.a)
 	thrillCircle:SetPoint("RIGHT", self.speedBarOverlay, "RIGHT", -(size + 5), 0)
 	thrillCircle:Hide()
 	self.thrillArrow = thrillCircle
 
 	local skimColor = buffColors.groundSkimming or { r = 0.3, g = 0.9, b = 0.3, a = 0.9 }
-	local skimCircle = CreateCircleIndicator(self.speedBarOverlay, size,
-		skimColor.r, skimColor.g, skimColor.b, skimColor.a)
+	local skimCircle =
+		CreateCircleIndicator(self.speedBarOverlay, size, skimColor.r, skimColor.g, skimColor.b, skimColor.a)
 	skimCircle:SetPoint("RIGHT", self.speedBarOverlay, "RIGHT", -4, 0)
 	skimCircle:Hide()
 	self.skimArrow = skimCircle
@@ -1060,7 +1119,6 @@ function FlightsimView:RebuildLayout()
 
 	-- Update ability bar heights and widths
 	local abilityBarHeight = ui.abilityBarHeight or 10
-	local barGap = ui.barGap or 2
 	local chargeGap = 2
 
 	-- Surge Forward (6 charges)
@@ -1068,7 +1126,7 @@ function FlightsimView:RebuildLayout()
 		self.surgeForwardFrame:SetSize(width, abilityBarHeight)
 		local sfTotalGaps = chargeGap * 5
 		local sfChargeWidth = (width - sfTotalGaps) / 6
-		for i, bar in ipairs(self.surgeForwardBars or {}) do
+		for _, bar in ipairs(self.surgeForwardBars or {}) do
 			bar:SetSize(sfChargeWidth, abilityBarHeight)
 		end
 	end
@@ -1078,7 +1136,7 @@ function FlightsimView:RebuildLayout()
 		self.secondWindFrame:SetSize(width, abilityBarHeight)
 		local swTotalGaps = chargeGap * 2
 		local swChargeWidth = (width - swTotalGaps) / 3
-		for i, bar in ipairs(self.secondWindBars or {}) do
+		for _, bar in ipairs(self.secondWindBars or {}) do
 			bar:SetSize(swChargeWidth, abilityBarHeight)
 		end
 	end

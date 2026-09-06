@@ -6,6 +6,7 @@
 -- Uses FenCore for ActionResult pattern
 
 local FenCore = _G.FenCore
+local Result = FenCore.ActionResult
 local Math = FenCore.Math
 
 local _staticPitchResult = { success = true, data = nil }
@@ -36,8 +37,9 @@ Pitch.MIN_BAR_WIDTH = 2
 --- Calculate pitch indicator state via triangulation.
 --- Returns bar geometry for a bidirectional pitch indicator.
 ---@param input table {totalSpeed, horizontalSpeed, previousSmooth, previousTrend, speedTrend, barWidth}
+---@param outData? table Pre-allocated output buffer
 ---@return ActionResult<PitchBarData>
-function Pitch.Calculate(input)
+function Pitch.Calculate(input, outData)
 	if not input then
 		return Result.error("INVALID_INPUT", "input is required")
 	end
@@ -55,7 +57,7 @@ function Pitch.Calculate(input)
 		resultData.shouldHide = true
 		resultData.smoothRatio = previousSmooth * 0.95 -- gentle decay toward zero
 		resultData.smoothTrend = previousTrend * 0.95
-		
+
 		_staticPitchResult.data = resultData
 		return _staticPitchResult
 	end
@@ -115,7 +117,9 @@ end
 ---@param smoothRatio number Smoothed pitch ratio (0-1)
 ---@param direction string "diving", "climbing", or "level"
 ---@param barWidth number Total bar width in pixels
----@return table {width: number, anchorSide: string, offsetX: number}
+---@return number width
+---@return string anchorSide
+---@return number offsetX
 function Pitch.CalculateBarExtent(smoothRatio, direction, barWidth)
 	local halfWidth = barWidth / 2
 

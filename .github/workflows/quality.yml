@@ -1,0 +1,74 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lua 5.1, lint, manifest, and format checks
+    runs-on: ubuntu-24.04
+    env:
+      LUACHECK_VERSION: "0.23.0"
+      STYLUA_VERSION: "2.3.1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Lua tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes curl liblua5.1-0-dev lua5.1 luarocks unzip
+
+          # Install a fixed Luacheck release into the ephemeral runner tree.
+          luarocks --lua-version=5.1 --tree "$RUNNER_TEMP/luarocks" install luacheck "$LUACHECK_VERSION"
+          echo "$RUNNER_TEMP/luarocks/bin" >> "$GITHUB_PATH"
+
+          # Use the fixed x86_64 Linux archive from StyLua's official release.
+          curl --fail --location --silent --show-error \
+            --output "$RUNNER_TEMP/stylua.zip" \
+            "https://github.com/JohnnyMorganz/StyLua/releases/download/v${STYLUA_VERSION}/stylua-linux-x86_64.zip"
+          unzip -q "$RUNNER_TEMP/stylua.zip" -d "$RUNNER_TEMP/stylua"
+          chmod +x "$RUNNER_TEMP/stylua/stylua"
+          echo "$RUNNER_TEMP/stylua" >> "$GITHUB_PATH"
+
+      - name: Verify tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          lua5.1 -v
+          luacheck --version
+          stylua --version
+
+      - name: Run Lua 5.1 regression tests
+        env:
+          MECHANIC_LUA: lua5.1
+        run: lua5.1 Tests/run.lua
+
+      - name: Validate TOC, XML references, and localization
+        run: python3 Tests/validate_repo.py
+
+      - name: Lint first-party Lua
+        run: luacheck . --config .luacheckrc
+
+      - name: Check first-party Lua formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          stylua --check --syntax Lua51 \
+            Flightsim.lua Config.lua Settings.lua \
+            Logic/*.lua Bridge/*.lua View/*.lua Locales/*.lua Tests/*.lua \
+            Libs/FenCore/Domains/Charges.lua \
+            Libs/FenCore/Domains/Cooldowns.lua

@@ -7,22 +7,11 @@ Flightsim.debugMode = false
 local MechanicLib = LibStub("MechanicLib-1.0", true)
 
 local L = setmetatable({}, {
-	__index = function(t, k)
+	__index = function(_, k)
 		return k
 	end,
 })
 Flightsim.L = L
-
-local function CopyDefaults(dst, src)
-	for k, v in pairs(src) do
-		if type(v) == "table" then
-			dst[k] = dst[k] or {}
-			CopyDefaults(dst[k], v)
-		elseif dst[k] == nil then
-			dst[k] = v
-		end
-	end
-end
 
 -- AceDB defaults table
 local defaults = {
@@ -51,6 +40,7 @@ local defaults = {
 		speedBar = {
 			maxSpeed = 950,
 			sustainableSpeed = 790,
+			useCustomSustainableSpeed = false,
 			fontSize = 10,
 			showPercent = true,
 			fontFamily = "Fonts\\ARIALN.TTF",
@@ -77,8 +67,8 @@ local defaults = {
 			-- Stored as stable tokens (English names for now); resolved to spellIDs at runtime.
 			order = {
 				"Surge Forward",
-				"Whirling Surge",
 				"Second Wind",
+				"Whirling Surge",
 			},
 			enabled = {
 				["Surge Forward"] = true,
@@ -181,6 +171,7 @@ eventFrame:SetScript("OnEvent", function(_, event, name)
 	if event == "ADDON_LOADED" and name == ADDON_NAME then
 		-- Initialize AceDB
 		Flightsim.db = LibStub("AceDB-3.0"):New("FlightsimDB", defaults, true)
+		eventFrame:UnregisterEvent("ADDON_LOADED")
 
 		-- MIGRATION: Clean up stale root-level x/y values from old versions
 		-- These values override profile-specific positions and break profile switching

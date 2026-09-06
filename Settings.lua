@@ -1,4 +1,4 @@
-local ADDON_NAME, ns = ...
+local _, ns = ...
 
 -- AceConfig options table for Flightsim
 -- Replaces SettingsUI.lua with hierarchical settings
@@ -12,13 +12,13 @@ local options = {
 	childGroups = "tab", -- Use left nav tabs like ActionHud
 	args = {
 		general = {
-			name = "General",
+			name = L["SETTINGS_GENERAL"],
 			type = "group",
 			order = 1,
 			args = {
 				locked = {
-					name = L["LOCK_FRAME"] or "Lock Frame",
-					desc = L["LOCK_FRAME_DESC"] or "Prevents dragging the Flightsim frame.",
+					name = L["LOCK_FRAME"],
+					desc = L["LOCK_FRAME_DESC"],
 					type = "toggle",
 					order = 1,
 					get = function()
@@ -32,13 +32,13 @@ local options = {
 					end,
 				},
 				appearanceHeader = {
-					name = "Appearance",
+					name = L["SETTINGS_APPEARANCE"],
 					type = "header",
 					order = 5,
 				},
 				scale = {
-					name = L["SCALE"] or "Scale",
-					desc = L["SCALE_DESC"] or "Overall scale of the Flightsim frame.",
+					name = L["SCALE"],
+					desc = L["SCALE_DESC"],
 					type = "range",
 					order = 6,
 					min = 0.5,
@@ -55,8 +55,8 @@ local options = {
 					end,
 				},
 				width = {
-					name = L["BAR_WIDTH"] or "Bar Width",
-					desc = L["BAR_WIDTH_DESC"] or "Width of all bars.",
+					name = L["BAR_WIDTH"],
+					desc = L["BAR_WIDTH_DESC"],
 					type = "range",
 					order = 7,
 					min = 50,
@@ -79,8 +79,8 @@ local options = {
 					width = 0.3,
 				},
 				frameBackground = {
-					name = "Background",
-					desc = "Background color behind ability bars.",
+					name = L["SETTINGS_BACKGROUND"],
+					desc = L["SETTINGS_BACKGROUND_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 8,
@@ -97,14 +97,13 @@ local options = {
 					end,
 				},
 				visibilityHeader = {
-					name = "Visibility",
+					name = L["SETTINGS_VISIBILITY"],
 					type = "header",
 					order = 10,
 				},
 				hideWhenNotSkyriding = {
-					name = L["ONLY_SKYRIDING"] or "Only Show When Skyriding",
-					desc = L["ONLY_SKYRIDING_DESC"]
-						or "Hides the frame when not actively skyriding (must also be flying).",
+					name = L["ONLY_SKYRIDING"],
+					desc = L["ONLY_SKYRIDING_DESC"],
 					type = "toggle",
 					width = 1.2,
 					order = 11,
@@ -119,9 +118,8 @@ local options = {
 					end,
 				},
 				showWhenGroundMounted = {
-					name = L["SHOW_GROUND_MOUNTED"] or "Show on Ground",
-					desc = L["SHOW_GROUND_MOUNTED_DESC"]
-						or "Also show the HUD when on a skyriding mount but still on the ground.",
+					name = L["SHOW_GROUND_MOUNTED"],
+					desc = L["SHOW_GROUND_MOUNTED_DESC"],
 					type = "toggle",
 					width = 1.2,
 					order = 12,
@@ -140,13 +138,13 @@ local options = {
 				},
 				-- Border section
 				borderHeader = {
-					name = "Border",
+					name = L["SETTINGS_BORDER"],
 					type = "header",
 					order = 15,
 				},
 				frameBorder = {
-					name = "Border Color",
-					desc = "Border color around the HUD frame.",
+					name = L["SETTINGS_BORDER_COLOR"],
+					desc = L["SETTINGS_BORDER_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 16,
@@ -163,8 +161,8 @@ local options = {
 					end,
 				},
 				borderWidth = {
-					name = "Border Width",
-					desc = "Width of the border around the HUD frame (0 = no border).",
+					name = L["SETTINGS_BORDER_WIDTH"],
+					desc = L["SETTINGS_BORDER_WIDTH_DESC"],
 					type = "range",
 					order = 17,
 					min = 0,
@@ -183,13 +181,13 @@ local options = {
 			},
 		},
 		speedBar = {
-			name = "Speed Bar",
+			name = L["SETTINGS_SPEED_BAR"],
 			type = "group",
 			order = 2,
 			args = {
 				height = {
-					name = "Height",
-					desc = L["SPEED_BAR_HEIGHT_DESC"] or "Height of the speed bar.",
+					name = L["HEIGHT"],
+					desc = L["SPEED_BAR_HEIGHT_DESC"],
 					type = "range",
 					order = 1,
 					min = 10,
@@ -206,13 +204,13 @@ local options = {
 					end,
 				},
 				textHeader = {
-					name = "Text Display",
+					name = L["SETTINGS_TEXT_DISPLAY"],
 					type = "header",
 					order = 5,
 				},
 				fontFamily = {
-					name = "Font",
-					desc = "Font family for speed text.",
+					name = L["SETTINGS_FONT"],
+					desc = L["SETTINGS_FONT_DESC"],
 					type = "select",
 					order = 6,
 					values = {
@@ -232,8 +230,8 @@ local options = {
 					end,
 				},
 				fontSize = {
-					name = L["FONT_SIZE"] or "Font Size",
-					desc = L["FONT_SIZE_DESC"] or "Size of the speed text.",
+					name = L["FONT_SIZE"],
+					desc = L["FONT_SIZE_DESC"],
 					type = "range",
 					order = 7,
 					min = 8,
@@ -250,14 +248,14 @@ local options = {
 					end,
 				},
 				fontOutline = {
-					name = "Outline",
-					desc = "Text outline style.",
+					name = L["SETTINGS_OUTLINE"],
+					desc = L["SETTINGS_OUTLINE_DESC"],
 					type = "select",
 					order = 8,
 					values = {
-						[""] = "None",
-						["OUTLINE"] = "Outline",
-						["OUTLINE, THICKOUTLINE"] = "Thick Outline",
+						[""] = L["SETTINGS_NONE"],
+						["OUTLINE"] = L["SETTINGS_OUTLINE"],
+						["OUTLINE, THICKOUTLINE"] = L["SETTINGS_THICK_OUTLINE"],
 					},
 					get = function()
 						return Flightsim.db.profile.speedBar.fontOutline or "OUTLINE"
@@ -270,8 +268,8 @@ local options = {
 					end,
 				},
 				showPercent = {
-					name = L["SHOW_PERCENT"] or "Show as Percentage",
-					desc = L["SHOW_PERCENT_DESC"] or "Display speed as percentage instead of raw value.",
+					name = L["SHOW_PERCENT"],
+					desc = L["SHOW_PERCENT_DESC"],
 					type = "toggle",
 					order = 9,
 					get = function()
@@ -282,13 +280,13 @@ local options = {
 					end,
 				},
 				sustainHeader = {
-					name = "Sustain Marker",
+					name = L["SETTINGS_SUSTAIN_MARKER"],
 					type = "header",
 					order = 10,
 				},
 				showSustainMarker = {
-					name = "Show Sustain Marker",
-					desc = "Shows a vertical line at sustainable flight speed.",
+					name = L["SETTINGS_SHOW_SUSTAIN_MARKER"],
+					desc = L["SETTINGS_SUSTAIN_MARKER_DESC"],
 					type = "toggle",
 					order = 11,
 					get = function()
@@ -302,8 +300,8 @@ local options = {
 					end,
 				},
 				sustainMarkerWidth = {
-					name = L["SUSTAIN_MARKER_WIDTH"] or "Marker Width",
-					desc = L["SUSTAIN_MARKER_WIDTH_DESC"] or "Width of the sustainable speed marker line.",
+					name = L["SUSTAIN_MARKER_WIDTH"],
+					desc = L["SUSTAIN_MARKER_WIDTH_DESC"],
 					type = "range",
 					order = 12,
 					min = 1,
@@ -323,8 +321,8 @@ local options = {
 					end,
 				},
 				sustainMarkerAlpha = {
-					name = L["SUSTAIN_MARKER_ALPHA"] or "Marker Opacity",
-					desc = L["SUSTAIN_MARKER_ALPHA_DESC"] or "Opacity of the sustain speed marker (0.1-1.0).",
+					name = L["SUSTAIN_MARKER_ALPHA"],
+					desc = L["SUSTAIN_MARKER_ALPHA_DESC"],
 					type = "range",
 					order = 13,
 					min = 0.1,
@@ -345,13 +343,13 @@ local options = {
 				},
 				-- Speed bar colors moved here from Colors section
 				colorsHeader = {
-					name = "Colors",
+					name = L["SETTINGS_COLORS"],
 					type = "header",
 					order = 20,
 				},
 				useCustomSpeedColors = {
-					name = "Use Custom Colors",
-					desc = "Enable custom speed bar colors instead of default gradient.",
+					name = L["SETTINGS_USE_CUSTOM_COLORS"],
+					desc = L["SETTINGS_CUSTOM_COLORS_DESC"],
 					type = "toggle",
 					order = 21,
 					get = function()
@@ -365,8 +363,8 @@ local options = {
 					end,
 				},
 				speedStartColor = {
-					name = "Low Speed (0%)",
-					desc = "Color at minimum speed.",
+					name = L["SETTINGS_LOW_SPEED_COLOR"],
+					desc = L["SETTINGS_LOW_SPEED_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 22,
@@ -386,8 +384,8 @@ local options = {
 					end,
 				},
 				speedMiddleColor = {
-					name = "Mid Speed (50%)",
-					desc = "Color at half speed.",
+					name = L["SETTINGS_MID_SPEED_COLOR"],
+					desc = L["SETTINGS_MID_SPEED_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 23,
@@ -407,8 +405,8 @@ local options = {
 					end,
 				},
 				speedEndColor = {
-					name = "High Speed (100%)",
-					desc = "Color at maximum speed.",
+					name = L["SETTINGS_HIGH_SPEED_COLOR"],
+					desc = L["SETTINGS_HIGH_SPEED_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 24,
@@ -428,7 +426,7 @@ local options = {
 					end,
 				},
 				speedColorTip = {
-					name = "|cff888888Tip: Set all three colors the same for a solid color bar.|r",
+					name = L["SETTINGS_SOLID_COLOR_TIP"],
 					type = "description",
 					order = 25,
 					hidden = function()
@@ -438,21 +436,19 @@ local options = {
 			},
 		},
 		accelBar = {
-			name = "Acceleration Bar",
+			name = L["SETTINGS_ACCELERATION_BAR"],
 			type = "group",
 			order = 3,
 			args = {
 				description = {
-					name = "The acceleration bar shows whether you are speeding up or slowing down. "
-						.. "When gaining speed, the bar fills right. When losing speed, it fills left.\n\n"
-						.. "It does not show pitch, altitude, or direction - only your rate of speed change.",
+					name = L["SETTINGS_ACCELERATION_DESCRIPTION"],
 					type = "description",
 					order = 0,
 					fontSize = "medium",
 				},
 				height = {
-					name = "Height",
-					desc = L["ACCEL_BAR_HEIGHT_DESC"] or "Height of the acceleration indicator bar.",
+					name = L["HEIGHT"],
+					desc = L["ACCEL_BAR_HEIGHT_DESC"],
 					type = "range",
 					order = 1,
 					min = 1,
@@ -470,13 +466,13 @@ local options = {
 				},
 				-- Acceleration bar colors moved here from Colors section
 				colorsHeader = {
-					name = "Colors",
+					name = L["SETTINGS_COLORS"],
 					type = "header",
 					order = 10,
 				},
 				useDynamicAccelColors = {
-					name = "Dynamic Colors",
-					desc = "Change color based on acceleration direction.",
+					name = L["SETTINGS_DYNAMIC_COLORS"],
+					desc = L["SETTINGS_DYNAMIC_COLORS_DESC"],
 					type = "toggle",
 					order = 11,
 					get = function()
@@ -487,8 +483,8 @@ local options = {
 					end,
 				},
 				decelColor = {
-					name = "Deceleration",
-					desc = "Color when losing speed.",
+					name = L["SETTINGS_DECELERATION"],
+					desc = L["SETTINGS_DECELERATION_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 12,
@@ -505,8 +501,8 @@ local options = {
 					end,
 				},
 				accelColor = {
-					name = "Acceleration",
-					desc = "Color when gaining speed.",
+					name = L["SETTINGS_ACCELERATION"],
+					desc = L["SETTINGS_ACCELERATION_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 13,
@@ -525,13 +521,13 @@ local options = {
 			},
 		},
 		abilityBars = {
-			name = "Ability Bars",
+			name = L["SETTINGS_ABILITY_BARS"],
 			type = "group",
 			order = 4,
 			args = {
 				height = {
-					name = "Height",
-					desc = L["ABILITY_BAR_HEIGHT_DESC"] or "Height of ability cooldown bars.",
+					name = L["HEIGHT"],
+					desc = L["ABILITY_BAR_HEIGHT_DESC"],
 					type = "range",
 					order = 1,
 					min = 2,
@@ -548,8 +544,8 @@ local options = {
 					end,
 				},
 				barGap = {
-					name = L["BAR_GAP"] or "Bar Gap",
-					desc = L["BAR_GAP_DESC"] or "Gap between ability bar sections.",
+					name = L["BAR_GAP"],
+					desc = L["BAR_GAP_DESC"],
 					type = "range",
 					order = 2,
 					min = 0,
@@ -566,13 +562,13 @@ local options = {
 					end,
 				},
 				visibilityHeader = {
-					name = "Visibility",
+					name = L["SETTINGS_VISIBILITY"],
 					type = "header",
 					order = 10,
 				},
 				showSurgeForward = {
-					name = L["SHOW_SURGE_FORWARD"] or "Show Surge Forward",
-					desc = L["SHOW_SURGE_FORWARD_DESC"] or "Show Surge Forward charge bar (6 charges).",
+					name = L["SHOW_SURGE_FORWARD"],
+					desc = L["SHOW_SURGE_FORWARD_DESC"],
 					type = "toggle",
 					order = 11,
 					get = function()
@@ -586,8 +582,8 @@ local options = {
 					end,
 				},
 				showSecondWind = {
-					name = L["SHOW_SECOND_WIND"] or "Show Second Wind",
-					desc = L["SHOW_SECOND_WIND_DESC"] or "Show Second Wind charge bar (3 charges).",
+					name = L["SHOW_SECOND_WIND"],
+					desc = L["SHOW_SECOND_WIND_DESC"],
 					type = "toggle",
 					order = 12,
 					get = function()
@@ -601,8 +597,8 @@ local options = {
 					end,
 				},
 				showWhirlingSurge = {
-					name = L["SHOW_WHIRLING_SURGE"] or "Show Whirling Surge",
-					desc = L["SHOW_WHIRLING_SURGE_DESC"] or "Show Whirling Surge cooldown bar.",
+					name = L["SHOW_WHIRLING_SURGE"],
+					desc = L["SHOW_WHIRLING_SURGE_DESC"],
 					type = "toggle",
 					order = 13,
 					get = function()
@@ -617,13 +613,13 @@ local options = {
 				},
 				-- Ability bar colors moved here from Colors section
 				colorsHeader = {
-					name = "Colors",
+					name = L["SETTINGS_COLORS"],
 					type = "header",
 					order = 20,
 				},
 				surgeForwardColor = {
-					name = "Surge Forward",
-					desc = "Color for Surge Forward charge bar.",
+					name = L["SETTINGS_SURGE_FORWARD"],
+					desc = L["SETTINGS_SURGE_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 21,
@@ -640,8 +636,8 @@ local options = {
 					end,
 				},
 				secondWindColor = {
-					name = "Second Wind",
-					desc = "Color for Second Wind charge bar.",
+					name = L["SETTINGS_SECOND_WIND"],
+					desc = L["SETTINGS_WIND_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 22,
@@ -658,8 +654,8 @@ local options = {
 					end,
 				},
 				whirlingSurgeColor = {
-					name = "Whirling Surge",
-					desc = "Color for Whirling Surge cooldown bar.",
+					name = L["SETTINGS_WHIRLING_SURGE"],
+					desc = L["SETTINGS_WHIRL_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 23,
@@ -677,13 +673,13 @@ local options = {
 				},
 				-- Background colors header
 				bgColorsHeader = {
-					name = "Background Colors",
+					name = L["SETTINGS_BACKGROUND_COLORS"],
 					type = "header",
 					order = 30,
 				},
 				surgeForwardFrameBg = {
-					name = "Surge Forward Row Background",
-					desc = "Background color for the entire Surge Forward row (behind all charges). Set alpha to 0 for transparent.",
+					name = L["SETTINGS_SURGE_ROW_BG"],
+					desc = L["SETTINGS_SURGE_ROW_BG_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 31,
@@ -700,8 +696,8 @@ local options = {
 					end,
 				},
 				surgeForwardBarBg = {
-					name = "Surge Forward Bar Background",
-					desc = "Background color for individual Surge Forward charge bars (visible when recharging).",
+					name = L["SETTINGS_SURGE_BAR_BG"],
+					desc = L["SETTINGS_SURGE_BAR_BG_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 32,
@@ -718,8 +714,8 @@ local options = {
 					end,
 				},
 				secondWindFrameBg = {
-					name = "Second Wind Row Background",
-					desc = "Background color for the entire Second Wind row (behind all charges). Set alpha to 0 for transparent.",
+					name = L["SETTINGS_WIND_ROW_BG"],
+					desc = L["SETTINGS_WIND_ROW_BG_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 33,
@@ -736,8 +732,8 @@ local options = {
 					end,
 				},
 				secondWindBarBg = {
-					name = "Second Wind Bar Background",
-					desc = "Background color for individual Second Wind charge bars (visible when recharging).",
+					name = L["SETTINGS_WIND_BAR_BG"],
+					desc = L["SETTINGS_WIND_BAR_BG_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 34,
@@ -754,8 +750,8 @@ local options = {
 					end,
 				},
 				whirlingSurgeBarBg = {
-					name = "Whirling Surge Bar Background",
-					desc = "Background color for Whirling Surge bar (visible when on cooldown).",
+					name = L["SETTINGS_WHIRL_BAR_BG"],
+					desc = L["SETTINGS_WHIRL_BAR_BG_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 35,
@@ -774,28 +770,24 @@ local options = {
 			},
 		},
 		buffIndicators = {
-			name = "Buff Indicators",
+			name = L["SETTINGS_BUFF_INDICATORS"],
 			type = "group",
 			order = 5,
 			args = {
 				description = {
-					name = "Small arrow indicators appear on the sides of the speed bar when "
-						.. "charge recovery buffs are active.\n\n"
-						.. "|cffffd100Thrill of the Skies|r - triggered by fast diving\n"
-						.. "|cff4de64dGround Skimming|r - triggered by flying near the ground",
+					name = L["SETTINGS_BUFF_DESCRIPTION"],
 					type = "description",
 					order = 0,
 					fontSize = "medium",
 				},
 				visibilityHeader = {
-					name = "Visibility",
+					name = L["SETTINGS_VISIBILITY"],
 					type = "header",
 					order = 1,
 				},
 				showThrillOfTheSkies = {
-					name = L["SHOW_THRILL_OF_THE_SKIES"] or "Thrill of the Skies",
-					desc = L["SHOW_THRILL_OF_THE_SKIES_DESC"]
-						or "Show arrow indicator when Thrill of the Skies is active (fast diving recovers charges faster).",
+					name = L["SHOW_THRILL_OF_THE_SKIES"],
+					desc = L["SHOW_THRILL_OF_THE_SKIES_DESC"],
 					type = "toggle",
 					order = 2,
 					get = function()
@@ -806,9 +798,8 @@ local options = {
 					end,
 				},
 				showGroundSkimming = {
-					name = L["SHOW_GROUND_SKIMMING"] or "Ground Skimming",
-					desc = L["SHOW_GROUND_SKIMMING_DESC"]
-						or "Show arrow indicator when Ground Skimming is active (near-ground flight recovers charges faster).",
+					name = L["SHOW_GROUND_SKIMMING"],
+					desc = L["SHOW_GROUND_SKIMMING_DESC"],
 					type = "toggle",
 					order = 3,
 					get = function()
@@ -819,13 +810,13 @@ local options = {
 					end,
 				},
 				sizeHeader = {
-					name = "Size",
+					name = L["SETTINGS_SIZE"],
 					type = "header",
 					order = 5,
 				},
 				indicatorSize = {
-					name = "Indicator Size",
-					desc = "Diameter of the buff indicator circles in pixels.",
+					name = L["SETTINGS_INDICATOR_SIZE"],
+					desc = L["SETTINGS_INDICATOR_SIZE_DESC"],
 					type = "range",
 					order = 6,
 					min = 4,
@@ -842,13 +833,13 @@ local options = {
 					end,
 				},
 				colorsHeader = {
-					name = "Colors",
+					name = L["SETTINGS_COLORS"],
 					type = "header",
 					order = 10,
 				},
 				thrillColor = {
-					name = "Thrill of the Skies",
-					desc = "Arrow color for Thrill of the Skies indicator.",
+					name = L["SHOW_THRILL_OF_THE_SKIES"],
+					desc = L["SETTINGS_THRILL_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 11,
@@ -865,8 +856,8 @@ local options = {
 					end,
 				},
 				skimColor = {
-					name = "Ground Skimming",
-					desc = "Arrow color for Ground Skimming indicator.",
+					name = L["SHOW_GROUND_SKIMMING"],
+					desc = L["SETTINGS_SKIM_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 12,
@@ -885,24 +876,20 @@ local options = {
 			},
 		},
 		pitchBar = {
-			name = L["PITCH_BAR"] or "Pitch Bar",
+			name = L["PITCH_BAR"],
 			type = "group",
 			order = 6,
 			hidden = true, -- Hidden until pitch estimation is refined
 			args = {
 				description = {
-					name = "Shows a bidirectional bar below the acceleration bar indicating sustained pitch direction.\n\n"
-						.. "|cffffd100Center|r = level flight\n"
-						.. "|cff74afffRight|r = diving\n"
-						.. "|cffff8033Left|r = climbing\n\n"
-						.. "Uses heavily smoothed speed trends as a proxy (no direct pitch API exists).",
+					name = L["SETTINGS_PITCH_DESCRIPTION"],
 					type = "description",
 					order = 0,
 					fontSize = "medium",
 				},
 				enabled = {
-					name = L["PITCH_BAR_ENABLED"] or "Enable Pitch Bar",
-					desc = L["PITCH_BAR_ENABLED_DESC"] or "Show a pitch direction bar below the acceleration bar.",
+					name = L["PITCH_BAR_ENABLED"],
+					desc = L["PITCH_BAR_ENABLED_DESC"],
 					type = "toggle",
 					order = 1,
 					width = "full",
@@ -917,13 +904,13 @@ local options = {
 					end,
 				},
 				sizeHeader = {
-					name = "Size",
+					name = L["SETTINGS_SIZE"],
 					type = "header",
 					order = 5,
 				},
 				height = {
-					name = L["PITCH_BAR_HEIGHT"] or "Bar Height",
-					desc = "Height of the pitch bar in pixels.",
+					name = L["PITCH_BAR_HEIGHT"],
+					desc = L["SETTINGS_PITCH_HEIGHT_DESC"],
 					type = "range",
 					order = 6,
 					min = 1,
@@ -944,13 +931,13 @@ local options = {
 					end,
 				},
 				colorsHeader = {
-					name = "Colors",
+					name = L["SETTINGS_COLORS"],
 					type = "header",
 					order = 10,
 				},
 				useDynamic = {
-					name = L["PITCH_DYNAMIC_COLOR"] or "Dynamic Color",
-					desc = "Color the pitch bar based on direction (diving vs climbing).",
+					name = L["PITCH_DYNAMIC_COLOR"],
+					desc = L["SETTINGS_PITCH_DYNAMIC_DESC"],
 					type = "toggle",
 					order = 11,
 					get = function()
@@ -961,8 +948,8 @@ local options = {
 					end,
 				},
 				divingColor = {
-					name = L["PITCH_COLOR_DIVING"] or "Diving",
-					desc = "Color when diving (nose down).",
+					name = L["PITCH_COLOR_DIVING"],
+					desc = L["SETTINGS_DIVING_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 12,
@@ -976,8 +963,8 @@ local options = {
 					end,
 				},
 				climbingColor = {
-					name = L["PITCH_COLOR_CLIMBING"] or "Climbing",
-					desc = "Color when climbing (nose up).",
+					name = L["PITCH_COLOR_CLIMBING"],
+					desc = L["SETTINGS_CLIMBING_COLOR_DESC"],
 					type = "color",
 					hasAlpha = true,
 					order = 13,
@@ -1025,21 +1012,16 @@ function ns:InitializeSettings()
 		end)
 	end
 
-	-- Register slash commands - only open settings if no args, call Config.lua's handler for commands
-	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", function(msg)
-		if not msg or msg == "" then
+	-- Register both aliases once, routing subcommands through Config.lua.
+	local function HandleCommand(msg)
+		if not msg or msg:match("^%s*$") then
 			OpenSettings()
-		elseif SlashCmdList["FLIGHTSIM"] then
-			SlashCmdList["FLIGHTSIM"](msg)
+		elseif Flightsim.HandleSlashCommand then
+			Flightsim.HandleSlashCommand(msg)
 		end
-	end)
-	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", function(msg)
-		if not msg or msg == "" then
-			OpenSettings()
-		elseif SlashCmdList["FLIGHTSIM"] then
-			SlashCmdList["FLIGHTSIM"](msg)
-		end
-	end)
+	end
+	LibStub("AceConsole-3.0"):RegisterChatCommand("flightsim", HandleCommand)
+	LibStub("AceConsole-3.0"):RegisterChatCommand("fs", HandleCommand)
 end
 
 ns.options = options

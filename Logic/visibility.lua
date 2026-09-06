@@ -1,9 +1,20 @@
 -- Flightsim Visibility Logic
--- Zero-allocation visibility calculation
--- All results use pre-allocated static buffers
+-- Hot-path visibility calculations reuse pre-allocated result buffers.
 
 ---@class FlightsimVisibility
 local Visibility = {}
+
+local DEFAULT_ABILITY_ORDER = {
+	"Surge Forward",
+	"Second Wind",
+	"Whirling Surge",
+}
+
+local KNOWN_ABILITIES = {
+	["Surge Forward"] = true,
+	["Second Wind"] = true,
+	["Whirling Surge"] = true,
+}
 
 -- Pre-allocated result buffers (reused every frame)
 local _hudResult = { success = true, data = { shouldShow = false, reason = "" } }
@@ -106,6 +117,38 @@ function Visibility.ShouldShowAbility(settings, abilityName, hudVisible)
 
 	resultBuf.data.shouldShow = shouldShow
 	return resultBuf
+end
+
+--- Normalize the configured ability order without mutating SavedVariables.
+--- Unknown and duplicate tokens are ignored, and missing known abilities are appended.
+---@param configuredOrder? table Array of stable ability tokens
+---@param outOrder? table Optional reusable output buffer
+---@return table orderedAbilities
+function Visibility.GetAbilityOrder(configuredOrder, outOrder)
+	local order = type(outOrder) == "table" and outOrder or {}
+	for i = #order, 1, -1 do
+		order[i] = nil
+	end
+
+	if type(configuredOrder) ~= "table" then
+		configuredOrder = nil
+	end
+
+	local seen = {}
+	for _, token in ipairs(configuredOrder or {}) do
+		if KNOWN_ABILITIES[token] and not seen[token] then
+			order[#order + 1] = token
+			seen[token] = true
+		end
+	end
+
+	for _, token in ipairs(DEFAULT_ABILITY_ORDER) do
+		if not seen[token] then
+			order[#order + 1] = token
+		end
+	end
+
+	return order
 end
 
 --- Calculate full visibility state for all components.
