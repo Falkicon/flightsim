@@ -1,5 +1,26 @@
 FlightsimConfig = FlightsimConfig or {}
 
+local abilitySettings = {
+	["Surge Forward"] = "showSurgeForward",
+	["Second Wind"] = "showSecondWind",
+	["Whirling Surge"] = "showWhirlingSurge",
+}
+
+local function GetAbilityOrder(db)
+	return FlightsimLogic.Visibility.GetAbilityOrder(db.profile.abilities and db.profile.abilities.order)
+end
+
+local function ListAbilities(db)
+	for i, token in ipairs(GetAbilityOrder(db)) do
+		local enabled = db.profile.abilityBars[abilitySettings[token]] ~= false
+		print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
+	end
+end
+
+local function IsFinite(value)
+	return value and value == value and value > -math.huge and value < math.huge
+end
+
 --- Create a button helper
 local function CreateToolButton(parent, x, y, width, text, onClick)
 	local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
@@ -138,12 +159,9 @@ function FlightsimConfig:CreateToolsPanel(container)
 
 	CreateToolButton(container, 80, -165, 100, "List All", function()
 		local db = Flightsim.db
-		if db and db.profile and db.profile.abilities then
+		if db and db.profile and db.profile.abilityBars then
 			print("|cff00ff00Flightsim:|r Ability bars:")
-			for i, token in ipairs(db.profile.abilities.order or {}) do
-				local enabled = db.profile.abilities.enabled[token] ~= false
-				print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
-			end
+			ListAbilities(db)
 		end
 	end)
 
@@ -158,9 +176,8 @@ function FlightsimConfig:CreateCompliancePanel(container)
 	self:CreateToolsPanel(container)
 end
 
-SLASH_FLIGHTSIM1 = "/flightsim"
-SLASH_FLIGHTSIM2 = "/fs"
-SlashCmdList["FLIGHTSIM"] = function(msg)
+-- AceConsole owns both aliases; registering them twice makes dispatch ambiguous.
+function Flightsim.HandleSlashCommand(msg)
 	local L = Flightsim.L
 	local db = Flightsim.db
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -186,22 +203,25 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		return
 	elseif msg:match("^scale%s+") then
 		local val = tonumber(msg:match("^scale%s+([%d%.]+)$"))
-		if not val then
+		if not IsFinite(val) then
 			print(L["USAGE_SCALE"])
 			return
 		end
+		val = math.max(0.5, math.min(2, val))
+		db.profile.scale = val
 		if FlightsimView and FlightsimView.SetScale then
 			FlightsimView:SetScale(val)
-			db.profile.scale = val
 		end
 		print(L["SCALE_SET"])
 		return
 	elseif msg:match("^width%s+") then
 		local val = tonumber(msg:match("^width%s+([%d%.]+)$"))
-		if not val then
+		if not IsFinite(val) then
 			print(L["USAGE_WIDTH"])
 			return
 		end
+		val = math.max(50, math.min(800, val))
+		db.profile.ui.width = val
 		if FlightsimView and FlightsimView.SetWidth then
 			FlightsimView:SetWidth(val)
 		end
@@ -209,7 +229,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		return
 	elseif msg:match("^barmax%s+") then
 		local val = tonumber(msg:match("^barmax%s+([%d%.]+)$"))
-		if not val then
+		if not IsFinite(val) or val <= 0 then
 			print(L["USAGE_BARMAX"])
 			return
 		end
@@ -217,12 +237,18 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		print(L["BARMAX_SET"])
 		return
 	elseif msg:match("^sustainable%s+") or msg:match("^optimal%s+") then
+		if msg:match("^sustainable%s+auto$") or msg:match("^optimal%s+auto$") then
+			db.profile.speedBar.useCustomSustainableSpeed = false
+			print(L["SUSTAINABLE_SET"])
+			return
+		end
 		local val = tonumber(msg:match("^sustainable%s+([%d%.]+)$") or msg:match("^optimal%s+([%d%.]+)$"))
-		if val == nil then
+		if not IsFinite(val) or val < 0 then
 			print(L["USAGE_SUSTAINABLE"])
 			return
 		end
 		db.profile.speedBar.sustainableSpeed = val
+		db.profile.speedBar.useCustomSustainableSpeed = true
 		print(L["SUSTAINABLE_SET"])
 		return
 	elseif msg == "hidenot" then
@@ -238,7 +264,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		if FlightsimView and FlightsimView.ApplyVisibility then
 			FlightsimView:ApplyVisibility()
 		end
-		print(L["HIDE_WHILE_SKYRIDING"])
+		print(L["SHOW_ALWAYS"])
 		return
 	elseif msg == "showalways" then
 		db.profile.visibility.hideWhenNotSkyriding = false
@@ -250,10 +276,14 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 	elseif msg:match("^toggle%s+") then
 		local query = msg:match("^toggle%s+(.+)$")
 		local found
-		for _, token in ipairs(db.profile.abilities.order or {}) do
+		for _, token in ipairs(GetAbilityOrder(db)) do
 			if token:lower():find(query, 1, true) then
-				local enabled = db.profile.abilities.enabled[token] ~= false
-				db.profile.abilities.enabled[token] = not enabled
+				local key = abilitySettings[token]
+				local enabled = db.profile.abilityBars[key] ~= false
+				db.profile.abilityBars[key] = not enabled
+				if FlightsimView and FlightsimView.ApplyVisibility then
+					FlightsimView:ApplyVisibility()
+				end
 				print(string.format(L["ABILITY_TOGGLED"], token, (not enabled) and "enabled" or "disabled"))
 				found = true
 				break
@@ -265,10 +295,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		return
 	elseif msg == "list" then
 		print(L["ABILITIES_LIST"])
-		for i, token in ipairs(db.profile.abilities.order or {}) do
-			local enabled = db.profile.abilities.enabled[token] ~= false
-			print(string.format("  %d. %s [%s]", i, token, enabled and "ON" or "OFF"))
-		end
+		ListAbilities(db)
 		return
 	elseif msg:match("^move%s+") then
 		local a, b = msg:match("^move%s+(.+)%s+(%d+)$")
@@ -277,7 +304,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 			print(L["USAGE_MOVE"])
 			return
 		end
-		local order = db.profile.abilities.order or {}
+		local order = GetAbilityOrder(db)
 		local fromIndex
 		for i, token in ipairs(order) do
 			if token:lower():find(a, 1, true) then
@@ -293,6 +320,9 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 		local item = table.remove(order, fromIndex)
 		table.insert(order, newIndex, item)
 		db.profile.abilities.order = order
+		if FlightsimView and FlightsimView.RebuildLayout then
+			FlightsimView:RebuildLayout()
+		end
 		print(L["ORDER_UPDATED"])
 		return
 	elseif msg == "debug" then
@@ -352,7 +382,7 @@ SlashCmdList["FLIGHTSIM"] = function(msg)
 	print("  /flightsim scale <number>")
 	print("  /flightsim width <number>")
 	print("  /flightsim barmax <number>")
-	print("  /flightsim sustainable <number>  (0 hides marker)")
+	print("  /flightsim sustainable <number|auto>  (0 hides marker)")
 	print("  /flightsim hidenot | showalways")
 	print("  /flightsim list")
 	print("  /flightsim toggle <ability>")

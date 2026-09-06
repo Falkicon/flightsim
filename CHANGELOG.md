@@ -1,5 +1,69 @@
 # Changelog
 
+All notable changes to Flightsim are documented in this file. The format is
+based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [Unreleased]
+
+## [1.5.6] - 2026-09-06
+
+### Added
+- A self-contained Lua 5.1 regression runner covering domain, Bridge, View,
+  command, lifecycle, timing, diagnostics, localization, and buffer behavior
+- Repository validation for exact TOC/XML path casing, recursive XML references,
+  locale guards and parity, duplicate locale keys, and runtime locale-key usage
+- A pinned CI quality workflow for Lua regressions, repository validation,
+  Luacheck, and StyLua formatting checks
+
+### Changed
+- Charge and cooldown calculations now use shared FenCore output-buffer APIs,
+  with animation state retained by the Executor
+- Acceleration smoothing now uses elapsed time while preserving its 20Hz response;
+  interrupted, hidden, or secret samples reset timing history
+- All 11 locales now contain the complete 150-key baseline
+- Contributor and agent documentation now describe the current architecture,
+  offline workflow, live reload boundary, and validation limits
+
+### Fixed
+- Restricted charge timing, spell usability, and speed values are guarded before
+  arithmetic or comparison
+- Spell caches refresh across charge, spellbook, combat, mount, form, world, and
+  zone transitions; recovery buffs use public spell IDs when available
+- Ability completion animations reset correctly after reuse and across
+  restricted/public transitions
+- Hidden-state throttling follows the HUD container, and performance diagnostics
+  report elapsed rates without retaining stale component values
+- Slash-command dispatch, ability toggles/order, scale validation, bar maximums,
+  and sustainable-marker rendering now agree with the active profile and View
+- Event callback failures reach WoW's error handler without preventing other
+  subscribers from running
+
+Full review context and validation results are recorded in
+[the quality review](docs/quality-review.md) and
+[the follow-up improvements](docs/quality-improvements.md).
+
+## [1.5.5] - 2026-08-10
+
+### Changed
+- Updated the WoW interface target to 120100 and bumped the addon version for
+  the 12.1.0 release
+
+## [1.5.4] - 2026-04-26
+
+### Fixed
+- Guarded the skyriding-speed comparison when `GetUnitSpeed` returns a secret
+  value during 12.0.5 combat
+
+## [1.5.3] - 2026-04-20
+
+### Changed
+- Added Interface 120001 as a compatibility fallback for clients before 12.0.5
+
+## [1.5.2] - 2026-04-20
+
+### Changed
+- Updated the interface target to 120005 for WoW 12.0.5 compatibility
+
 ## [1.5.1] - 2026-02-20
 
 ### Fixed
@@ -84,11 +148,6 @@
 
 ### Fixed
 - Localization files now check client locale before loading, preventing non-English strings (e.g., Chinese) from overwriting English on US/EU clients
-
-
-All notable changes to Flightsim will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.4.0] - 2026-01-04
 

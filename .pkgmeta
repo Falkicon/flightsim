@@ -7,11 +7,20 @@ ignore:
   - CONTRIBUTING.md
   - AGENTS.md
   - SPEC.md
-  - LICENSE
+  - Tests
+  - docs
+  - .luacheckrc
+  - .stylua.toml
+  - .busted
+  - .coverage
+  - .cursor
+  - .cursorignore
   - .git
   - .github
   - .gitignore
   - .vscode
+  - "*.bat"
+  - Libs/libs.json
   - assets/images
 
 # No external libraries - standalone addon

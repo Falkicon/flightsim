@@ -36,7 +36,7 @@ Speed.DRAGON_ISLES_MAPS = {
 }
 
 --- Check if a map ID is in Dragon Isles (uncapped speed).
----@param mapID number Map ID from C_Map.GetBestMapForUnit
+---@param mapID number|nil Map ID from C_Map.GetBestMapForUnit
 ---@return boolean
 function Speed.IsDragonIslesMap(mapID)
 	return Speed.DRAGON_ISLES_MAPS[mapID] == true
@@ -54,40 +54,42 @@ function Speed.GetZoneModifier(mapID)
 end
 
 --- Get sustainable (cruise) speed for current zone.
----@param zoneModifier number Zone modifier (1.0 or 0.85)
----@return number sustainableSpeed (789 or 671)
+---@param zoneModifier? number Zone modifier (1.0 or 0.85)
+---@return number sustainableSpeed Percentage of walking speed
 function Speed.GetSustainableSpeed(zoneModifier)
 	return Speed.BASE_SUSTAINABLE * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Get max speed for current zone.
----@param zoneModifier number Zone modifier (1.0 or 0.85)
----@return number maxSpeed (830 or 705)
+---@param zoneModifier? number Zone modifier (1.0 or 0.85)
+---@return number maxSpeed Percentage of walking speed
 function Speed.GetMaxSpeed(zoneModifier)
 	return Speed.BASE_MAX * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Get Thrill of the Skies threshold for current zone.
----@param zoneModifier number Zone modifier (1.0 or 0.85)
----@return number thrillSpeed (855 or 727)
+---@param zoneModifier? number Zone modifier (1.0 or 0.85)
+---@return number thrillSpeed Percentage of walking speed
 function Speed.GetThrillThreshold(zoneModifier)
 	return Speed.BASE_THRILL * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Get marker reference max for current zone.
 --- This is a fixed reference for consistent marker positioning.
----@param zoneModifier number Zone modifier (1.0 or 0.85)
----@return number markerRefMax (1430 or 1215)
+---@param zoneModifier? number Zone modifier (1.0 or 0.85)
+---@return number markerRefMax Percentage of walking speed
 function Speed.GetMarkerReferenceMax(zoneModifier)
 	return Speed.BASE_MARKER_REF * (zoneModifier or Speed.OLD_WORLD_MODIFIER)
 end
 
 --- Calculate speed percentage from raw yards/sec.
 ---@param rawSpeed number Raw speed in yards/second
----@param baseSpeed? number Base speed for 100% (default 8.24)
+---@param baseSpeed? number Base speed for 100% (default 7.0)
 ---@return number percentage
 function Speed.CalculatePercentage(rawSpeed, baseSpeed)
-	if rawSpeed == nil then return 0 end
+	if rawSpeed == nil then
+		return 0
+	end
 
 	baseSpeed = baseSpeed or Speed.BASE_SPEED_FOR_PCT
 	if baseSpeed <= 0 then
@@ -98,7 +100,7 @@ function Speed.CalculatePercentage(rawSpeed, baseSpeed)
 end
 
 --- Full speed bar calculation.
----@param context table {rawSpeed, zoneModifier, configuredMax, sessionMax}
+---@param context table {rawSpeed, zoneModifier, configuredMax, sessionMax, sustainableSpeed?}
 ---@return ActionResult<SpeedBarState>
 function Speed.Calculate(context, outData)
 	if not context then
@@ -113,8 +115,11 @@ function Speed.Calculate(context, outData)
 	-- Calculate percentage directly
 	local speedPct = Speed.CalculatePercentage(rawSpeed)
 
-	-- Calculate zone-aware sustainable speed for marker
-	local sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
+	-- Use an explicit user override when configured; nil preserves the zone-aware default.
+	local sustainableSpeed = context.sustainableSpeed
+	if sustainableSpeed == nil then
+		sustainableSpeed = Speed.GetSustainableSpeed(zoneModifier)
+	end
 
 	-- Get zone-aware reference max for consistent bar scaling
 	local markerRefMax = Speed.GetMarkerReferenceMax(zoneModifier)
@@ -131,8 +136,8 @@ function Speed.Calculate(context, outData)
 	-- Calculate fill percentage against effective max
 	local fillPct = Math.Clamp(speedPct / effectiveMax, 0, 1)
 
-	-- Calculate marker directly without Progress.lua allocating
-	local markerPct = markerRefMax > 0 and Math.Clamp(sustainableSpeed / markerRefMax, 0, 1) or 0
+	-- Use the same scale as the fill so the marker always represents sustainable speed.
+	local markerPct = effectiveMax > 0 and Math.Clamp(sustainableSpeed / effectiveMax, 0, 1) or 0
 	local showMarker = sustainableSpeed > 0
 
 	local resultData = outData or {}

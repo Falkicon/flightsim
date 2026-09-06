@@ -11,7 +11,9 @@ local _staticAccelResult = { success = true, data = nil }
 local Acceleration = {}
 
 -- Constants
-Acceleration.MAX_DELTA = 30 -- Max delta per update for full bar extension
+Acceleration.REFERENCE_INTERVAL = 0.05 -- Preserve the original response at 20Hz.
+Acceleration.MAX_SAMPLE_GAP = 1 -- Treat long pauses as a new sample stream.
+Acceleration.MAX_DELTA = 30 -- Speed change per reference interval for full extension.
 Acceleration.SMOOTH_OLD_WEIGHT = 0.7
 Acceleration.SMOOTH_NEW_WEIGHT = 0.3
 Acceleration.STABLE_THRESHOLD = 0.05
@@ -21,7 +23,9 @@ Acceleration.STABLE_THRESHOLD = 0.05
 ---@param lastSpeed number Previous speed (percentage)
 ---@return number delta
 function Acceleration.CalculateDelta(currentSpeed, lastSpeed)
-	if currentSpeed == nil then return 0 end
+	if currentSpeed == nil then
+		return 0
+	end
 	lastSpeed = lastSpeed or currentSpeed
 	return currentSpeed - lastSpeed
 end
@@ -30,11 +34,15 @@ end
 ---@param previousSmooth number Previous smoothed value
 ---@param newDelta number New raw delta
 ---@param oldWeight? number Weight for old value (default 0.7)
+---@param deltaTime? number Elapsed seconds (defaults to the reference interval)
 ---@return number smoothDelta
-function Acceleration.SmoothDelta(previousSmooth, newDelta, oldWeight)
+function Acceleration.SmoothDelta(previousSmooth, newDelta, oldWeight, deltaTime)
 	previousSmooth = previousSmooth or 0
 	newDelta = newDelta or 0
 	oldWeight = oldWeight or Acceleration.SMOOTH_OLD_WEIGHT
+	if deltaTime then
+		oldWeight = oldWeight ^ (deltaTime / Acceleration.REFERENCE_INTERVAL)
+	end
 	return Math.SmoothDelta(previousSmooth, newDelta, oldWeight)
 end
 
@@ -49,7 +57,7 @@ function Acceleration.NormalizeAndCurve(smoothDelta, maxDelta)
 	local normalized = Math.NormalizeDelta(smoothDelta, maxDelta)
 	local curved = Math.ApplyCurve(normalized)
 
-	local direction = "stable"
+	local direction
 	if math.abs(curved) < Acceleration.STABLE_THRESHOLD then
 		direction = "stable"
 	elseif curved > 0 then
@@ -75,39 +83,25 @@ function Acceleration.CalculateBarExtent(curved, barWidth, barHeight)
 	local centerX = barWidth / 2
 	local minSize = math.max(barHeight, 2)
 
-	local isStable = false
-	local width = minSize
-	local anchorSide = "CENTER"
-	local offsetX = 0
-
 	if math.abs(curved) < Acceleration.STABLE_THRESHOLD then
-		isStable = true
-		width = minSize
-		anchorSide = "CENTER"
-		offsetX = 0
+		return minSize, "CENTER", 0, true
 	elseif curved >= 0 then
 		local extentWidth = curved * centerX
 		if extentWidth < minSize then
 			extentWidth = minSize
 		end
-		width = extentWidth
-		anchorSide = "LEFT"
-		offsetX = centerX
+		return extentWidth, "LEFT", centerX, false
 	else
 		local extentWidth = -curved * centerX
 		if extentWidth < minSize then
 			extentWidth = minSize
 		end
-		width = extentWidth
-		anchorSide = "RIGHT"
-		offsetX = centerX
+		return extentWidth, "RIGHT", centerX, false
 	end
-
-	return width, anchorSide, offsetX, isStable
 end
 
 --- Full acceleration calculation.
----@param context table {currentSpeed, lastSpeed, previousSmooth, barWidth, barHeight}
+---@param context table {currentSpeed, lastSpeed, previousSmooth, barWidth, barHeight, deltaTime?}
 ---@return ActionResult<AccelBarState>
 function Acceleration.Calculate(context, outData)
 	if not context then
@@ -121,7 +115,23 @@ function Acceleration.Calculate(context, outData)
 	local barHeight = context.barHeight or 4
 
 	local delta = Acceleration.CalculateDelta(currentSpeed, lastSpeed)
-	local smoothDelta = Acceleration.SmoothDelta(previousSmooth, delta)
+	local deltaTime = context.deltaTime
+	if deltaTime == nil then
+		deltaTime = Acceleration.REFERENCE_INTERVAL
+	end
+	local smoothDelta
+	if deltaTime ~= deltaTime or deltaTime > Acceleration.MAX_SAMPLE_GAP or lastSpeed == nil then
+		-- Never infer acceleration across a pause, a mount transition, or a missing sample.
+		delta = 0
+		smoothDelta = 0
+	elseif deltaTime <= 0 then
+		delta = 0
+		smoothDelta = previousSmooth
+	else
+		-- Keep the historic units while making the signal proportional to speed/second.
+		local referenceDelta = delta * Acceleration.REFERENCE_INTERVAL / deltaTime
+		smoothDelta = Acceleration.SmoothDelta(previousSmooth, referenceDelta, nil, deltaTime)
+	end
 	local normalized, curved, direction = Acceleration.NormalizeAndCurve(smoothDelta)
 	local extentWidth, anchorSide, offsetX, isStable = Acceleration.CalculateBarExtent(curved, barWidth, barHeight)
 

@@ -9,90 +9,76 @@ local Catalog = FenCore.Catalog
 
 local Charges = {}
 
---- Calculate fill for a single charge.
----@param chargeIndex number Which charge (1-based)
----@param currentCharges number Current charge count
----@param chargeStart number When recharge started (GetTime)
----@param chargeDuration number Recharge duration in seconds
----@param now number Current time (GetTime)
----@return ActionResult<{fill: number, isRecharging: boolean}>
-function Charges.CalculateChargeFill(chargeIndex, currentCharges, chargeStart, chargeDuration, now)
-    if chargeIndex == nil or currentCharges == nil then
-        return Result.error("INVALID_INPUT", "chargeIndex and currentCharges are required")
-    end
-
-    now = now or 0
-    chargeDuration = chargeDuration or 0
-
-    -- Charge is full
-    if chargeIndex <= currentCharges then
-        return Result.success({
-            fill = 1,
-            isRecharging = false,
-        })
-    end
-
-    -- Charge is empty (beyond next one recharging)
-    if chargeIndex > currentCharges + 1 then
-        return Result.success({
-            fill = 0,
-            isRecharging = false,
-        })
-    end
-
-    -- This is the currently recharging charge
-    if chargeDuration <= 0 or chargeStart == 0 then
-        return Result.success({
-            fill = 0,
-            isRecharging = false,
-        })
-    end
-
-    local elapsed = now - chargeStart
-    local fill = Math.Clamp(elapsed / chargeDuration, 0, 1)
-
-    return Result.success({
-        fill = fill,
-        isRecharging = true,
-    })
+--- Write a single charge into a caller-owned data buffer (no ActionResult).
+--- Inputs must be ordinary numeric values; adapters must resolve secrets first.
+--- Output is borrowed mutable storage: copy values to retain a snapshot.
+--- Use dedicated buffers; all fields in this output schema are overwritten.
+---@param output table Reusable {fill, isRecharging} data buffer
+---@return table output
+function Charges.CalculateChargeFillInto(chargeIndex, currentCharges, chargeStart, chargeDuration, now, output)
+	now = now or 0
+	chargeDuration = chargeDuration or 0
+	output.fill = 0
+	output.isRecharging = false
+	if chargeIndex <= currentCharges then
+		output.fill = 1
+	elseif chargeIndex <= currentCharges + 1 and chargeDuration > 0 and chargeStart ~= 0 then
+		output.fill = Math.Clamp((now - chargeStart) / chargeDuration, 0, 1)
+		output.isRecharging = true
+	end
+	return output
 end
 
---- Calculate all charges for an ability.
+--- Calculate single charge fill with an independently owned ActionResult.
+function Charges.CalculateChargeFill(chargeIndex, currentCharges, chargeStart, chargeDuration, now)
+	if chargeIndex == nil or currentCharges == nil then
+		return Result.error("INVALID_INPUT", "chargeIndex and currentCharges are required")
+	end
+	return Result.success(
+		Charges.CalculateChargeFillInto(chargeIndex, currentCharges, chargeStart, chargeDuration, now, {})
+	)
+end
+
+--- Write all charges into a caller-owned data buffer (no ActionResult).
+--- Allocates only missing storage when capacity grows; clears array tails on shrink.
+--- Output and nested charges are borrowed mutable tables: use separate buffers or
+--- copy values to retain snapshots. Numeric inputs must be non-secret.
 ---@param context table {currentCharges, maxCharges, chargeStart, chargeDuration, now}
----@return ActionResult<{charges: table[], allFull: boolean, anyRecharging: boolean}>
+---@param output table Reusable {charges, allFull, anyRecharging} buffer
+---@return table output
+function Charges.CalculateAllInto(context, output)
+	local currentCharges = context.currentCharges or 0
+	local maxCharges = context.maxCharges or 1
+	local chargeStart = context.chargeStart or 0
+	local chargeDuration = context.chargeDuration or 0
+	local now = context.now or 0
+	local charges = output.charges or {}
+	output.charges = charges
+	local anyRecharging = false
+	local count = 0
+	for i = 1, maxCharges do
+		local charge = charges[i] or {}
+		charges[i] = charge
+		Charges.CalculateChargeFillInto(i, currentCharges, chargeStart, chargeDuration, now, charge)
+		if charge.isRecharging then
+			anyRecharging = true
+		end
+		count = i
+	end
+	for i = #charges, count + 1, -1 do
+		charges[i] = nil
+	end
+	output.allFull = currentCharges >= maxCharges
+	output.anyRecharging = anyRecharging
+	return output
+end
+
+--- Calculate all charges with an independently owned ActionResult.
 function Charges.CalculateAll(context)
-    if context == nil then
-        return Result.error("INVALID_INPUT", "context is required")
-    end
-
-    local currentCharges = context.currentCharges or 0
-    local maxCharges = context.maxCharges or 1
-    local chargeStart = context.chargeStart or 0
-    local chargeDuration = context.chargeDuration or 0
-    local now = context.now or 0
-
-    local charges = {}
-    local anyRecharging = false
-
-    for i = 1, maxCharges do
-        local result = Charges.CalculateChargeFill(i, currentCharges, chargeStart, chargeDuration, now)
-        if result.success then
-            table.insert(charges, result.data)
-            if result.data.isRecharging then
-                anyRecharging = true
-            end
-        else
-            table.insert(charges, { fill = 0, isRecharging = false })
-        end
-    end
-
-    local allFull = currentCharges >= maxCharges
-
-    return Result.success({
-        charges = charges,
-        allFull = allFull,
-        anyRecharging = anyRecharging,
-    })
+	if context == nil then
+		return Result.error("INVALID_INPUT", "context is required")
+	end
+	return Result.success(Charges.CalculateAllInto(context, {}))
 end
 
 --- Advance animation value smoothly toward target.
@@ -102,10 +88,10 @@ end
 ---@param animSpeed? number Animation speed multiplier (default 8)
 ---@return number newValue
 function Charges.AdvanceAnimation(currentValue, targetValue, deltaTime, animSpeed)
-    animSpeed = animSpeed or 8
-    local diff = targetValue - currentValue
-    local step = diff * Math.Clamp(deltaTime * animSpeed, 0, 1)
-    return currentValue + step
+	animSpeed = animSpeed or 8
+	local diff = targetValue - currentValue
+	local step = diff * Math.Clamp(deltaTime * animSpeed, 0, 1)
+	return currentValue + step
 end
 
 --- Handle secret value fallback for charges.
@@ -113,65 +99,102 @@ end
 ---@param maxCharges number Max charges for the ability
 ---@return ActionResult<{currentCharges: number, isSecret: boolean}>
 function Charges.HandleSecretFallback(isUsable, maxCharges)
-    maxCharges = maxCharges or 1
+	maxCharges = maxCharges or 1
 
-    if Secrets.IsSecret(isUsable) then
-        return Result.success({
-            currentCharges = maxCharges,
-            isSecret = true,
-        }, "Using max charges as fallback for secret usability")
-    end
+	if Secrets.IsSecret(isUsable) then
+		return Result.success({
+			currentCharges = maxCharges,
+			isSecret = true,
+		}, "Using max charges as fallback for secret usability")
+	end
 
-    local charges = isUsable and maxCharges or 0
-    return Result.success({
-        currentCharges = charges,
-        isSecret = false,
-    })
+	local charges = isUsable and maxCharges or 0
+	return Result.success({
+		currentCharges = charges,
+		isSecret = false,
+	})
 end
 
 -- Register with catalog
 Catalog:RegisterDomain("Charges", {
-    CalculateChargeFill = {
-        handler = Charges.CalculateChargeFill,
-        description = "Calculate fill for a single charge",
-        params = {
-            { name = "chargeIndex", type = "number", required = true, description = "1-based" },
-            { name = "currentCharges", type = "number", required = true },
-            { name = "chargeStart", type = "number", required = true },
-            { name = "chargeDuration", type = "number", required = true },
-            { name = "now", type = "number", required = true },
-        },
-        returns = { type = "ActionResult<{fill, isRecharging}>" },
-        example = "Charges.CalculateChargeFill(2, 1, 100, 30, 115) → {fill: 0.5, isRecharging: true}",
-    },
-    CalculateAll = {
-        handler = Charges.CalculateAll,
-        description = "Calculate all charges for an ability",
-        params = {
-            { name = "context", type = "table", required = true, description = "{currentCharges, maxCharges, chargeStart, chargeDuration, now}" },
-        },
-        returns = { type = "ActionResult<{charges, allFull, anyRecharging}>" },
-    },
-    AdvanceAnimation = {
-        handler = Charges.AdvanceAnimation,
-        description = "Advance animation value smoothly toward target",
-        params = {
-            { name = "currentValue", type = "number", required = true },
-            { name = "targetValue", type = "number", required = true },
-            { name = "deltaTime", type = "number", required = true },
-            { name = "animSpeed", type = "number", required = false, default = 8 },
-        },
-        returns = { type = "number" },
-    },
-    HandleSecretFallback = {
-        handler = Charges.HandleSecretFallback,
-        description = "Handle secret value fallback for charges",
-        params = {
-            { name = "isUsable", type = "any", required = true },
-            { name = "maxCharges", type = "number", required = true },
-        },
-        returns = { type = "ActionResult<{currentCharges, isSecret}>" },
-    },
+	CalculateChargeFillInto = {
+		handler = Charges.CalculateChargeFillInto,
+		description = "Write {fill, isRecharging} into caller-owned borrowed storage",
+		params = {
+			{ name = "chargeIndex", type = "number", required = true },
+			{ name = "currentCharges", type = "number", required = true },
+			{ name = "chargeStart", type = "number", required = true },
+			{ name = "chargeDuration", type = "number", required = true },
+			{ name = "now", type = "number", required = true },
+			{
+				name = "output",
+				type = "table",
+				required = true,
+				description = "Mutable data buffer; copy to retain a snapshot",
+			},
+		},
+		returns = { type = "table" },
+	},
+	CalculateAllInto = {
+		handler = Charges.CalculateAllInto,
+		description = "Write {charges, allFull, anyRecharging} into caller-owned borrowed storage",
+		params = {
+			{ name = "context", type = "table", required = true },
+			{
+				name = "output",
+				type = "table",
+				required = true,
+				description = "Mutable data buffer; copy to retain a snapshot",
+			},
+		},
+		returns = { type = "table" },
+	},
+	CalculateChargeFill = {
+		handler = Charges.CalculateChargeFill,
+		description = "Calculate fill for a single charge",
+		params = {
+			{ name = "chargeIndex", type = "number", required = true, description = "1-based" },
+			{ name = "currentCharges", type = "number", required = true },
+			{ name = "chargeStart", type = "number", required = true },
+			{ name = "chargeDuration", type = "number", required = true },
+			{ name = "now", type = "number", required = true },
+		},
+		returns = { type = "ActionResult<{fill, isRecharging}>" },
+		example = "Charges.CalculateChargeFill(2, 1, 100, 30, 115) → {fill: 0.5, isRecharging: true}",
+	},
+	CalculateAll = {
+		handler = Charges.CalculateAll,
+		description = "Calculate all charges for an ability",
+		params = {
+			{
+				name = "context",
+				type = "table",
+				required = true,
+				description = "{currentCharges, maxCharges, chargeStart, chargeDuration, now}",
+			},
+		},
+		returns = { type = "ActionResult<{charges, allFull, anyRecharging}>" },
+	},
+	AdvanceAnimation = {
+		handler = Charges.AdvanceAnimation,
+		description = "Advance animation value smoothly toward target",
+		params = {
+			{ name = "currentValue", type = "number", required = true },
+			{ name = "targetValue", type = "number", required = true },
+			{ name = "deltaTime", type = "number", required = true },
+			{ name = "animSpeed", type = "number", required = false, default = 8 },
+		},
+		returns = { type = "number" },
+	},
+	HandleSecretFallback = {
+		handler = Charges.HandleSecretFallback,
+		description = "Handle secret value fallback for charges",
+		params = {
+			{ name = "isUsable", type = "any", required = true },
+			{ name = "maxCharges", type = "number", required = true },
+		},
+		returns = { type = "ActionResult<{currentCharges, isSecret}>" },
+	},
 })
 
 FenCore.Charges = Charges
